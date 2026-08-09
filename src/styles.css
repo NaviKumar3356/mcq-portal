@@ -480,8 +480,8 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
 }
 
 .logo-badge {
-  width: 96px;
-  height: 96px;
+  width: 250px;
+  height: 250px;
   margin: 0 auto 14px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ffffff, #eef3ee 70%);
