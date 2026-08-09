@@ -2,8 +2,10 @@ const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
 const { CLASSES } = require('./utils/constants');
 
-// Body: { rows: [{ roll_number, name, class, dob }, ...] }
-// Upserts on (roll_number, class): existing students are updated (name/dob),
+// Body: { rows: [{ srno, roll_number, name, class, dob }, ...] }
+// srno is optional (your own record/attendance-sheet numbering — not used
+// for login, which is still class + roll_number + dob).
+// Upserts on (roll_number, class): existing students are updated (name/dob/srno),
 // new ones are inserted. Returns a per-row report so the teacher can see
 // exactly what happened, including which rows were rejected and why.
 exports.handler = async (event) => {
@@ -29,6 +31,7 @@ exports.handler = async (event) => {
       const name = String(raw.name || '').trim();
       const klass = String(raw.class || '').trim();
       const dob = String(raw.dob || '').trim();
+      const srnoRaw = String(raw.srno ?? '').trim();
       const rowNum = i + 1;
 
       if (!roll_number || !name || !klass || !dob) {
@@ -47,11 +50,16 @@ exports.handler = async (event) => {
         results.push({ row: rowNum, ok: false, error: 'dob must be YYYY-MM-DD' });
         continue;
       }
+      let srno = null;
+      if (srnoRaw !== '') {
+        srno = srnoRaw;
+      }
 
       const { error } = await supabase
         .from('students')
         .upsert(
           {
+            srno,
             roll_number,
             name,
             class: klass,

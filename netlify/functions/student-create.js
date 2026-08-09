@@ -8,7 +8,7 @@ exports.handler = async (event) => {
   if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
-    const { roll_number, name, class: klass, dob } = JSON.parse(event.body || '{}');
+    const { srno, roll_number, name, class: klass, dob } = JSON.parse(event.body || '{}');
     if (!roll_number || !name || !klass || !dob) {
       return json(400, { error: 'roll_number, name, class and dob are all required' });
     }
@@ -18,6 +18,7 @@ exports.handler = async (event) => {
     }
 
     const { error } = await supabase.from('students').insert({
+      srno: srno === '' || srno === undefined || srno === null ? null : String(srno).trim(),
       roll_number: roll_number.trim(),
       name,
       class: klass,

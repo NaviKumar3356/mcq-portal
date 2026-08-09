@@ -10,8 +10,9 @@ exports.handler = async (event) => {
 
     let query = supabase
       .from('students')
-      .select('id, roll_number, name, class, dob, created_at')
+      .select('id, srno, roll_number, name, class, dob, created_at')
       .order('class', { ascending: true })
+      .order('srno', { ascending: true, nullsFirst: false })
       .order('roll_number', { ascending: true });
 
     if (auth.role === 'teacher') {
