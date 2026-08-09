@@ -458,3 +458,60 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
   cursor: pointer;
 }
 .checkbox-row input { width: auto; }
+
+/* ===================== Student login — colorful redesign ===================== */
+.student-login-bg {
+  background: linear-gradient(135deg, #16233d 0%, #2f6f4f 55%, #eab54a 130%);
+}
+
+.student-card {
+  max-width: 420px;
+  padding-top: 38px;
+}
+.student-card::before {
+  height: 8px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--accent) 0 16px,
+    #eab54a 16px 32px,
+    #d9694a 32px 48px
+  );
+  opacity: 1;
+}
+
+.logo-badge {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #ffffff, #eef3ee 70%);
+  border: 3px solid var(--accent);
+  box-shadow: 0 6px 18px rgba(47, 111, 79, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.logo-badge img {
+  width: 78%;
+  height: 78%;
+}
+
+.student-title {
+  text-align: center;
+  font-size: 1.5rem;
+  background: linear-gradient(90deg, var(--accent-dark), #d9694a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.student-btn {
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  font-size: 1rem;
+  padding: 13px 18px;
+  box-shadow: 0 4px 14px rgba(47, 111, 79, 0.35);
+}
+.student-btn:hover {
+  background: linear-gradient(90deg, var(--accent-dark), var(--accent));
+}
