@@ -31,4 +31,11 @@ function json(statusCode, body) {
   };
 }
 
-module.exports = { sign, verify, getAuth, json };
+// Returns the decoded auth if it matches one of the allowed roles, else null.
+function requireRole(event, roles) {
+  const auth = getAuth(event);
+  if (!auth || !roles.includes(auth.role)) return null;
+  return auth;
+}
+
+module.exports = { sign, verify, getAuth, json, requireRole };

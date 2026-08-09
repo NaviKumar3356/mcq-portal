@@ -1,17 +1,33 @@
 const supabase = require('./utils/db');
-const { getAuth, json } = require('./utils/auth');
+const { requireRole, json } = require('./utils/auth');
+
+function teacherCanAccessTest(auth, test) {
+  if (auth.role !== 'teacher') return true;
+  return (auth.classes || []).includes(test.class) && (auth.subjects || []).includes(test.subject);
+}
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'admin') return json(401, { error: 'Not authorized' });
+  const auth = requireRole(event, ['teacher', 'super_admin']);
+  if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
     const { submission_id, grades } = JSON.parse(event.body || '{}');
-    // grades: [{ answer_id, marks_awarded, teacher_remark }]
+    // grades: [{ answer_id, marks_awarded, teacher_remark }] — teacher_remark is optional
+    // for every question type, including MCQ (auto-scored answers can still get a remark).
     if (!submission_id || !Array.isArray(grades)) {
       return json(400, { error: 'submission_id and grades[] are required' });
+    }
+
+    const { data: submission } = await supabase
+      .from('submissions')
+      .select('id, tests(class, subject)')
+      .eq('id', submission_id)
+      .maybeSingle();
+    if (!submission) return json(404, { error: 'Submission not found' });
+    if (!teacherCanAccessTest(auth, submission.tests)) {
+      return json(403, { error: 'You are not assigned to this class/subject' });
     }
 
     for (const g of grades) {

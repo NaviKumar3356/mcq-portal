@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api } from '../lib/api.js';
+import { api, getAuthInfo } from '../lib/api.js';
+import SchoolLogo from '../components/SchoolLogo.jsx';
+import { SCHOOL_NAME } from '../lib/constants.js';
 
 export default function StudentDashboard() {
+  const auth = getAuthInfo();
   const [tests, setTests] = useState(null);
   const [error, setError] = useState('');
 
@@ -14,7 +17,17 @@ export default function StudentDashboard() {
 
   return (
     <div className="container">
-      <h2>Your tests</h2>
+      <div className="card test-header-card">
+        <div className="test-header-brand">
+          <SchoolLogo size={40} />
+          <div>
+            <div className="test-header-school">{SCHOOL_NAME}</div>
+            <h2 style={{ margin: 0 }}>Hi, {auth?.name || 'there'}</h2>
+            <div className="meta">Roll {auth?.roll_number} · Class {auth?.class}</div>
+          </div>
+        </div>
+      </div>
+
       {error && <div className="error-box">{error}</div>}
       {!tests && !error && <p className="center-note">Loading…</p>}
 
@@ -36,7 +49,7 @@ export default function StudentDashboard() {
                 <span className={`pill ${t.window}`}>{t.window}</span>
                 <div style={{ marginTop: 8 }}>
                   {!t.submitted && t.window === 'open' && (
-                    <Link to={`/test/${t.id}`}>
+                    <Link to={`/student/test/${t.id}`}>
                       <button className="primary">Start test</button>
                     </Link>
                   )}
@@ -44,7 +57,7 @@ export default function StudentDashboard() {
                     <span className="pill pending">Submitted — awaiting result</span>
                   )}
                   {t.submitted && t.results_published && (
-                    <Link to={`/result/${t.id}`}>
+                    <Link to={`/student/result/${t.id}`}>
                       <button className="secondary">View result ({t.my_score ?? '—'} / {t.total_marks})</button>
                     </Link>
                   )}

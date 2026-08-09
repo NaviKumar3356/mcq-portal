@@ -18,7 +18,7 @@ export default function StudentResult() {
 
   return (
     <div className="container">
-      <Link to="/dashboard">&larr; Back to tests</Link>
+      <Link to="/student/dashboard">&larr; Back to tests</Link>
       <div className="card" style={{ marginTop: 14 }}>
         <h2>{result.test_title}</h2>
         <p style={{ fontSize: '1.4rem', fontWeight: 700 }}>

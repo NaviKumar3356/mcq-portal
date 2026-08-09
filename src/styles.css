@@ -265,3 +265,196 @@ table.grade-table th, table.grade-table td {
   display: block;
   margin-top: 8px;
 }
+
+/* ===================== Landing / role selection ===================== */
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 640px) {
+  .role-grid { grid-template-columns: 1fr; }
+}
+.role-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 26px 18px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform 0.12s ease, border-color 0.12s ease;
+  display: block;
+}
+.role-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+}
+.role-icon { font-size: 2rem; margin-bottom: 8px; }
+.role-title { font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 1.05rem; }
+.role-sub { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
+
+/* ===================== Sidebar / panel layout ===================== */
+.panel-shell {
+  display: flex;
+  min-height: 100%;
+  flex: 1;
+}
+.sidebar {
+  width: 232px;
+  flex-shrink: 0;
+  background: var(--ink);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: 'Source Serif 4', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin-bottom: 22px;
+}
+.sidebar-who { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.14); }
+.sidebar-role { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+.sidebar-name { font-weight: 600; font-size: 0.95rem; margin-top: 2px; }
+.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+.sidebar-link {
+  display: block;
+  padding: 9px 12px;
+  border-radius: 8px;
+  color: rgba(255,255,255,0.82);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+.sidebar-link:hover { background: rgba(255,255,255,0.08); }
+.sidebar-link.active { background: rgba(255,255,255,0.16); color: #fff; }
+.sidebar-link-icon { margin-right: 6px; }
+.sidebar-logout {
+  background: none;
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #fff;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-top: 12px;
+}
+.sidebar-logout:hover { background: rgba(255,255,255,0.1); }
+
+.panel-content {
+  flex: 1;
+  padding: 32px 36px 80px;
+  max-width: 980px;
+}
+@media (max-width: 800px) {
+  .panel-shell { flex-direction: column; }
+  .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
+  .panel-content { padding: 20px; }
+}
+
+/* ===================== Buttons ===================== */
+button.danger {
+  background: #fff;
+  color: var(--danger);
+  border: 1px solid #f0c9c5;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+button.danger:hover { background: #fbe9e7; }
+button.small { padding: 5px 10px; font-size: 0.78rem; }
+
+/* ===================== Filter bars & tables ===================== */
+.filter-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.filter-bar input, .filter-bar select { flex: 1; min-width: 160px; }
+
+.notice-strip {
+  background: #fbeee0;
+  color: var(--warn);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  display: inline-block;
+}
+
+/* ===================== Multi-select chips ===================== */
+.multiselect {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 8px 0 14px;
+}
+.chip {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+}
+.chip input { display: none; }
+.chip-on { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ===================== Stat grid (admin overview) ===================== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+@media (max-width: 700px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
+.stat-card { text-align: center; }
+.stat-num { font-family: 'Source Serif 4', serif; font-size: 2.2rem; font-weight: 700; color: var(--ink); }
+.stat-label { color: var(--muted); font-size: 0.85rem; margin: 4px 0 14px; }
+
+/* ===================== Test-taking header w/ logo ===================== */
+.test-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.test-header-brand { display: flex; align-items: center; gap: 14px; }
+.test-header-school { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+
+/* ===================== Shuffle settings box ===================== */
+.shuffle-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--paper);
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+}
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--ink);
+  margin: 8px 0;
+  cursor: pointer;
+}
+.checkbox-row input { width: auto; }

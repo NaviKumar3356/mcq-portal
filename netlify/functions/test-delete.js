@@ -1,6 +1,9 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
 
+// Deletes a paper and (via ON DELETE CASCADE) all of its questions,
+// submissions and answers/answer-copies. Used for the "delete class-wise /
+// student-wise data" requirement at the paper level.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -8,10 +11,7 @@ exports.handler = async (event) => {
   if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
-    const {
-      test_id, status, results_published,
-      shuffle_questions, shuffle_options, shuffle_group_size,
-    } = JSON.parse(event.body || '{}');
+    const { test_id } = JSON.parse(event.body || '{}');
     if (!test_id) return json(400, { error: 'test_id is required' });
 
     const { data: test } = await supabase.from('tests').select('class, subject').eq('id', test_id).maybeSingle();
@@ -20,14 +20,7 @@ exports.handler = async (event) => {
       return json(403, { error: 'You are not assigned to this class/subject' });
     }
 
-    const patch = {};
-    if (status) patch.status = status; // 'draft' | 'published' | 'closed'
-    if (typeof results_published === 'boolean') patch.results_published = results_published;
-    if (typeof shuffle_questions === 'boolean') patch.shuffle_questions = shuffle_questions;
-    if (typeof shuffle_options === 'boolean') patch.shuffle_options = shuffle_options;
-    if (shuffle_group_size !== undefined) patch.shuffle_group_size = Math.max(1, Number(shuffle_group_size) || 1);
-
-    const { error } = await supabase.from('tests').update(patch).eq('id', test_id);
+    const { error } = await supabase.from('tests').delete().eq('id', test_id);
     if (error) throw error;
 
     return json(200, { ok: true });

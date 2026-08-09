@@ -1,10 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { api } from '../lib/api.js';
+import { api, getAuthInfo } from '../lib/api.js';
+import PanelLayout from '../components/PanelLayout.jsx';
+
+const TEACHER_ITEMS = [
+  { to: '/teacher', label: 'Papers', icon: '📄', end: true },
+  { to: '/teacher/create', label: 'New paper', icon: '➕' },
+  { to: '/teacher/students', label: 'Students', icon: '🎓' },
+];
+const ADMIN_ITEMS = [
+  { to: '/admin', label: 'Overview', icon: '🏠', end: true },
+  { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
+  { to: '/admin/students', label: 'Students', icon: '🎓' },
+  { to: '/admin/papers', label: 'All papers', icon: '📄' },
+];
 
 export default function GradeOne() {
   const { submissionId } = useParams();
   const nav = useNavigate();
+  const auth = getAuthInfo();
+  const isAdmin = auth?.role === 'super_admin';
+
   const [data, setData] = useState(null);
   const [marks, setMarks] = useState({});
   const [remarks, setRemarks] = useState({});
@@ -42,11 +58,23 @@ export default function GradeOne() {
     }
   }
 
-  if (error && !data) return <div className="container"><div className="error-box">{error}</div></div>;
-  if (!data) return <div className="container center-note">Loading…</div>;
+  if (error && !data) {
+    return (
+      <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
+        <div className="error-box">{error}</div>
+      </PanelLayout>
+    );
+  }
+  if (!data) {
+    return (
+      <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
+        <p className="center-note">Loading…</p>
+      </PanelLayout>
+    );
+  }
 
   return (
-    <div className="container">
+    <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
       <Link to="#" onClick={(e) => { e.preventDefault(); nav(-1); }}>&larr; Back</Link>
       <div className="card">
         <h2>{data.submission.students?.name}</h2>
@@ -101,12 +129,24 @@ export default function GradeOne() {
               </div>
             </div>
           )}
+
+          {a.questions.type === 'mcq' && (
+            <div style={{ marginTop: 12 }}>
+              <label>Remark (optional — not required for MCQ, but available)</label>
+              <input
+                type="text"
+                placeholder="e.g. Good, but check the sign next time"
+                value={remarks[a.id]}
+                onChange={(e) => setRemarks((r) => ({ ...r, [a.id]: e.target.value }))}
+              />
+            </div>
+          )}
         </div>
       ))}
 
       <button className="primary" onClick={save} disabled={saving}>
         {saving ? 'Saving…' : 'Save grades'}
       </button>
-    </div>
+    </PanelLayout>
   );
 }

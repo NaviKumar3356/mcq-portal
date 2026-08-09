@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, uploadAnswerFile } from '../lib/api.js';
+import { api, uploadAnswerFile, getAuthInfo } from '../lib/api.js';
+import SchoolLogo from '../components/SchoolLogo.jsx';
+import { SCHOOL_NAME } from '../lib/constants.js';
 
 function useCountdown(endAt, onExpire) {
   const [remaining, setRemaining] = useState(null);
@@ -35,9 +37,18 @@ function formatMs(ms) {
 export default function TakeTest() {
   const { testId } = useParams();
   const nav = useNavigate();
+  const auth = getAuthInfo();
+  const draftKey = `draft:${testId}:${auth?.student_id || 'anon'}`;
+
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem(draftKey) || '{}');
+    } catch {
+      return {};
+    }
+  });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFor, setUploadingFor] = useState(null);
@@ -51,6 +62,12 @@ export default function TakeTest() {
       })
       .catch((e) => setError(e.message));
   }, [testId]);
+
+  // Save a local draft on every change so a page refresh never loses progress —
+  // it's only cleared once the test is actually submitted.
+  useEffect(() => {
+    localStorage.setItem(draftKey, JSON.stringify(answers));
+  }, [answers, draftKey]);
 
   const remaining = useCountdown(test?.end_at, () => handleSubmit(true));
 
@@ -84,7 +101,8 @@ export default function TakeTest() {
         file_path: answers[q.id]?.file_path ?? null,
       }));
       await api('/submit-test', { method: 'POST', body: { test_id: testId, answers: payload } });
-      nav('/dashboard');
+      localStorage.removeItem(draftKey);
+      nav('/student/dashboard');
     } catch (e) {
       submittedRef.current = false;
       setError(e.message);
@@ -98,10 +116,14 @@ export default function TakeTest() {
 
   return (
     <div className="container">
-      <div className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <h2 style={{ marginBottom: 2 }}>{test.title}</h2>
-          <div className="meta" style={{ color: 'var(--muted)' }}>{test.subject} · {test.total_marks} marks</div>
+      <div className="card test-header-card">
+        <div className="test-header-brand">
+          <SchoolLogo size={40} />
+          <div>
+            <div className="test-header-school">{SCHOOL_NAME}</div>
+            <h2 style={{ margin: 0 }}>{test.title}</h2>
+            <div className="meta">{test.subject} · {test.total_marks} marks</div>
+          </div>
         </div>
         {test.end_at && <div className="timer">⏱ {formatMs(remaining)}</div>}
       </div>
@@ -118,14 +140,14 @@ export default function TakeTest() {
 
             {q.type === 'mcq' && (
               <div>
-                {(q.options || []).map((opt, i) => (
+                {(q.options || []).map((opt) => (
                   <div
-                    key={i}
-                    className={`option-row ${answers[q.id]?.mcq_selected === i ? 'selected' : ''}`}
-                    onClick={() => setAnswer(q.id, { mcq_selected: i })}
+                    key={opt.index}
+                    className={`option-row ${answers[q.id]?.mcq_selected === opt.index ? 'selected' : ''}`}
+                    onClick={() => setAnswer(q.id, { mcq_selected: opt.index })}
                   >
-                    <input type="radio" checked={answers[q.id]?.mcq_selected === i} readOnly />
-                    {opt}
+                    <input type="radio" checked={answers[q.id]?.mcq_selected === opt.index} readOnly />
+                    {opt.text}
                   </div>
                 ))}
               </div>

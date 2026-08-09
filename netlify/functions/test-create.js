@@ -1,23 +1,36 @@
 const supabase = require('./utils/db');
-const { getAuth, json } = require('./utils/auth');
+const { requireRole, json } = require('./utils/auth');
+const { CLASSES, SUBJECTS } = require('./utils/constants');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'admin') return json(401, { error: 'Not authorized' });
+  const auth = requireRole(event, ['teacher', 'super_admin']);
+  if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
     const {
       title, subject, class: className, duration_minutes,
       start_at, end_at, questions, status,
+      shuffle_questions, shuffle_options, shuffle_group_size,
     } = JSON.parse(event.body || '{}');
 
-    if (!title || !className || !Array.isArray(questions) || questions.length === 0) {
-      return json(400, { error: 'title, class, and at least one question are required' });
+    if (!title || !className || !subject || !Array.isArray(questions) || questions.length === 0) {
+      return json(400, { error: 'title, class, subject, and at least one question are required' });
+    }
+    if (!CLASSES.includes(className)) return json(400, { error: 'Invalid class' });
+    if (!SUBJECTS.includes(subject)) return json(400, { error: 'Invalid subject' });
+
+    if (auth.role === 'teacher') {
+      if (!(auth.classes || []).includes(className) || !(auth.subjects || []).includes(subject)) {
+        return json(403, { error: 'You are not assigned to that class/subject' });
+      }
     }
 
     const total_marks = questions.reduce((sum, q) => sum + Number(q.marks || 0), 0);
+    const allMcqHaveAnswers = questions.every(
+      (q) => q.type !== 'mcq' || (q.correct_option !== undefined && q.correct_option !== null)
+    );
 
     const { data: test, error: tErr } = await supabase
       .from('tests')
@@ -30,6 +43,11 @@ exports.handler = async (event) => {
         end_at: end_at || null,
         total_marks,
         status: status || 'draft',
+        created_by: auth.role === 'teacher' ? auth.teacher_id : null,
+        answer_key_set: allMcqHaveAnswers,
+        shuffle_questions: !!shuffle_questions,
+        shuffle_options: !!shuffle_options,
+        shuffle_group_size: Math.max(1, Number(shuffle_group_size) || 1),
       })
       .select()
       .single();

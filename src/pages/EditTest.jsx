@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
@@ -26,25 +26,47 @@ function blankQuestion(type = 'mcq') {
   };
 }
 
-export default function CreateTest() {
+export default function EditTest() {
+  const { testId } = useParams();
   const nav = useNavigate();
   const auth = getAuthInfo();
   const isAdmin = auth?.role === 'super_admin';
   const classOptions = isAdmin ? CLASSES : (auth?.classes || []);
   const subjectOptions = isAdmin ? SUBJECTS : (auth?.subjects || []);
 
+  const [loaded, setLoaded] = useState(false);
+  const [submissionsCount, setSubmissionsCount] = useState(0);
   const [title, setTitle] = useState('');
-  const [subject, setSubject] = useState(subjectOptions[0] || '');
-  const [klass, setKlass] = useState(classOptions[0] || '');
+  const [subject, setSubject] = useState('');
+  const [klass, setKlass] = useState('');
   const [duration, setDuration] = useState(30);
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
-  const [questions, setQuestions] = useState([blankQuestion('mcq')]);
+  const [questions, setQuestions] = useState([]);
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [shuffleGroupSize, setShuffleGroupSize] = useState(5);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api(`/test-edit?test_id=${testId}`).then((d) => {
+      setTitle(d.test.title);
+      setSubject(d.test.subject);
+      setKlass(d.test.class);
+      setDuration(d.test.duration_minutes);
+      setStartAt(d.test.start_at ? d.test.start_at.slice(0, 16) : '');
+      setEndAt(d.test.end_at ? d.test.end_at.slice(0, 16) : '');
+      setShuffleQuestions(d.test.shuffle_questions);
+      setShuffleOptions(d.test.shuffle_options);
+      setShuffleGroupSize(d.test.shuffle_group_size);
+      setQuestions(d.questions.map((q) => ({ ...q, marks: q.marks })));
+      setSubmissionsCount(d.submissions_count);
+      setLoaded(true);
+    }).catch((e) => setError(e.message));
+  }, [testId]);
+
+  const locked = submissionsCount > 0;
 
   function updateQ(i, patch) {
     setQuestions((qs) => qs.map((q, idx) => (idx === i ? { ...q, ...patch } : q)));
@@ -69,24 +91,22 @@ export default function CreateTest() {
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
-    if (questions.length === 0) return setError('Add at least one question.');
-    if (!klass || !subject) return setError('Choose a class and subject.');
     setSaving(true);
     try {
-      await api('/test-create', {
+      await api('/test-edit', {
         method: 'POST',
         body: {
+          test_id: testId,
           title,
           subject,
           class: klass,
           duration_minutes: Number(duration),
           start_at: startAt ? new Date(startAt).toISOString() : null,
           end_at: endAt ? new Date(endAt).toISOString() : null,
-          status: 'draft',
-          questions,
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           shuffle_group_size: Number(shuffleGroupSize) || 1,
+          questions: questions.map((q, i) => ({ ...q, order_index: i })),
         },
       });
       nav(isAdmin ? '/admin/papers' : '/teacher');
@@ -97,37 +117,44 @@ export default function CreateTest() {
     }
   }
 
-  if (classOptions.length === 0 || subjectOptions.length === 0) {
-    return (
-      <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-        <div className="card center-note">
-          You don't have any class/subject assigned yet. Ask your Super Admin to assign one on the Teachers page.
-        </div>
-      </PanelLayout>
-    );
+  if (error && !loaded) {
+    return <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}><div className="error-box">{error}</div></PanelLayout>;
+  }
+  if (!loaded) {
+    return <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}><p className="center-note">Loading…</p></PanelLayout>;
   }
 
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-      <h2>New paper</h2>
+      <h2>Edit paper</h2>
       {error && <div className="error-box">{error}</div>}
+      {locked && (
+        <div className="notice-strip" style={{ display: 'block', marginBottom: 14 }}>
+          {submissionsCount} student{submissionsCount === 1 ? ' has' : 's have'} already submitted this paper —
+          questions can't be added or removed, but you can still fix wording, marks, or the answer key below.
+        </div>
+      )}
 
       <form onSubmit={onSubmit}>
         <div className="card">
           <label>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Periodic Test 1" />
+          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
 
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <label>Subject</label>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
-                {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {(subjectOptions.includes(subject) ? subjectOptions : [subject, ...subjectOptions]).map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
               </select>
             </div>
             <div style={{ flex: 1 }}>
               <label>Class</label>
               <select value={klass} onChange={(e) => setKlass(e.target.value)} required>
-                {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                {(classOptions.includes(klass) ? classOptions : [klass, ...classOptions]).map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
               </select>
             </div>
             <div style={{ flex: 1 }}>
@@ -166,31 +193,32 @@ export default function CreateTest() {
                   value={shuffleGroupSize}
                   onChange={(e) => setShuffleGroupSize(e.target.value)}
                 />
-                <p className="meta">
-                  E.g. 5 means roll numbers 1–5 get one order, 6–10 get another, and so on — so
-                  neighbours rarely match but you still only have a handful of distinct "sets" in the room.
-                  Use 1 for a fully different order per student.
-                </p>
               </div>
             )}
           </div>
         </div>
 
         {questions.map((q, i) => (
-          <div className="card" key={i}>
+          <div className="card" key={q.id || `new-${i}`}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div className="eyebrow">Question {i + 1} — {q.type}</div>
-              <button type="button" className="secondary" onClick={() => removeQuestion(i)}>Remove</button>
+              <div className="eyebrow">Question {i + 1} — {q.type}{!q.id && ' (new)'}</div>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => removeQuestion(i)}
+                disabled={locked && !!q.id}
+                title={locked && q.id ? "Can't remove — students have already submitted" : ''}
+              >
+                Remove
+              </button>
             </div>
 
             <label>Question text</label>
             <textarea value={q.question_text} onChange={(e) => updateQ(i, { question_text: e.target.value })} required />
 
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
-                <label>Marks</label>
-                <input type="text" inputMode="numeric" value={q.marks} onChange={(e) => updateQ(i, { marks: e.target.value })} />
-              </div>
+            <div style={{ flex: 1, maxWidth: 140 }}>
+              <label>Marks</label>
+              <input type="text" inputMode="numeric" value={q.marks} onChange={(e) => updateQ(i, { marks: e.target.value })} />
             </div>
 
             {q.type === 'mcq' && (
@@ -215,24 +243,20 @@ export default function CreateTest() {
                 ))}
               </div>
             )}
-
-            {q.type === 'written' && <p className="meta">Student types their answer in a text box. You grade it manually.</p>}
-            {q.type === 'upload' && <p className="meta">Student uploads a photo/scan of their handwritten answer. You grade it manually.</p>}
+            {q.type === 'written' && <p className="meta">Student types their answer. You grade it manually.</p>}
+            {q.type === 'upload' && <p className="meta">Student uploads a photo/scan. You grade it manually.</p>}
           </div>
         ))}
 
         <div className="card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="secondary" onClick={() => addQuestion('mcq')}>+ MCQ question</button>
-          <button type="button" className="secondary" onClick={() => addQuestion('written')}>+ Written question</button>
-          <button type="button" className="secondary" onClick={() => addQuestion('upload')}>+ Upload-answer question</button>
+          <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('mcq')}>+ MCQ question</button>
+          <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('written')}>+ Written question</button>
+          <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('upload')}>+ Upload-answer question</button>
+          {locked && <p className="meta" style={{ margin: 0 }}>Adding/removing is disabled once students have submitted.</p>}
         </div>
 
-        <p className="meta">
-          You can also finalize or change the answer key later from the paper's "Answer key" button, even after saving.
-        </p>
-
         <button className="primary" type="submit" disabled={saving}>
-          {saving ? 'Saving…' : 'Save paper as draft'}
+          {saving ? 'Saving…' : 'Save changes'}
         </button>
       </form>
     </PanelLayout>

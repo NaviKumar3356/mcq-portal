@@ -1,22 +1,39 @@
+const bcrypt = require('bcryptjs');
+const supabase = require('./utils/db');
 const { sign, json } = require('./utils/auth');
 
-// Simple single-admin login. Credentials live only in Netlify env vars
-// (ADMIN_USERNAME / ADMIN_PASSWORD) — never in the code or the repo.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
   try {
     const { username, password } = JSON.parse(event.body || '{}');
+    if (!username || !password) return json(400, { error: 'Username and password are required' });
 
-    if (
-      username === process.env.ADMIN_USERNAME &&
-      password === process.env.ADMIN_PASSWORD
-    ) {
-      const token = sign({ role: 'admin' });
-      return json(200, { token });
-    }
+    const { data: teacher, error } = await supabase
+      .from('teachers')
+      .select('*')
+      .eq('username', username.trim())
+      .eq('active', true)
+      .maybeSingle();
 
-    return json(401, { error: 'Invalid username or password' });
+    if (error) throw error;
+    if (!teacher) return json(401, { error: 'Invalid username or password' });
+
+    const ok = await bcrypt.compare(password, teacher.password_hash);
+    if (!ok) return json(401, { error: 'Invalid username or password' });
+
+    const token = sign({
+      role: 'teacher',
+      teacher_id: teacher.id,
+      name: teacher.name,
+      classes: teacher.classes,
+      subjects: teacher.subjects,
+    });
+
+    return json(200, {
+      token,
+      teacher: { id: teacher.id, name: teacher.name, classes: teacher.classes, subjects: teacher.subjects },
+    });
   } catch (e) {
     return json(500, { error: e.message });
   }

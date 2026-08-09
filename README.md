@@ -1,65 +1,89 @@
-# School Test Portal (MCQ + Written + Upload)
+# SNSVM Test Portal (MCQ + Written + Upload)
 
-A free-to-run web app for taking tests online:
-- Students log in with **Roll Number + Date of Birth** (no email needed).
-- A paper can mix **MCQ** (auto-graded instantly), **typed written answers**, and
-  **uploaded photo/scan answers** — chosen per question.
-- You (teacher) grade written/uploaded answers, then **publish the result** —
-  students only see it after that.
-- All data (students, papers, answers, scanned copies) is stored **long-term in Supabase**
-  (free tier: Postgres database + file storage).
-- Hosting is **Netlify** (free tier: static site + serverless "Functions" acting as the backend).
+A free-to-run test portal for **Sant Nandlal Smriti Vidya Mandir, Malsisar**.
 
-Nothing here costs money at school scale. Limits are noted at the bottom.
+## Latest update
+
+- **Roll number is no longer unique on its own** — since the same roll number can exist in multiple
+  classes, students now log in with **Class + Roll number + Date of birth**. Run
+  `supabase/schema_v3_migration.sql` to apply this (safe — it doesn't touch existing rows).
+- **CSV bulk upload for students**, covering multiple classes in a single file: go to **Students → Upload
+  CSV**, with columns `roll_number,name,class,dob`. Each row's own `class` column decides where it goes, so
+  one file can onboard your whole school at once. Re-uploading updates existing students instead of
+  duplicating them.
+- **Edit an existing paper** any time from **Papers → Edit** — title, subject, class, timing, and questions
+  can all be changed. Once students have started submitting, the question *set* locks (no add/remove) so no
+  one's submission gets orphaned, but you can still fix wording, marks, or the answer key — and if you
+  correct an MCQ's answer key after grading has started, already-graded scores for that question
+  automatically recompute.
+- **Anti-cheating shuffle**: when creating or editing a paper, tick "Shuffle question order per student"
+  and/or "Shuffle each MCQ's option order per student". You also choose a group size — e.g. 5 means roll
+  numbers 1–5 (within that class) get one shuffled order, 6–10 get a different one, and so on, so students
+  sitting next to each other essentially never match, while you're not dealing with 40 completely unique
+  papers. Set the group size to 1 for a fully unique order per student. This needs no extra storage — the
+  order is recomputed the same way every time from the paper + the student's position, so it's stable across
+  refreshes but impossible to predict from a neighbour's screen.
+
+## What's new in the previous version
+
+- **Three separate login pages**: Student, Teacher, and Super Admin — each with their own portal.
+- **Super Admin** account (yours, via env vars) creates and manages **as many Teacher accounts as you want**,
+  each assigned specific **classes (1st–12th)** and **subjects** (English, Hindi, Sanskrit, Mathematics,
+  EVS, Computer, Science, SST, CT & AI).
+- **Teachers** can only set papers, grade, and manage students for their own assigned class(es) + subject(s).
+  They can add or remove students in their assigned classes.
+- **Super Admin** can see and manage everything — all teachers, all students, all papers.
+- **Search & delete**, class-wise or student-wise: find students by class/name/roll number and remove them
+  (their submissions/answer-copies go with them); delete an entire paper and all its submissions; delete a
+  single student's submission.
+- **Answer key as its own step**: build the paper (MCQ options can be filled with the answer key right away,
+  or left for later), then finalize/edit the answer key any time from the paper's "Answer key" button.
+  Grading then uses that key.
+- **Remarks on MCQ answers are now optional but available** — auto-scored MCQs can still get a teacher
+  remark if you want to add one; it's just never required.
+- **Refresh-safe test taking**: a student's in-progress answers are saved to their browser as they go, so
+  refreshing the page mid-test does not lose their answers (only submitting clears the draft).
+- **School branding**: the SNSVM seal and school name appear on every login page and on the test-taking
+  screen itself, for every paper.
+- Redesigned with a proper sidebar/menu for Teacher and Super Admin panels.
 
 ---
 
-## How it's built (so you know what's talking to what)
+## Architecture (unchanged, still 100% free-tier)
 
 ```
 Browser (React app)  --->  Netlify Functions (Node, in netlify/functions/)  --->  Supabase (Postgres + Storage)
 ```
 
-The browser **never talks to Supabase directly** for data (students/tests/answers) — only through
-your own Netlify Functions, which hold the secret Supabase key. This is what makes the "students
-can only see their own data" rule actually enforceable, instead of relying on the browser to behave.
-
-The one exception: uploading a scanned answer sheet goes straight from the browser to Supabase
-Storage, using a short-lived signed link your Function hands out — this avoids routing big photo
-files through the function (Netlify Functions have a payload size limit).
+The browser only ever talks to your own Netlify Functions for data — never directly to Supabase — which is
+what makes "students only see their own data" and "teachers only see their assigned class" actually
+enforceable. The one exception is uploading a scanned answer sheet, which goes straight from the browser to
+Supabase Storage using a short-lived signed link your function hands out.
 
 ---
 
-## 1. Create your Supabase project (free)
+## 1. Supabase setup
 
-1. Go to https://supabase.com → New project. Pick any name/region, set a database password (save it).
-2. Once it's created, open **SQL Editor** → paste the entire contents of `supabase/schema.sql`
-   from this project → Run. This creates all tables and the `answer-sheets` storage bucket.
-3. Go to **Settings → API**. You'll need three values later:
-   - `Project URL` → this is `SUPABASE_URL`
-   - `anon public` key → this is `VITE_SUPABASE_ANON_KEY`
-   - `service_role` key → this is `SUPABASE_SERVICE_KEY` (⚠️ keep this one secret — never put it in
-     a `VITE_` variable or commit it anywhere)
+1. Create a free project at supabase.com.
+2. **SQL Editor** → run `supabase/schema.sql` in full (first time only).
+3. **SQL Editor** → run `supabase/schema_v2_migration.sql` in full (adds the `teachers` table and a couple
+   of columns/indexes — safe to run even if you already ran schema.sql before).
+4. **SQL Editor** → run `supabase/schema_v3_migration.sql` in full (switches the student login key from
+   roll-number-alone to class+roll-number, and adds the shuffle settings — also safe on existing data).
+5. **Settings → API** → copy `Project URL`, `anon public` key, and `service_role` key (you'll need all three
+   below).
 
-### Add your students
-In Supabase → **Table editor → students**, add a row per student: `roll_number`, `name`, `class`,
-`dob` (format `YYYY-MM-DD`). You can also paste many rows at once via **Insert → Import data from CSV**
-if you export your class list to a CSV with columns `roll_number,name,class,dob`.
+You do **not** need to add teachers via SQL — the Super Admin creates them from the app itself, from the
+**Teachers** page. Students can still be added either from the app (Teacher/Super Admin → Students → +Add)
+or bulk-imported via Supabase's Table Editor → Insert → Import CSV with columns `roll_number,name,class,dob`.
 
 ---
 
-## 2. Push this project to GitHub
-
-Netlify deploys from a Git repo.
+## 2. Push to GitHub
 
 ```bash
 cd mcq-portal
-git init
-git add .
-git commit -m "Initial commit"
-```
-Create an empty repo on GitHub, then:
-```bash
+git init && git add . && git commit -m "Initial commit"
 git remote add origin https://github.com/YOUR_USERNAME/mcq-portal.git
 git branch -M main
 git push -u origin main
@@ -67,77 +91,72 @@ git push -u origin main
 
 ---
 
-## 3. Deploy on Netlify (free)
+## 3. Deploy on Netlify
 
-1. Go to https://app.netlify.com → **Add new site → Import an existing project** → pick your GitHub repo.
-2. Build settings are already read from `netlify.toml` in this repo (build command, publish
-   folder, functions folder) — you shouldn't need to change anything.
-3. Before the first deploy, go to **Site settings → Environment variables** and add:
+1. app.netlify.com → **Add new site → Import an existing project** → pick your repo. Build settings come
+   from `netlify.toml` already in the repo.
+2. **Site settings → Environment variables**, add:
 
    | Key | Value |
    |---|---|
-   | `SUPABASE_URL` | your Supabase Project URL |
-   | `SUPABASE_SERVICE_KEY` | your Supabase `service_role` key |
-   | `VITE_SUPABASE_URL` | same Supabase Project URL |
-   | `VITE_SUPABASE_ANON_KEY` | your Supabase `anon public` key |
-   | `JWT_SECRET` | any long random string (e.g. generate one at https://randomkeygen.com) |
-   | `ADMIN_USERNAME` | whatever username you want to log in as teacher |
-   | `ADMIN_PASSWORD` | a strong password |
+   | `SUPABASE_URL` | Supabase Project URL |
+   | `SUPABASE_SERVICE_KEY` | Supabase `service_role` key |
+   | `VITE_SUPABASE_URL` | same Project URL |
+   | `VITE_SUPABASE_ANON_KEY` | Supabase `anon public` key |
+   | `JWT_SECRET` | any long random string |
+   | `SUPER_ADMIN_USERNAME` | your super-admin login username |
+   | `SUPER_ADMIN_PASSWORD` | a strong password |
 
-4. Click **Deploy site**. Netlify gives you a free `https://your-site-name.netlify.app` URL.
-   You can rename the site (Site settings → Change site name) or attach your own domain later,
-   still free.
+3. **Deploy site**. You get a free `https://your-site.netlify.app` URL (renameable, still free).
 
 ---
 
-## 4. Using it
+## 4. First-time walkthrough after deploying
 
-- **Students** go to the site's home page → enter roll number + DOB → see their assigned tests
-  → take the test within its open/close window → submit.
-- **You (teacher)** go to `/teacher/login` → log in with `ADMIN_USERNAME`/`ADMIN_PASSWORD` →
-  **New paper** to build a test (mix MCQ / written / upload questions per question) → **Publish to
-  students** when ready → after the close time, open **View submissions** → grade written/uploaded
-  answers (MCQs are already auto-scored) → **Publish result** so students can see their score and
-  per-question remarks.
+1. Go to the site → **Super Admin** → log in with `SUPER_ADMIN_USERNAME`/`SUPER_ADMIN_PASSWORD`.
+2. **Teachers** → **+ Add teacher** → give them a name, username, password, and tick which classes and
+   subjects they teach. Repeat for every teacher.
+3. Either you (Super Admin → Students) or each teacher (Teacher → Students, limited to their own classes)
+   adds students: roll number, name, class, date of birth.
+4. A teacher logs in at **Teacher** → **+ New paper** → picks their subject/class (only their assigned ones
+   show up), adds MCQ/written/upload questions, saves as draft.
+5. From **Papers**, the teacher finalizes the **Answer key** if they didn't set it while creating, then
+   **Publish to students**.
+6. Students log in at **Student** with roll number + DOB, see the paper, take it within its open window.
+7. After it closes, teacher opens **Submissions** → grades written/upload answers (MCQs are already
+   auto-scored; remarks are optional on any question type) → **Publish result**.
+8. Students then see their score and per-question remarks on their dashboard.
 
 ---
 
-## 5. Running it locally before you deploy (optional but recommended)
+## 5. Local development (optional)
 
-Install the [Netlify CLI](https://docs.netlify.com/cli/get-started/) once:
 ```bash
-npm install -g netlify-cli
-```
-Then, inside the project folder, create a `.env` file (copy `.env.example`) with your real
-Supabase values, and a `netlify/functions/.env` (copy `netlify/functions/.env.example`) with the
-server-side secrets. Then run:
-```bash
+npm install -g netlify-cli   # once
+cp .env.example .env                                   # fill in real VITE_ values
+cp netlify/functions/.env.example netlify/functions/.env  # fill in real server secrets
 npm install
 netlify dev
 ```
-This serves the React app and the Functions together on one local URL, exactly like production.
 
 ---
 
 ## Free-tier limits worth knowing
 
-- **Supabase free tier**: 500 MB database, 1 GB file storage, and — importantly — a free project
-  **pauses after 7 days with no API activity** (a quick visit to the site wakes it back up; there's
-  no data loss, just a few seconds' delay on the next request). If you need guaranteed always-on
-  long-term storage, Supabase's paid plan (from ~$25/mo) removes pausing, or you can periodically
-  ping the project to keep it active.
-- **Netlify free tier**: 100 GB bandwidth/month and 125,000 function calls/month — far more than a
-  single school needs.
-- **Answer-sheet photos**: keep uploads reasonably sized (a phone photo, not a 20MB raw scan) so
-  1 GB of free storage lasts a long time. You can compress images client-side later if you outgrow it.
+- **Supabase free tier**: 500 MB database, 1 GB file storage. A free project **pauses after 7 days with no
+  API activity** — a visit to the site wakes it up in a few seconds, no data is lost. For guaranteed
+  always-on, Supabase's paid tier (~$25/mo) removes pausing.
+- **Netlify free tier**: 100 GB bandwidth/month, 125,000 function calls/month — comfortably enough for a
+  single school.
+- Keep uploaded answer-sheet photos reasonably sized (a phone photo, not a raw scan) so 1 GB lasts a long
+  time.
 
 ---
 
-## Extending it later
+## Extending further
 
-- Add more question types (fill-in-the-blank, matching) by adding a new `type` in `questions`
-  and a matching renderer in `TakeTest.jsx` / `CreateTest.jsx`.
-- Add a CSV bulk-import for creating many students at once from the teacher panel instead of via
-  Supabase's table editor.
-- Add email/SMS notification when a result is published (Supabase has a free "Edge Function +
-  webhook" pattern for this, or a service like Resend's free tier).
+- Add more question types by adding a `type` value in `questions` and matching UI in `TakeTest.jsx` /
+  `CreateTest.jsx`.
+- Add CSV bulk-import for students directly in the app (currently via Supabase Table Editor).
+- Swap the placeholder SVG seal in `src/components/SchoolLogo.jsx` for the school's actual logo file any
+  time — drop it at `public/logo.png` and replace the `<svg>` with an `<img src="/logo.png" />`.

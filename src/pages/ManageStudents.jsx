@@ -1,0 +1,213 @@
+import React, { useEffect, useRef, useState } from 'react';
+import Papa from 'papaparse';
+import { api, getAuthInfo } from '../lib/api.js';
+import PanelLayout from '../components/PanelLayout.jsx';
+import { CLASSES } from '../lib/constants.js';
+
+const TEACHER_ITEMS = [
+  { to: '/teacher', label: 'Papers', icon: '📄', end: true },
+  { to: '/teacher/create', label: 'New paper', icon: '➕' },
+  { to: '/teacher/students', label: 'Students', icon: '🎓' },
+];
+const ADMIN_ITEMS = [
+  { to: '/admin', label: 'Overview', icon: '🏠', end: true },
+  { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
+  { to: '/admin/students', label: 'Students', icon: '🎓' },
+  { to: '/admin/papers', label: 'All papers', icon: '📄' },
+];
+
+export default function ManageStudents() {
+  const auth = getAuthInfo();
+  const isAdmin = auth?.role === 'super_admin';
+  const allowedClasses = isAdmin ? CLASSES : (auth?.classes || []);
+
+  const [students, setStudents] = useState(null);
+  const [error, setError] = useState('');
+  const [classFilter, setClassFilter] = useState('');
+  const [search, setSearch] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', dob: '' });
+  const [saving, setSaving] = useState(false);
+
+  const [showCsv, setShowCsv] = useState(false);
+  const [csvReport, setCsvReport] = useState(null);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const fileInputRef = useRef(null);
+
+  function load() {
+    const params = new URLSearchParams();
+    if (classFilter) params.set('class', classFilter);
+    if (search) params.set('q', search);
+    api(`/students-list?${params.toString()}`)
+      .then((d) => setStudents(d.students))
+      .catch((e) => setError(e.message));
+  }
+  useEffect(load, [classFilter, search]);
+
+  async function addStudent(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError('');
+    try {
+      await api('/student-create', { method: 'POST', body: form });
+      setForm({ roll_number: '', name: '', class: allowedClasses[0] || '', dob: '' });
+      setShowAdd(false);
+      load();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function deleteStudent(id, name) {
+    if (!window.confirm(`Remove ${name}? This also deletes all their submissions and answer copies.`)) return;
+    try {
+      await api('/student-delete', { method: 'POST', body: { student_id: id } });
+      load();
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  function onCsvSelected(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCsvReport(null);
+    setError('');
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (h) => h.trim().toLowerCase(),
+      complete: async (results) => {
+        const rows = results.data.map((r) => ({
+          roll_number: r.roll_number,
+          name: r.name,
+          class: r.class,
+          dob: r.dob,
+        }));
+        setCsvUploading(true);
+        try {
+          const report = await api('/students-bulk-upload', { method: 'POST', body: { rows } });
+          setCsvReport(report);
+          load();
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setCsvUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+      },
+    });
+  }
+
+  return (
+    <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+        <h2>Students</h2>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button className="secondary" onClick={() => setShowCsv((v) => !v)}>
+            {showCsv ? 'Cancel' : '⇪ Upload CSV'}
+          </button>
+          <button className="primary" onClick={() => setShowAdd((v) => !v)}>
+            {showAdd ? 'Cancel' : '+ Add student'}
+          </button>
+        </div>
+      </div>
+
+      {showCsv && (
+        <div className="card">
+          <p className="meta">
+            CSV needs columns <code>roll_number, name, class, dob</code> (dob as <code>YYYY-MM-DD</code>).
+            One file can include students from several classes at once — each row's own <code>class</code>{' '}
+            column decides where it goes. Existing students (same roll number + class) get updated instead
+            of duplicated.
+          </p>
+          <input ref={fileInputRef} type="file" accept=".csv" onChange={onCsvSelected} />
+          {csvUploading && <p className="meta">Uploading…</p>}
+
+          {csvReport && (
+            <div style={{ marginTop: 14 }}>
+              <p style={{ fontWeight: 600 }}>
+                {csvReport.succeeded} row{csvReport.succeeded === 1 ? '' : 's'} saved
+                {csvReport.failed > 0 && `, ${csvReport.failed} failed`}
+              </p>
+              {csvReport.failed > 0 && (
+                <table className="grade-table">
+                  <thead><tr><th>Row</th><th>Problem</th></tr></thead>
+                  <tbody>
+                    {csvReport.results.filter((r) => !r.ok).map((r) => (
+                      <tr key={r.row}><td>{r.row}</td><td>{r.error}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {showAdd && (
+        <form className="card" onSubmit={addStudent}>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label>Roll number</label>
+              <input value={form.roll_number} onChange={(e) => setForm((f) => ({ ...f, roll_number: e.target.value }))} required />
+            </div>
+            <div style={{ flex: 2 }}>
+              <label>Name</label>
+              <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label>Class</label>
+              <select value={form.class} onChange={(e) => setForm((f) => ({ ...f, class: e.target.value }))} required>
+                <option value="" disabled>Select class</option>
+                {allowedClasses.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div style={{ flex: 1 }}>
+              <label>Date of birth</label>
+              <input type="date" value={form.dob} onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))} required />
+            </div>
+          </div>
+          <button className="primary" type="submit" disabled={saving} style={{ marginTop: 10 }}>
+            {saving ? 'Saving…' : 'Add student'}
+          </button>
+        </form>
+      )}
+
+      <div className="card filter-bar">
+        <input type="text" placeholder="Search by name or roll number…" value={search} onChange={(e) => setSearch(e.target.value)} />
+        <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
+          <option value="">All assigned classes</option>
+          {allowedClasses.map((c) => <option key={c} value={c}>{c}</option>)}
+        </select>
+      </div>
+
+      {error && <div className="error-box">{error}</div>}
+      {!students && <p className="center-note">Loading…</p>}
+      {students && students.length === 0 && <div className="card center-note">No students found.</div>}
+
+      {students && students.length > 0 && (
+        <div className="card">
+          <table className="grade-table">
+            <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th>DOB</th><th></th></tr></thead>
+            <tbody>
+              {students.map((s) => (
+                <tr key={s.id}>
+                  <td>{s.roll_number}</td>
+                  <td>{s.name}</td>
+                  <td>{s.class}</td>
+                  <td>{s.dob}</td>
+                  <td><button className="danger small" onClick={() => deleteStudent(s.id, s.name)}>Remove</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </PanelLayout>
+  );
+}
