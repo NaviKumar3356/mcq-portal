@@ -12,7 +12,7 @@ export default function PanelLayout({ items, children }) {
     <div className="panel-shell">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <SchoolLogo size={30} light />
+          <SchoolLogo size={42} />
           <span>{SCHOOL_SHORT}</span>
         </div>
 

@@ -44,7 +44,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 28px;
+  padding: 20px 32px;
   background: var(--ink);
   color: #fff;
 }
@@ -52,8 +52,11 @@ a { color: inherit; }
 .topbar .brand {
   font-family: 'Source Serif 4', serif;
   font-weight: 700;
-  font-size: 1.15rem;
+  font-size: 1.35rem;
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .topbar .who {
@@ -356,11 +359,11 @@ table.grade-table th, table.grade-table td {
 .sidebar-brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 14px;
   font-family: 'Source Serif 4', serif;
   font-weight: 700;
-  font-size: 1.05rem;
-  margin-bottom: 22px;
+  font-size: 1.3rem;
+  margin-bottom: 28px;
 }
 .sidebar-who { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.14); }
 .sidebar-role { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
@@ -415,6 +418,7 @@ button.danger {
 }
 button.danger:hover { background: #fbe9e7; }
 button.small { padding: 5px 10px; font-size: 0.78rem; }
+button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
 
 /* ===================== Filter bars & tables ===================== */
 .filter-bar {
@@ -476,8 +480,8 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
   justify-content: space-between;
   gap: 16px;
 }
-.test-header-brand { display: flex; align-items: center; gap: 14px; }
-.test-header-school { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+.test-header-brand { display: flex; align-items: center; gap: 18px; }
+.test-header-school { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
 
 /* ===================== Shuffle settings box ===================== */
 .shuffle-box {
@@ -550,12 +554,12 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
 }
 
 .logo-badge {
-  width: 132px;
-  height: 132px;
+  width: 168px;
+  height: 168px;
   margin: 0 auto 14px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ffffff, #eef3ee 70%);
-  border: 3px solid var(--accent);
+  border: 4px solid var(--accent);
   box-shadow: 0 6px 18px rgba(47, 111, 79, 0.25);
   display: flex;
   align-items: center;

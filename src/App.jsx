@@ -1,6 +1,8 @@
 import React from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { getToken, clearToken, getAuthInfo } from './lib/api.js';
+import SchoolLogo from './components/SchoolLogo.jsx';
+import { SCHOOL_SHORT } from './lib/constants.js';
 
 import Landing from './pages/Landing.jsx';
 import StudentLogin from './pages/StudentLogin.jsx';
@@ -38,7 +40,9 @@ function StudentTopbar() {
 
   return (
     <div className="topbar">
-      <span className="brand">📝 Test Portal</span>
+      <span className="brand">
+        <SchoolLogo size={38} /> {SCHOOL_SHORT} Test Portal
+      </span>
       <span>
         <span className="who">Student panel &nbsp;</span>
         <button className="link" onClick={() => { clearToken(); nav('/student/login'); }}>Log out</button>

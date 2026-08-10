@@ -25,7 +25,17 @@ exports.handler = async (event) => {
     if (test.start_at && now < new Date(test.start_at)) {
       return json(403, { error: 'This test has not opened yet' });
     }
-    if (test.end_at && now > new Date(test.end_at)) {
+
+    // A specific student may have been granted a one-time pass back in,
+    // even though the paper's overall window is closed for everyone else.
+    const { data: reopen } = await supabase
+      .from('test_reopens')
+      .select('id')
+      .eq('test_id', testId)
+      .eq('student_id', auth.student_id)
+      .maybeSingle();
+
+    if (test.end_at && now > new Date(test.end_at) && !reopen) {
       return json(403, { error: 'This test has closed' });
     }
 

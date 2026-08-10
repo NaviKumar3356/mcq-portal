@@ -8,8 +8,8 @@ export default function Landing() {
     <div className="login-wrap">
       <div style={{ width: '100%', maxWidth: 640 }}>
         <div style={{ textAlign: 'center', marginBottom: 30 }}>
-          <SchoolLogo size={64} />
-          <h1 style={{ marginTop: 12, marginBottom: 2 }}>{SCHOOL_NAME}</h1>
+          <SchoolLogo size={84} />
+          <h1 style={{ marginTop: 16, marginBottom: 2 }}>{SCHOOL_NAME}</h1>
           <p style={{ color: 'var(--muted)', margin: 0 }}>{SCHOOL_PLACE}</p>
           <div className="eyebrow" style={{ marginTop: 14 }}>Online Test Portal</div>
         </div>

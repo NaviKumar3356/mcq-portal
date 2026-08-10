@@ -71,6 +71,10 @@ exports.handler = async (event) => {
       })
       .eq('id', submission.id);
 
+    // Clear a one-time reopen pass, if this submission was made under one —
+    // otherwise the student would appear "still open" on their dashboard.
+    await supabase.from('test_reopens').delete().eq('test_id', test_id).eq('student_id', auth.student_id);
+
     return json(200, { submission_id: submission.id, ok: true });
   } catch (e) {
     return json(500, { error: e.message });

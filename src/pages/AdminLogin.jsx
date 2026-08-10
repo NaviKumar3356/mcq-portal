@@ -33,7 +33,7 @@ export default function AdminLogin() {
     <div className="login-wrap">
       <form className="admit-card" onSubmit={onSubmit}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
-          <SchoolLogo size={48} />
+          <SchoolLogo size={68} />
         </div>
         <div className="eyebrow" style={{ textAlign: 'center' }}>{SCHOOL_NAME}</div>
         <h2 style={{ textAlign: 'center' }}>Super Admin Login</h2>

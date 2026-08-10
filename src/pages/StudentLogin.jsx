@@ -34,7 +34,7 @@ export default function StudentLogin() {
     <div className="login-wrap student-login-bg">
       <form className="admit-card student-card" onSubmit={onSubmit}>
         <div className="logo-badge">
-          <SchoolLogo size={72} />
+          <SchoolLogo size={96} />
         </div>
         <div className="eyebrow" style={{ textAlign: 'center' }}>{SCHOOL_NAME}</div>
         <h2 className="student-title">🎓 Student Login</h2>
