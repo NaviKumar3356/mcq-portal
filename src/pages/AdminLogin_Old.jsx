@@ -4,7 +4,7 @@ import { api, setToken } from '../lib/api.js';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
-export default function TeacherLogin() {
+export default function AdminLogin() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -16,12 +16,12 @@ export default function TeacherLogin() {
     setError('');
     setLoading(true);
     try {
-      const data = await api('/login-teacher', {
+      const data = await api('/login-superadmin', {
         method: 'POST',
         body: { username, password },
       });
       setToken(data.token);
-      nav('/teacher');
+      nav('/admin');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -30,13 +30,13 @@ export default function TeacherLogin() {
   }
 
   return (
-    <div className="login-wrap teacher-login-bg">
+    <div className="login-wrap">
       <form className="admit-card" onSubmit={onSubmit}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <SchoolLogo size={68} />
         </div>
         <div className="eyebrow" style={{ textAlign: 'center' }}>{SCHOOL_NAME}</div>
-        <h2 style={{ textAlign: 'center' }}>Teacher Login</h2>
+        <h2 style={{ textAlign: 'center' }}>Super Admin Login</h2>
 
         <label htmlFor="u">Username</label>
         <input id="u" type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />

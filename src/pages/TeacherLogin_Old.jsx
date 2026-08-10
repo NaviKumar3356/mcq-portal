@@ -30,7 +30,7 @@ export default function TeacherLogin() {
   }
 
   return (
-    <div className="login-wrap teacher-login-bg">
+    <div className="login-wrap">
       <form className="admit-card" onSubmit={onSubmit}>
         <div style={{ textAlign: 'center', marginBottom: 6 }}>
           <SchoolLogo size={68} />
