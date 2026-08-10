@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
+import { parseMcqDocx } from '../lib/parseMcqDocx.js';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -43,6 +44,30 @@ export default function CreateTest() {
   const [shuffleQuestions, setShuffleQuestions] = useState(false);
   const [shuffleOptions, setShuffleOptions] = useState(false);
   const [shuffleGroupSize, setShuffleGroupSize] = useState(5);
+  const [importing, setImporting] = useState(false);
+  const [importReport, setImportReport] = useState(null);
+
+  async function handleDocxImport(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    setImporting(true);
+    setImportReport(null);
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const mammoth = (await import('mammoth')).default;
+      const { value: rawText } = await mammoth.extractRawText({ arrayBuffer });
+      const { questions: parsed, warnings } = parseMcqDocx(rawText);
+      if (parsed.length > 0) {
+        setQuestions((qs) => [...qs, ...parsed]);
+      }
+      setImportReport({ ok: parsed.length, warnings });
+    } catch (err) {
+      setImportReport({ ok: 0, warnings: [`Couldn't read that file: ${err.message}`] });
+    } finally {
+      setImporting(false);
+      e.target.value = '';
+    }
+  }
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -177,6 +202,32 @@ export default function CreateTest() {
           </div>
         </div>
 
+        <div className="card">
+          <div className="card-section-title">📄 Import MCQs from Word (.docx)</div>
+          <p className="meta">
+            Format: number each question, list options as a) b) c) d), and end with a line like{' '}
+            <code>Answer: b</code>. Add <code>[2 marks]</code> anywhere in a question to set its marks
+            (defaults to 1). Imported questions are added below — review each one, especially any marked ⚠,
+            before saving.
+          </p>
+          <input type="file" accept=".docx" onChange={handleDocxImport} disabled={importing} />
+          {importing && <p className="meta">Reading file…</p>}
+          {importReport && (
+            <div style={{ marginTop: 10 }}>
+              {importReport.ok > 0 && (
+                <p style={{ fontWeight: 600, color: 'var(--accent-dark)' }}>
+                  ✅ Imported {importReport.ok} question{importReport.ok === 1 ? '' : 's'}.
+                </p>
+              )}
+              {importReport.warnings.length > 0 && (
+                <ul style={{ margin: '6px 0 0', paddingLeft: 18, color: 'var(--warn)', fontSize: '0.85rem' }}>
+                  {importReport.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+
         {questions.map((q, i) => (
           <div className={`card question-card ${q.type}`} key={i}>
             <div className="question-card-head">
@@ -200,6 +251,12 @@ export default function CreateTest() {
                 <input type="text" inputMode="numeric" value={q.marks} onChange={(e) => updateQ(i, { marks: e.target.value })} />
               </div>
             </div>
+
+            {q.type === 'mcq' && (q.correct_option === null || q.correct_option === undefined) && (
+              <div className="notice-strip" style={{ display: 'block', marginBottom: 10 }}>
+                ⚠ Answer not detected from import — please pick the correct option below.
+              </div>
+            )}
 
             {q.type === 'mcq' && (
               <div>
