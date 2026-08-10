@@ -76,6 +76,16 @@ export default function GradeOne() {
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
       <Link to="#" onClick={(e) => { e.preventDefault(); nav(-1); }}>&larr; Back</Link>
+
+      {data.submission.flagged_reason && (
+        <div className="notice-strip notice-danger" style={{ display: 'block', margin: '14px 0' }}>
+          ⚠ This attempt was auto-submitted after the student switched tabs or left the test window{' '}
+          {data.submission.tab_switch_count} time{data.submission.tab_switch_count === 1 ? '' : 's'}.
+          Review it before publishing the result — it may be a genuine mistake (a stray notification, an
+          accidental click) rather than cheating.
+        </div>
+      )}
+
       <div className="card">
         <h2>{data.submission.students?.name}</h2>
         <p className="meta">Roll {data.submission.students?.roll_number} · {data.submission.students?.class}</p>

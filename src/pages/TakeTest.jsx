@@ -4,6 +4,11 @@ import { api, uploadAnswerFile, getAuthInfo } from '../lib/api.js';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
+// How many times a student can switch tabs / lose window focus before the
+// test is auto-submitted and flagged for the teacher. Change this one
+// number to make the policy stricter or looser.
+const MAX_TAB_SWITCHES = 3;
+
 // Measures the offset between this device's clock and the server's clock
 // ONCE, on load, so the countdown can't be tricked by changing the
 // system clock. Falls back to the client clock if the call fails.
@@ -50,6 +55,79 @@ function formatMs(ms) {
   return `${m}:${s}`;
 }
 
+// Anti-cheating: watches for the student leaving this tab (switching tabs,
+// minimizing, switching apps) or the window losing focus. Every switch is
+// logged; hitting MAX_TAB_SWITCHES calls onMaxExceeded exactly once, which
+// the caller uses to auto-submit and flag the attempt.
+//
+// Both 'visibilitychange' (hidden) and window 'blur' are listened for,
+// since different OS/browser combos surface tab/app switches differently —
+// a short de-dupe window stops the same switch being counted twice when
+// both fire together.
+function useTabProctor(active, onMaxExceeded) {
+  const [switchCount, setSwitchCount] = useState(0);
+  const [warningOpen, setWarningOpen] = useState(false);
+  const [tabHidden, setTabHidden] = useState(false);
+  const countRef = useRef(0);
+  const logRef = useRef([]);
+  const exceededRef = useRef(false);
+  const lastFlagAt = useRef(0);
+  const onMaxExceededRef = useRef(onMaxExceeded);
+  onMaxExceededRef.current = onMaxExceeded;
+
+  useEffect(() => {
+    if (!active) return;
+
+    function flag(type) {
+      if (exceededRef.current) return;
+      const now = Date.now();
+      if (now - lastFlagAt.current < 500) return; // de-dupe simultaneous events
+      lastFlagAt.current = now;
+      countRef.current += 1;
+      logRef.current = [...logRef.current, { at: new Date().toISOString(), type }];
+      setSwitchCount(countRef.current);
+      setWarningOpen(true);
+      if (countRef.current >= MAX_TAB_SWITCHES) {
+        exceededRef.current = true;
+        onMaxExceededRef.current?.(countRef.current, logRef.current);
+      }
+    }
+
+    function onVisibility() {
+      if (document.hidden) {
+        setTabHidden(true);
+        flag('tab_hidden');
+      } else {
+        setTabHidden(false);
+      }
+    }
+    function onBlur() {
+      setTabHidden(true);
+      flag('window_blur');
+    }
+    function onFocus() {
+      setTabHidden(false);
+    }
+
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('blur', onBlur);
+    window.addEventListener('focus', onFocus);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('blur', onBlur);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [active]);
+
+  return {
+    switchCount,
+    warningOpen,
+    tabHidden,
+    acknowledgeWarning: () => setWarningOpen(false),
+    getLog: () => logRef.current,
+  };
+}
+
 export default function TakeTest() {
   const { testId } = useParams();
   const nav = useNavigate();
@@ -76,6 +154,7 @@ export default function TakeTest() {
   const [submitting, setSubmitting] = useState(false);
   const [uploadingFor, setUploadingFor] = useState(null);
   const [timeUpNotice, setTimeUpNotice] = useState(false);
+  const [cheatLocked, setCheatLocked] = useState(false);
   const submittedRef = useRef(false);
 
   useEffect(() => {
@@ -93,7 +172,7 @@ export default function TakeTest() {
     localStorage.setItem(draftKey, JSON.stringify(answers));
   }, [answers, draftKey]);
 
-  const handleSubmit = useCallback(async (auto = false) => {
+  const handleSubmit = useCallback(async (auto = false, reason = null, tabInfo = null) => {
     if (submittedRef.current) return;
     if (!auto && !window.confirm('Submit the test now? You cannot change answers after this.')) return;
     submittedRef.current = true;
@@ -107,7 +186,16 @@ export default function TakeTest() {
         written_text: current[q.id]?.written_text ?? null,
         file_path: current[q.id]?.file_path ?? null,
       }));
-      await api('/submit-test', { method: 'POST', body: { test_id: testId, answers: payload } });
+      await api('/submit-test', {
+        method: 'POST',
+        body: {
+          test_id: testId,
+          answers: payload,
+          tab_switch_count: tabInfo?.count ?? 0,
+          flagged_reason: reason,
+          proctor_log: tabInfo?.log ?? [],
+        },
+      });
       localStorage.removeItem(draftKey);
       nav('/student/dashboard');
     } catch (e) {
@@ -118,16 +206,42 @@ export default function TakeTest() {
     }
   }, [questions, testId, draftKey, nav]);
 
-  const remaining = useCountdown(test?.end_at, serverNow, () => setTimeUpNotice(true));
+  // Lets useTabProctor's onMaxExceeded call the freshest handleSubmit
+  // without needing to be re-created every render.
+  const handleSubmitRef = useRef(handleSubmit);
+  useEffect(() => { handleSubmitRef.current = handleSubmit; }, [handleSubmit]);
+
+  const onMaxSwitchesExceeded = useCallback((count, log) => {
+    setCheatLocked(true);
+    handleSubmitRef.current?.(true, 'tab_switching', { count, log });
+  }, []);
+
+  const proctor = useTabProctor(!!test && !submittedRef.current, onMaxSwitchesExceeded);
+
+  const remaining = useCountdown(test?.end_at, serverNow, () =>
+    handleSubmit(true, null, { count: proctor.switchCount, log: proctor.getLog() })
+  );
+
+  const timeUpFired = useRef(false);
+  useEffect(() => {
+    if (remaining === 0 && !timeUpFired.current) {
+      timeUpFired.current = true;
+      setTimeUpNotice(true);
+    }
+  }, [remaining]);
 
   // Give the student a moment to see the notice and glance at their answers,
   // then submit automatically — this guarantees a submission always goes
   // through once time is up, instead of leaving them stuck on a dead screen.
   useEffect(() => {
     if (!timeUpNotice) return;
-    const t = setTimeout(() => handleSubmit(true), 5000);
+    const t = setTimeout(
+      () => handleSubmit(true, null, { count: proctor.switchCount, log: proctor.getLog() }),
+      5000
+    );
     return () => clearTimeout(t);
-  }, [timeUpNotice, handleSubmit]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeUpNotice]);
 
   function setAnswer(qId, patch) {
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], ...patch } }));
@@ -148,85 +262,134 @@ export default function TakeTest() {
   if (error && !test) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!test) return <div className="container center-note">Loading test…</div>;
 
+  const blurred = proctor.tabHidden || proctor.warningOpen;
+
   return (
     <div className="container">
-      <div className="card test-header-card">
-        <div className="test-header-brand">
-          <SchoolLogo size={56} />
-          <div>
-            <div className="test-header-school">{SCHOOL_NAME}</div>
-            <h2 style={{ margin: 0 }}>{test.title}</h2>
-            <div className="meta">{test.subject} · {test.total_marks} marks</div>
+      <div className={blurred ? 'proctor-blur' : ''}>
+        <div className="card test-header-card">
+          <div className="test-header-brand">
+            <SchoolLogo size={56} />
+            <div>
+              <div className="test-header-school">{SCHOOL_NAME}</div>
+              <h2 style={{ margin: 0 }}>{test.title}</h2>
+              <div className="meta">{test.subject} · {test.total_marks} marks</div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            {test.end_at && <div className="timer">⏱ {formatMs(remaining)}</div>}
+            <div className="meta" style={{ marginTop: 6 }}>
+              🛡 Tab switches: {proctor.switchCount} / {MAX_TAB_SWITCHES}
+            </div>
           </div>
         </div>
-        {test.end_at && <div className="timer">⏱ {formatMs(remaining)}</div>}
-      </div>
 
-      {error && <div className="error-box">{error}</div>}
+        {error && <div className="error-box">{error}</div>}
 
-      <div className="card">
-        {questions.map((q, idx) => (
-          <div className="question-block" key={q.id}>
-            <span className="q-marks">{q.marks} mark{q.marks === 1 ? '' : 's'}</span>
-            <div style={{ fontWeight: 600, marginBottom: 10 }}>
-              {idx + 1}. {q.question_text}
-            </div>
-
-            {q.type === 'mcq' && (
-              <div>
-                {(q.options || []).map((opt) => (
-                  <div
-                    key={opt.index}
-                    className={`option-row ${answers[q.id]?.mcq_selected === opt.index ? 'selected' : ''}`}
-                    onClick={() => setAnswer(q.id, { mcq_selected: opt.index })}
-                  >
-                    <input type="radio" checked={answers[q.id]?.mcq_selected === opt.index} readOnly />
-                    {opt.text}
-                  </div>
-                ))}
+        <div className="card">
+          {questions.map((q, idx) => (
+            <div className="question-block" key={q.id}>
+              <span className="q-marks">{q.marks} mark{q.marks === 1 ? '' : 's'}</span>
+              <div style={{ fontWeight: 600, marginBottom: 10 }}>
+                {idx + 1}. {q.question_text}
               </div>
-            )}
 
-            {q.type === 'written' && (
-              <textarea
-                placeholder="Type your answer…"
-                value={answers[q.id]?.written_text || ''}
-                onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
-              />
-            )}
+              {q.type === 'mcq' && (
+                <div>
+                  {(q.options || []).map((opt) => (
+                    <div
+                      key={opt.index}
+                      className={`option-row ${answers[q.id]?.mcq_selected === opt.index ? 'selected' : ''}`}
+                      onClick={() => setAnswer(q.id, { mcq_selected: opt.index })}
+                    >
+                      <input type="radio" checked={answers[q.id]?.mcq_selected === opt.index} readOnly />
+                      {opt.text}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-            {q.type === 'upload' && (
-              <div>
-                <input
-                  type="file"
-                  accept="image/*,.pdf"
-                  onChange={(e) => e.target.files[0] && handleFile(q.id, e.target.files[0])}
+              {q.type === 'written' && (
+                <textarea
+                  placeholder="Type your answer…"
+                  value={answers[q.id]?.written_text || ''}
+                  onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
                 />
-                {uploadingFor === q.id && <p className="meta">Uploading…</p>}
-                {answers[q.id]?.file_name && <p className="meta">✓ Uploaded: {answers[q.id].file_name}</p>}
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+
+              {q.type === 'upload' && (
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*,.pdf"
+                    onChange={(e) => e.target.files[0] && handleFile(q.id, e.target.files[0])}
+                  />
+                  {uploadingFor === q.id && <p className="meta">Uploading…</p>}
+                  {answers[q.id]?.file_name && <p className="meta">✓ Uploaded: {answers[q.id].file_name}</p>}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        <button
+          className="primary"
+          onClick={() => handleSubmit(false, null, { count: proctor.switchCount, log: proctor.getLog() })}
+          disabled={submitting}
+        >
+          {submitting ? 'Submitting…' : 'Submit test'}
+        </button>
       </div>
 
-      <button className="primary" onClick={() => handleSubmit(false)} disabled={submitting}>
-        {submitting ? 'Submitting…' : 'Submit test'}
-      </button>
+      {/* Anti-cheating: tab/window switch warning — blocks interaction until acknowledged */}
+      {proctor.warningOpen && !cheatLocked && (
+        <div className="proctor-overlay">
+          <div className="card proctor-card">
+            <div className="proctor-count">Warning {proctor.switchCount} / {MAX_TAB_SWITCHES}</div>
+            <h3 style={{ marginTop: 4 }}>⚠ Tab or window switch detected</h3>
+            <p className="meta">
+              Leaving this tab or window during a test is treated as possible cheating. After{' '}
+              {MAX_TAB_SWITCHES} switches, your test will be submitted automatically and flagged for your
+              teacher to review.
+            </p>
+            <button
+              className="primary"
+              onClick={proctor.acknowledgeWarning}
+              disabled={proctor.tabHidden}
+              style={{ marginTop: 12, width: '100%' }}
+            >
+              {proctor.tabHidden ? 'Return to this tab to continue…' : 'I understand — resume test'}
+            </button>
+          </div>
+        </div>
+      )}
 
-      {timeUpNotice && (
-        <div
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(22,35,61,0.55)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20,
-          }}
-        >
-          <div className="card" style={{ maxWidth: 380, textAlign: 'center' }}>
+      {/* Anti-cheating: switch limit exceeded — test is being auto-submitted, no way back in */}
+      {cheatLocked && (
+        <div className="proctor-overlay">
+          <div className="card proctor-card proctor-card-locked">
+            <h3>🚫 Test submitted</h3>
+            <p className="meta">
+              Repeated tab/window switching was detected during this test. It has been submitted
+              automatically and flagged for your teacher's review.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {timeUpNotice && !cheatLocked && (
+        <div className="proctor-overlay">
+          <div className="card proctor-card" style={{ borderTopColor: 'var(--ink)' }}>
             <h3 style={{ marginBottom: 8 }}>⏱ Time's up!</h3>
             <p className="meta">
               Whatever you've selected or typed so far will be submitted now — no answer is lost.
             </p>
-            <button className="primary" onClick={() => handleSubmit(true)} disabled={submitting} style={{ marginTop: 10 }}>
+            <button
+              className="primary"
+              onClick={() => handleSubmit(true, null, { count: proctor.switchCount, log: proctor.getLog() })}
+              disabled={submitting}
+              style={{ marginTop: 10, width: '100%' }}
+            >
               {submitting ? 'Submitting…' : 'Submit now'}
             </button>
           </div>

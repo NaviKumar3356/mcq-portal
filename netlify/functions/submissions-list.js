@@ -22,7 +22,7 @@ exports.handler = async (event) => {
 
     const { data: submissions, error } = await supabase
       .from('submissions')
-      .select('id, status, total_marks_awarded, submitted_at, students(id, name, roll_number, class)')
+      .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, students(id, name, roll_number, class)')
       .eq('test_id', testId)
       .order('submitted_at', { ascending: true });
     if (error) throw error;

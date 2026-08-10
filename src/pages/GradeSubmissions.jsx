@@ -44,6 +44,7 @@ export default function GradeSubmissions() {
 
   const submittedIds = new Set((subs || []).map((s) => s.students?.id));
   const missing = (roster || []).filter((s) => !submittedIds.has(s.id));
+  const flaggedCount = (subs || []).filter((s) => s.flagged_reason).length;
 
   async function removeSubmission(id, name) {
     if (!window.confirm(`Delete ${name}'s submission and answer copy? This cannot be undone.`)) return;
@@ -73,6 +74,13 @@ export default function GradeSubmissions() {
       {!subs && !error && <p className="center-note">Loading…</p>}
       {subs && subs.length === 0 && <div className="card center-note">No submissions yet.</div>}
 
+      {flaggedCount > 0 && (
+        <div className="notice-strip notice-danger" style={{ display: 'block', marginBottom: 14 }}>
+          ⚠ {flaggedCount} submission{flaggedCount === 1 ? '' : 's'} flagged for repeated tab/window
+          switching — review the ⚠ Flagged badge below before publishing results.
+        </div>
+      )}
+
       {subs && subs.length > 0 && (
         <div className="card">
           {subs.map((s) => (
@@ -83,6 +91,15 @@ export default function GradeSubmissions() {
               </div>
               <div style={{ textAlign: 'right' }}>
                 <span className={`pill ${s.status === 'graded' ? 'graded' : 'pending'}`}>{s.status}</span>
+                {s.flagged_reason && (
+                  <span
+                    className="pill danger"
+                    style={{ marginLeft: 6 }}
+                    title={`Switched tabs/left the test window ${s.tab_switch_count} time${s.tab_switch_count === 1 ? '' : 's'} — auto-submitted`}
+                  >
+                    ⚠ Flagged
+                  </span>
+                )}
                 <div style={{ marginTop: 8, display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                   <Link to={`${isAdmin ? '/admin' : '/teacher'}/submission/${s.id}`}>
                     <button className="secondary">
