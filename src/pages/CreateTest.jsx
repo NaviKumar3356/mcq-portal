@@ -114,41 +114,42 @@ export default function CreateTest() {
 
       <form onSubmit={onSubmit}>
         <div className="card">
+          <div className="card-section-title">📝 Paper details</div>
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Periodic Test 1" />
 
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label>Subject</label>
+              <label>📚 Subject</label>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
                 {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label>Class</label>
+              <label>🏫 Class</label>
               <select value={klass} onChange={(e) => setKlass(e.target.value)} required>
                 {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>
-              <label>Duration (minutes)</label>
+              <label>⏱ Duration (minutes)</label>
               <input type="text" inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} />
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 12 }}>
             <div style={{ flex: 1 }}>
-              <label>Opens at (optional)</label>
+              <label>🕐 Opens at (optional)</label>
               <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
             </div>
             <div style={{ flex: 1 }}>
-              <label>Closes at (optional)</label>
+              <label>🔒 Closes at (optional)</label>
               <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
             </div>
           </div>
 
           <div className="shuffle-box">
-            <div className="eyebrow">Anti-cheating (optional)</div>
+            <div className="card-section-title">🔀 Anti-cheating (optional)</div>
             <label className="checkbox-row">
               <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
               Shuffle question order per student
@@ -177,9 +178,16 @@ export default function CreateTest() {
         </div>
 
         {questions.map((q, i) => (
-          <div className="card" key={i}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div className="eyebrow">Question {i + 1} — {q.type}</div>
+          <div className={`card question-card ${q.type}`} key={i}>
+            <div className="question-card-head">
+              <span>
+                <span className="eyebrow" style={{ marginBottom: 0, marginRight: 8 }}>Question {i + 1}</span>
+                <span className={`type-badge ${q.type}`}>
+                  {q.type === 'mcq' && '🔘 MCQ'}
+                  {q.type === 'written' && '✍️ Written'}
+                  {q.type === 'upload' && '📎 Upload'}
+                </span>
+              </span>
               <button type="button" className="secondary" onClick={() => removeQuestion(i)}>Remove</button>
             </div>
 
@@ -222,9 +230,9 @@ export default function CreateTest() {
         ))}
 
         <div className="card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button type="button" className="secondary" onClick={() => addQuestion('mcq')}>+ MCQ question</button>
-          <button type="button" className="secondary" onClick={() => addQuestion('written')}>+ Written question</button>
-          <button type="button" className="secondary" onClick={() => addQuestion('upload')}>+ Upload-answer question</button>
+          <button type="button" className="secondary" onClick={() => addQuestion('mcq')}>🔘 + MCQ question</button>
+          <button type="button" className="secondary" onClick={() => addQuestion('written')}>✍️ + Written question</button>
+          <button type="button" className="secondary" onClick={() => addQuestion('upload')}>📎 + Upload-answer question</button>
         </div>
 
         <p className="meta">

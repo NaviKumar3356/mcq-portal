@@ -137,6 +137,7 @@ export default function EditTest() {
 
       <form onSubmit={onSubmit}>
         <div className="card">
+          <div className="card-section-title">📝 Paper details</div>
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} required />
 
@@ -175,7 +176,7 @@ export default function EditTest() {
           </div>
 
           <div className="shuffle-box">
-            <div className="eyebrow">Anti-cheating (optional)</div>
+            <div className="card-section-title">🔀 Anti-cheating (optional)</div>
             <label className="checkbox-row">
               <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
               Shuffle question order per student
@@ -199,9 +200,18 @@ export default function EditTest() {
         </div>
 
         {questions.map((q, i) => (
-          <div className="card" key={q.id || `new-${i}`}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <div className="eyebrow">Question {i + 1} — {q.type}{!q.id && ' (new)'}</div>
+          <div className={`card question-card ${q.type}`} key={q.id || `new-${i}`}>
+            <div className="question-card-head">
+              <span>
+                <span className="eyebrow" style={{ marginBottom: 0, marginRight: 8 }}>
+                  Question {i + 1}{!q.id && ' (new)'}
+                </span>
+                <span className={`type-badge ${q.type}`}>
+                  {q.type === 'mcq' && '🔘 MCQ'}
+                  {q.type === 'written' && '✍️ Written'}
+                  {q.type === 'upload' && '📎 Upload'}
+                </span>
+              </span>
               <button
                 type="button"
                 className="secondary"

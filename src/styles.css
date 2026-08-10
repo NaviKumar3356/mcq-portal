@@ -83,10 +83,25 @@ a { color: inherit; }
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: var(--radius);
+  border-radius: 14px;
   box-shadow: var(--shadow);
-  padding: 24px;
-  margin-bottom: 18px;
+  padding: 26px 28px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.card:hover {
+  box-shadow: 0 2px 4px rgba(22,35,61,0.07), 0 10px 24px rgba(22,35,61,0.09);
+}
+
+.card-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Source Serif 4', serif;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin-bottom: 4px;
 }
 
 .eyebrow {
@@ -135,43 +150,68 @@ label {
   margin: 14px 0 6px;
 }
 
-input[type="text"], input[type="password"], input[type="date"], textarea, select {
+input[type="text"], input[type="password"], input[type="date"], input[type="datetime-local"], textarea, select {
   width: 100%;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  padding: 11px 13px;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
   font-size: 0.95rem;
   font-family: inherit;
   background: #fff;
   color: var(--ink);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+input[type="text"]:focus, input[type="password"]:focus, input[type="date"]:focus,
+input[type="datetime-local"]:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(47, 111, 79, 0.14);
+}
+select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236f6a5c' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
 }
 
 textarea { resize: vertical; min-height: 90px; }
 
 button.primary {
-  background: var(--accent);
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
   color: #fff;
   border: none;
-  padding: 11px 18px;
-  border-radius: 8px;
+  padding: 11px 20px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 0.92rem;
   cursor: pointer;
-  transition: background 0.15s ease;
+  box-shadow: 0 3px 10px rgba(47, 111, 79, 0.28);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
-button.primary:hover { background: var(--accent-dark); }
-button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary:hover { transform: translateY(-1px); box-shadow: 0 5px 14px rgba(47, 111, 79, 0.35); }
+button.primary:active { transform: translateY(0); }
+button.primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
 button.secondary {
   background: #fff;
   color: var(--ink);
-  border: 1px solid var(--line);
+  border: 1.5px solid var(--line);
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 600;
   font-size: 0.88rem;
   cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
+button.secondary:hover {
+  border-color: var(--accent);
+  color: var(--accent-dark);
+  background: #eef6f0;
+}
+
 
 .error-box {
   background: #fbe9e7;
@@ -442,10 +482,10 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
 /* ===================== Shuffle settings box ===================== */
 .shuffle-box {
   margin-top: 16px;
-  padding: 14px 16px;
-  background: var(--paper);
-  border: 1px dashed var(--line);
-  border-radius: 8px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fbf8f0, #f3f7f4);
+  border: 1.5px dashed var(--accent);
+  border-radius: 10px;
 }
 .checkbox-row {
   display: flex;
@@ -457,7 +497,37 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
   margin: 8px 0;
   cursor: pointer;
 }
-.checkbox-row input { width: auto; }
+.checkbox-row input { width: auto; accent-color: var(--accent); }
+
+/* ===================== Question type badges ===================== */
+.type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.type-badge.mcq { background: #e3edfb; color: #1d4e8f; }
+.type-badge.written { background: #f1e8fb; color: #6b3fa0; }
+.type-badge.upload { background: #fde9db; color: #b5570f; }
+
+.question-card {
+  border-left: 4px solid var(--line);
+}
+.question-card.mcq { border-left-color: #4d7fc4; }
+.question-card.written { border-left-color: #9463c9; }
+.question-card.upload { border-left-color: #d9822b; }
+
+.question-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
 
 /* ===================== Student login — colorful redesign ===================== */
 .student-login-bg {
@@ -480,8 +550,8 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
 }
 
 .logo-badge {
-  width: 250px;
-  height: 250px;
+  width: 132px;
+  height: 132px;
   margin: 0 auto 14px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #ffffff, #eef3ee 70%);
@@ -491,10 +561,6 @@ button.small { padding: 5px 10px; font-size: 0.78rem; }
   align-items: center;
   justify-content: center;
   overflow: hidden;
-}
-.logo-badge img {
-  width: 78%;
-  height: 78%;
 }
 
 .student-title {
