@@ -23,6 +23,8 @@ import AdminLogin from './pages/AdminLogin.jsx';
 import AdminOverview from './pages/AdminOverview.jsx';
 import ManageTeachers from './pages/ManageTeachers.jsx';
 
+import Leaderboard from './pages/Leaderboard.jsx';
+
 function Protected({ roles, children }) {
   const token = getToken();
   const auth = getAuthInfo();
@@ -64,12 +66,14 @@ export default function App() {
         <Route path="/student/dashboard" element={<Protected roles={['student']}><StudentDashboard /></Protected>} />
         <Route path="/student/test/:testId" element={<Protected roles={['student']}><TakeTest /></Protected>} />
         <Route path="/student/result/:testId" element={<Protected roles={['student']}><StudentResult /></Protected>} />
+        <Route path="/student/leaderboard" element={<Protected roles={['student']}><Leaderboard /></Protected>} />
 
         {/* Teacher */}
         <Route path="/teacher/login" element={<TeacherLogin />} />
         <Route path="/teacher" element={<Protected roles={['teacher']}><TeacherDashboard /></Protected>} />
         <Route path="/teacher/create" element={<Protected roles={['teacher']}><CreateTest /></Protected>} />
         <Route path="/teacher/students" element={<Protected roles={['teacher']}><ManageStudents /></Protected>} />
+        <Route path="/teacher/leaderboard" element={<Protected roles={['teacher']}><Leaderboard /></Protected>} />
         <Route path="/teacher/test/:testId/edit" element={<Protected roles={['teacher']}><EditTest /></Protected>} />
         <Route path="/teacher/test/:testId/answer-key" element={<Protected roles={['teacher']}><AnswerKey /></Protected>} />
         <Route path="/teacher/test/:testId/submissions" element={<Protected roles={['teacher']}><GradeSubmissions /></Protected>} />
@@ -82,6 +86,7 @@ export default function App() {
         <Route path="/admin/students" element={<Protected roles={['super_admin']}><ManageStudents /></Protected>} />
         <Route path="/admin/papers" element={<Protected roles={['super_admin']}><TeacherDashboard /></Protected>} />
         <Route path="/admin/papers/create" element={<Protected roles={['super_admin']}><CreateTest /></Protected>} />
+        <Route path="/admin/leaderboard" element={<Protected roles={['super_admin']}><Leaderboard /></Protected>} />
         <Route path="/admin/test/:testId/edit" element={<Protected roles={['super_admin']}><EditTest /></Protected>} />
         <Route path="/admin/test/:testId/answer-key" element={<Protected roles={['super_admin']}><AnswerKey /></Protected>} />
         <Route path="/admin/test/:testId/submissions" element={<Protected roles={['super_admin']}><GradeSubmissions /></Protected>} />

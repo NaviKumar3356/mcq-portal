@@ -11,6 +11,10 @@
   --muted: #6f6a5c;
   --radius: 10px;
   --shadow: 0 1px 2px rgba(22,35,61,0.06), 0 4px 14px rgba(22,35,61,0.06);
+  /* Added when merging in the anti-cheating / export / leaderboard UI */
+  --accent-2: #eab54a;    /* amber highlight — also used across the new theme's gradients */
+  --accent-3: #d9694a;    /* terracotta highlight */
+  --shadow-lift: 0 6px 16px rgba(22,35,61,0.10), 0 14px 32px rgba(22,35,61,0.10);
 }
 
 * { box-sizing: border-box; }
@@ -240,6 +244,7 @@ button.secondary:hover {
 .pill.closed { background: #f4e5df; color: var(--warn); }
 .pill.graded { background: #e3f1e9; color: var(--accent-dark); }
 .pill.pending { background: #fbeee0; color: var(--warn); }
+.pill.danger { background: #fbe4e1; color: var(--danger); }
 
 .test-row {
   display: flex;
@@ -433,10 +438,14 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
   color: var(--warn);
   font-size: 0.8rem;
   font-weight: 600;
-  padding: 6px 10px;
-  border-radius: 6px;
+  padding: 8px 12px;
+  border-radius: 8px;
   margin-top: 10px;
   display: inline-block;
+}
+.notice-strip.notice-danger {
+  background: #fbe4e1;
+  color: var(--danger);
 }
 
 /* ===================== Multi-select chips ===================== */
@@ -2423,637 +2432,11 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
   }
 }
 
-/* ===================== Legacy landing page from styles(1).css ===================== */
-:root {
-  --ink: #16233d;
-  --ink-soft: #3c4a63;
-  --paper: #f7f5f0;
-  --card: #ffffff;
-  --line: #e2ddd0;
-  --accent: #2f6f4f;      /* open / correct / go */
-  --accent-dark: #234f39;
-  --accent-2: #eab54a;    /* amber highlight */
-  --accent-3: #d9694a;    /* terracotta highlight */
-  --warn: #b5490f;        /* pending / closed */
-  --danger: #b3261e;
-  --muted: #6f6a5c;
-  --radius: 14px;
-  --shadow: 0 1px 2px rgba(22,35,61,0.06), 0 4px 14px rgba(22,35,61,0.06);
-  --shadow-lift: 0 6px 16px rgba(22,35,61,0.10), 0 14px 32px rgba(22,35,61,0.10);
-}
-
-* { box-sizing: border-box; }
-
-html, body, #root { height: 100%; }
-
-body {
-  margin: 0;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3 {
-  font-family: 'Source Serif 4', Georgia, serif;
-  font-weight: 700;
-  margin: 0 0 0.4em;
-  letter-spacing: -0.01em;
-}
-
-a { color: inherit; }
-
-.app-shell {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 20px 32px;
-  background: linear-gradient(120deg, var(--ink) 0%, #1c2f4f 100%);
-  color: #fff;
-}
-
-.topbar .brand {
-  font-family: 'Source Serif 4', serif;
-  font-weight: 700;
-  font-size: 1.35rem;
-  letter-spacing: -0.01em;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.topbar .who {
-  font-size: 0.85rem;
-  opacity: 0.8;
-}
-
-.topbar button.link {
-  background: none;
-  border: none;
-  color: #fff;
-  opacity: 0.85;
-  cursor: pointer;
-  font-size: 0.85rem;
-  text-decoration: underline;
-  padding: 0;
-}
-
-.container {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 36px 24px 80px;
-  width: 100%;
-  flex: 1;
-}
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 26px 28px;
-  margin-bottom: 20px;
-  transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
-}
-.card:hover {
-  box-shadow: var(--shadow-lift);
-}
-
-.card-section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Source Serif 4', serif;
-  font-weight: 700;
-  font-size: 1.05rem;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.72rem;
-  color: var(--muted);
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.login-wrap {
-  min-height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background:
-    radial-gradient(circle at 15% 10%, rgba(47,111,79,0.10), transparent 45%),
-    radial-gradient(circle at 85% 90%, rgba(234,181,74,0.14), transparent 45%),
-    var(--paper);
-}
-
-.admit-card {
-  width: 100%;
-  max-width: 380px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-lift);
-  padding: 30px 28px;
-  position: relative;
-  overflow: hidden;
-}
-
-.admit-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 6px;
-  background: repeating-linear-gradient(90deg, var(--accent) 0 14px, transparent 14px 22px);
-  opacity: 0.7;
-}
-
-label {
-  display: block;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  margin: 14px 0 6px;
-}
-
-input[type="text"], input[type="password"], input[type="date"], input[type="datetime-local"], textarea, select {
-  width: 100%;
-  padding: 11px 13px;
-  border: 1.5px solid var(--line);
-  border-radius: 10px;
-  font-size: 0.95rem;
-  font-family: inherit;
-  background: #fff;
-  color: var(--ink);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-input[type="text"]:focus, input[type="password"]:focus, input[type="date"]:focus,
-input[type="datetime-local"]:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(47, 111, 79, 0.14);
-}
-select {
-  cursor: pointer;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236f6a5c' stroke-width='2.5'><path d='M6 9l6 6 6-6'/></svg>");
-  background-repeat: no-repeat;
-  background-position: right 12px center;
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 34px;
-}
-
-textarea { resize: vertical; min-height: 90px; }
-
-button.primary {
-  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-  color: #fff;
-  border: none;
-  padding: 11px 20px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.92rem;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  box-shadow: 0 3px 10px rgba(47, 111, 79, 0.28);
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-button.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(47, 111, 79, 0.36); }
-button.primary:active { transform: translateY(0); }
-button.primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
-
-button.secondary {
-  background: #fff;
-  color: var(--ink);
-  border: 1.5px solid var(--line);
-  padding: 10px 16px;
-  border-radius: 10px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
-}
-button.secondary:hover {
-  border-color: var(--accent);
-  color: var(--accent-dark);
-  background: #eef6f0;
-}
-
-
-.error-box {
-  background: #fbe9e7;
-  color: var(--danger);
-  border: 1px solid #f2c2bd;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.88rem;
-  margin: 12px 0;
-}
-
-.pill {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.pill.open { background: #e3f1e9; color: var(--accent-dark); }
-.pill.upcoming { background: #efeadc; color: var(--muted); }
-.pill.closed { background: #f4e5df; color: var(--warn); }
-.pill.graded { background: #e3f1e9; color: var(--accent-dark); }
-.pill.pending { background: #fbeee0; color: var(--warn); }
-.pill.danger { background: #fbe4e1; color: var(--danger); }
-
-.test-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
-}
-.test-row:last-child { border-bottom: none; }
-
-.test-row .meta { color: var(--muted); font-size: 0.82rem; margin-top: 2px; }
-
-.question-block {
-  border-bottom: 1px dashed var(--line);
-  padding: 18px 0;
-}
-.question-block:last-child { border-bottom: none; }
-
-.q-marks {
-  float: right;
-  color: var(--muted);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.option-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 10px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin: 6px 0;
-  cursor: pointer;
-  transition: border-color 0.12s ease, background 0.12s ease;
-}
-.option-row:hover { border-color: var(--accent); }
-.option-row.selected {
-  border-color: var(--accent);
-  background: #eef6f0;
-}
-
-.timer {
-  font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  background: var(--ink);
-  color: #fff;
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  display: inline-block;
-}
-
-.center-note {
-  text-align: center;
-  color: var(--muted);
-  padding: 40px 0;
-}
-
-table.grade-table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-table.grade-table th, table.grade-table td {
-  text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line);
-}
-
-.file-thumb img {
-  max-width: 260px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  display: block;
-  margin-top: 8px;
-}
-
-/* ===================== Landing / role selection ===================== */
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-@media (max-width: 640px) {
-  .role-grid { grid-template-columns: 1fr; }
-}
-.role-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 30px 18px;
-  text-align: center;
-  text-decoration: none;
-  color: var(--ink);
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
-  display: block;
-}
-.role-card:hover {
-  transform: translateY(-3px);
-  border-color: var(--accent);
-  box-shadow: var(--shadow-lift);
-}
-.role-icon {
-  font-size: 1.8rem;
-  margin: 0 auto 12px;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #eef6f0, #fbf6e8);
-}
-.role-title { font-family: 'Source Serif 4', serif; font-weight: 700; font-size: 1.05rem; }
-.role-sub { color: var(--muted); font-size: 0.82rem; margin-top: 4px; }
-
-/* ===================== Sidebar / panel layout ===================== */
-.panel-shell {
-  display: flex;
-  min-height: 100%;
-  flex: 1;
-}
-.sidebar {
-  width: 232px;
-  flex-shrink: 0;
-  background: linear-gradient(165deg, var(--ink) 0%, #1a2c4a 60%, #172342 100%);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  padding: 22px 16px;
-  position: sticky;
-  top: 0;
-  height: 100vh;
-}
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-family: 'Source Serif 4', serif;
-  font-weight: 700;
-  font-size: 1.3rem;
-  margin-bottom: 28px;
-}
-.sidebar-who { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255,255,255,0.14); }
-.sidebar-role { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
-.sidebar-name { font-weight: 600; font-size: 0.95rem; margin-top: 2px; }
-.sidebar-nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
-.sidebar-link {
-  display: block;
-  padding: 9px 12px;
-  border-radius: 8px;
-  color: rgba(255,255,255,0.82);
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-  transition: background 0.12s ease;
-}
-.sidebar-link:hover { background: rgba(255,255,255,0.08); }
-.sidebar-link.active { background: rgba(47,111,79,0.55); color: #fff; }
-.sidebar-link-icon { margin-right: 6px; }
-.sidebar-logout {
-  background: none;
-  border: 1px solid rgba(255,255,255,0.25);
-  color: #fff;
-  padding: 9px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 0.85rem;
-  margin-top: 12px;
-}
-.sidebar-logout:hover { background: rgba(255,255,255,0.1); }
-
-.panel-content {
-  flex: 1;
-  padding: 32px 36px 80px;
-  max-width: 980px;
-}
-@media (max-width: 800px) {
-  .panel-shell { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; position: relative; flex-direction: row; align-items: center; flex-wrap: wrap; gap: 10px; }
-  .sidebar-nav { flex-direction: row; flex-wrap: wrap; }
-  .panel-content { padding: 20px; }
-}
-
-/* ===================== Buttons ===================== */
-button.danger {
-  background: #fff;
-  color: var(--danger);
-  border: 1px solid #f0c9c5;
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.88rem;
-  cursor: pointer;
-}
-button.danger:hover { background: #fbe9e7; }
-button.small { padding: 5px 10px; font-size: 0.78rem; }
-button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
-
-/* ===================== Filter bars & tables ===================== */
-.filter-bar {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.filter-bar input, .filter-bar select { flex: 1; min-width: 160px; }
-
-.notice-strip {
-  background: #fbeee0;
-  color: var(--warn);
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 8px 12px;
-  border-radius: 8px;
-  margin-top: 10px;
-  display: inline-block;
-}
-.notice-strip.notice-danger {
-  background: #fbe4e1;
-  color: var(--danger);
-}
-
-/* ===================== Multi-select chips ===================== */
-.multiselect {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin: 8px 0 14px;
-}
-.chip {
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.82rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  background: #fff;
-  transition: background 0.12s ease, border-color 0.12s ease;
-}
-.chip input { display: none; }
-.chip-on { background: var(--accent); color: #fff; border-color: var(--accent); }
-
-/* ===================== Stat grid (admin overview) ===================== */
-.stat-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-@media (max-width: 700px) {
-  .stat-grid { grid-template-columns: 1fr; }
-}
-.stat-card { text-align: center; }
-.stat-num {
-  font-family: 'Source Serif 4', serif;
-  font-size: 2.3rem;
-  font-weight: 700;
-  background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-.stat-label { color: var(--muted); font-size: 0.85rem; margin: 4px 0 14px; }
-
-/* ===================== Test-taking header w/ logo ===================== */
-.test-header-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.test-header-brand { display: flex; align-items: center; gap: 18px; }
-.test-header-school { font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
-
-/* ===================== Shuffle settings box ===================== */
-.shuffle-box {
-  margin-top: 16px;
-  padding: 16px 18px;
-  background: linear-gradient(135deg, #fbf8f0, #f3f7f4);
-  border: 1.5px dashed var(--accent);
-  border-radius: 10px;
-}
-.checkbox-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-weight: 500;
-  font-size: 0.88rem;
-  color: var(--ink);
-  margin: 8px 0;
-  cursor: pointer;
-}
-.checkbox-row input { width: auto; accent-color: var(--accent); }
-
-/* ===================== Question type badges ===================== */
-.type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 11px;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.type-badge.mcq { background: #e3edfb; color: #1d4e8f; }
-.type-badge.written { background: #f1e8fb; color: #6b3fa0; }
-.type-badge.upload { background: #fde9db; color: #b5570f; }
-
-.question-card {
-  border-left: 4px solid var(--line);
-}
-.question-card.mcq { border-left-color: #4d7fc4; }
-.question-card.written { border-left-color: #9463c9; }
-.question-card.upload { border-left-color: #d9822b; }
-
-.question-card-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 4px;
-}
-
-/* ===================== Student login — colorful redesign ===================== */
-.student-login-bg {
-  background: linear-gradient(135deg, #16233d 0%, #2f6f4f 55%, #eab54a 130%);
-}
-
-.student-card {
-  max-width: 420px;
-  padding-top: 38px;
-}
-.student-card::before {
-  height: 8px;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--accent) 0 16px,
-    #eab54a 16px 32px,
-    #d9694a 32px 48px
-  );
-  opacity: 1;
-}
-
-.logo-badge {
-  width: 168px;
-  height: 168px;
-  margin: 0 auto 14px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, #ffffff, #eef3ee 70%);
-  border: 4px solid var(--accent);
-  box-shadow: 0 6px 18px rgba(47, 111, 79, 0.25);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.student-title {
-  text-align: center;
-  font-size: 1.5rem;
-  background: linear-gradient(90deg, var(--accent-dark), #d9694a);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-}
-
-.student-btn {
-  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
-  font-size: 1rem;
-  padding: 13px 18px;
-  box-shadow: 0 4px 14px rgba(47, 111, 79, 0.35);
-}
-.student-btn:hover {
-  background: linear-gradient(90deg, var(--accent-dark), var(--accent));
-}
-
-/* ===================== Anti-cheating: tab-switch proctoring ===================== */
-/* Applied around the test content whenever the tab is hidden/unfocused, or
-   an unacknowledged tab-switch warning is showing. Makes the questions
-   unreadable and unclickable without hiding that something is wrong. */
+/* ============================================================
+   MERGED FROM the anti-cheating build: tab-switch proctoring UI.
+   Applied around the test content whenever the tab is hidden/unfocused,
+   or an unacknowledged tab-switch warning is showing.
+   ============================================================ */
 .proctor-blur {
   filter: blur(10px) saturate(60%);
   pointer-events: none;
@@ -3088,4 +2471,36 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
   background: #fbe4e1;
   padding: 4px 16px;
   border-radius: 999px;
+}
+
+/* ============================================================
+   Score export bar (Submissions screen, Result screen)
+   ============================================================ */
+.export-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 10px 0 18px;
+}
+.export-bar .meta { margin-right: 4px; }
+
+/* ============================================================
+   Class leaderboard
+   ============================================================ */
+tr.leaderboard-me {
+  background: linear-gradient(90deg, rgba(234,181,74,0.16), rgba(47,111,79,0.08));
+  font-weight: 700;
+}
+tr.leaderboard-me td:first-child { font-size: 1.05rem; }
+
+.scorecard-celebrate {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(234,181,74,0.18), rgba(217,105,74,0.10));
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: inline-block;
 }

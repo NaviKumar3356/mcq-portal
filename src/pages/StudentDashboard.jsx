@@ -26,6 +26,7 @@ export default function StudentDashboard() {
             <div className="meta">Roll {auth?.roll_number} · Class {auth?.class}</div>
           </div>
         </div>
+        <Link to="/student/leaderboard"><button className="secondary">🏆 Leaderboard</button></Link>
       </div>
 
       {error && <div className="error-box">{error}</div>}

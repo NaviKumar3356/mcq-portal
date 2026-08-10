@@ -8,12 +8,14 @@ const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
   { to: '/teacher/create', label: 'New paper', icon: '➕' },
   { to: '/teacher/students', label: 'Students', icon: '🎓' },
+  { to: '/teacher/leaderboard', label: 'Leaderboard', icon: '🏆' },
 ];
 const ADMIN_ITEMS = [
   { to: '/admin', label: 'Overview', icon: '🏠', end: true },
   { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
   { to: '/admin/students', label: 'Students', icon: '🎓' },
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
+  { to: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
 ];
 
 export default function TeacherDashboard() {

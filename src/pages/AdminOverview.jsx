@@ -8,6 +8,7 @@ const ADMIN_ITEMS = [
   { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
   { to: '/admin/students', label: 'Students', icon: '🎓' },
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
+  { to: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
 ];
 
 export default function AdminOverview() {
@@ -42,6 +43,12 @@ export default function AdminOverview() {
           <div className="stat-label">Papers set</div>
           <Link to="/admin/papers"><button className="secondary">View</button></Link>
         </div>
+      </div>
+
+      <div className="card">
+        <div className="card-section-title">🏆 Class leaderboards</div>
+        <p className="meta">See how students in any class are ranking once results are published.</p>
+        <Link to="/admin/leaderboard"><button className="secondary">Open leaderboard</button></Link>
       </div>
     </PanelLayout>
   );
