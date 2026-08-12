@@ -24,6 +24,8 @@ function blankQuestion(type = 'mcq') {
     options: type === 'mcq' ? ['', '', '', ''] : undefined,
     correct_option: type === 'mcq' ? 0 : undefined,
     marks: 1,
+    language: type === 'practical' ? 'python' : undefined,
+    variants: type === 'practical' ? [{ question_text: '', starter_code: '' }] : undefined,
   };
 }
 
@@ -84,6 +86,25 @@ export default function CreateTest() {
       })
     );
   }
+  function updateVariant(i, vi, patch) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => {
+        if (idx !== i) return q;
+        const variants = q.variants.map((v, xi) => (xi === vi ? { ...v, ...patch } : v));
+        return { ...q, variants };
+      })
+    );
+  }
+  function addVariant(i) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => (idx === i ? { ...q, variants: [...q.variants, { question_text: '', starter_code: '' }] } : q))
+    );
+  }
+  function removeVariant(i, vi) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => (idx === i ? { ...q, variants: q.variants.filter((_, xi) => xi !== vi) } : q))
+    );
+  }
   function addQuestion(type) {
     setQuestions((qs) => [...qs, blankQuestion(type)]);
   }
@@ -96,6 +117,11 @@ export default function CreateTest() {
     setError('');
     if (questions.length === 0) return setError('Add at least one question.');
     if (!klass || !subject) return setError('Choose a class and subject.');
+    for (const q of questions) {
+      if (q.type === 'practical' && (!q.variants || q.variants.length === 0 || !q.variants[0].question_text)) {
+        return setError('Every practical question needs at least one variant with a problem statement.');
+      }
+    }
     setSaving(true);
     try {
       await api('/test-create', {
@@ -237,16 +263,21 @@ export default function CreateTest() {
                   {q.type === 'mcq' && '🔘 MCQ'}
                   {q.type === 'written' && '✍️ Written'}
                   {q.type === 'upload' && '📎 Upload'}
+                  {q.type === 'practical' && '💻 Practical'}
                 </span>
               </span>
               <button type="button" className="secondary" onClick={() => removeQuestion(i)}>Remove</button>
             </div>
 
-            <label>Question text</label>
-            <textarea value={q.question_text} onChange={(e) => updateQ(i, { question_text: e.target.value })} required />
+            {q.type !== 'practical' && (
+              <>
+                <label>Question text</label>
+                <textarea value={q.question_text} onChange={(e) => updateQ(i, { question_text: e.target.value })} required />
+              </>
+            )}
 
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
-              <div style={{ flex: 1 }}>
+              <div style={{ flex: 1, maxWidth: 140 }}>
                 <label>Marks</label>
                 <input type="text" inputMode="numeric" value={q.marks} onChange={(e) => updateQ(i, { marks: e.target.value })} />
               </div>
@@ -283,6 +314,46 @@ export default function CreateTest() {
 
             {q.type === 'written' && <p className="meta">Student types their answer in a text box. You grade it manually.</p>}
             {q.type === 'upload' && <p className="meta">Student uploads a photo/scan of their handwritten answer. You grade it manually.</p>}
+
+            {q.type === 'practical' && (
+              <div>
+                <label>Language</label>
+                <select value={q.language} onChange={(e) => updateQ(i, { language: e.target.value })}>
+                  <option value="python">Python</option>
+                  <option value="html">HTML</option>
+                </select>
+                <p className="meta">
+                  Each variant below is a different problem. Every student gets exactly one, spread
+                  round-robin across the class roster by roll number — add enough variants and no two
+                  neighbours get the same problem.
+                </p>
+                {q.variants.map((v, vi) => (
+                  <div key={vi} className="card" style={{ background: 'var(--paper)', marginBottom: 10 }}>
+                    <div className="eyebrow">Variant {vi + 1}</div>
+                    <label>Problem statement</label>
+                    <textarea
+                      value={v.question_text}
+                      onChange={(e) => updateVariant(i, vi, { question_text: e.target.value })}
+                      required
+                    />
+                    <label>Starter code (optional)</label>
+                    <textarea
+                      style={{ fontFamily: 'monospace', minHeight: 120 }}
+                      value={v.starter_code}
+                      onChange={(e) => updateVariant(i, vi, { starter_code: e.target.value })}
+                    />
+                    {q.variants.length > 1 && (
+                      <button type="button" className="danger small" onClick={() => removeVariant(i, vi)}>
+                        Remove variant
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" className="secondary" onClick={() => addVariant(i)}>
+                  + Add variant
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
@@ -290,6 +361,7 @@ export default function CreateTest() {
           <button type="button" className="secondary" onClick={() => addQuestion('mcq')}>🔘 + MCQ question</button>
           <button type="button" className="secondary" onClick={() => addQuestion('written')}>✍️ + Written question</button>
           <button type="button" className="secondary" onClick={() => addQuestion('upload')}>📎 + Upload-answer question</button>
+          <button type="button" className="secondary" onClick={() => addQuestion('practical')}>💻 + Practical (code) question</button>
         </div>
 
         <p className="meta">

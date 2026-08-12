@@ -24,6 +24,8 @@ function blankQuestion(type = 'mcq') {
     options: type === 'mcq' ? ['', '', '', ''] : undefined,
     correct_option: type === 'mcq' ? 0 : undefined,
     marks: 1,
+    language: type === 'practical' ? 'python' : undefined,
+    variants: type === 'practical' ? [{ question_text: '', starter_code: '' }] : undefined,
   };
 }
 
@@ -85,7 +87,11 @@ export default function EditTest() {
       setShuffleQuestions(d.test.shuffle_questions);
       setShuffleOptions(d.test.shuffle_options);
       setShuffleGroupSize(d.test.shuffle_group_size);
-      setQuestions(d.questions.map((q) => ({ ...q, marks: q.marks })));
+      setQuestions(d.questions.map((q) => ({
+        ...q,
+        marks: q.marks,
+        variants: q.type === 'practical' ? (q.variants && q.variants.length > 0 ? q.variants : [{ question_text: '', starter_code: '' }]) : q.variants,
+      })));
       setSubmissionsCount(d.submissions_count);
       setLoaded(true);
     }).catch((e) => setError(e.message));
@@ -106,6 +112,25 @@ export default function EditTest() {
       })
     );
   }
+  function updateVariant(i, vi, patch) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => {
+        if (idx !== i) return q;
+        const variants = q.variants.map((v, xi) => (xi === vi ? { ...v, ...patch } : v));
+        return { ...q, variants };
+      })
+    );
+  }
+  function addVariant(i) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => (idx === i ? { ...q, variants: [...q.variants, { question_text: '', starter_code: '' }] } : q))
+    );
+  }
+  function removeVariant(i, vi) {
+    setQuestions((qs) =>
+      qs.map((q, idx) => (idx === i ? { ...q, variants: q.variants.filter((_, xi) => xi !== vi) } : q))
+    );
+  }
   function addQuestion(type) {
     setQuestions((qs) => [...qs, blankQuestion(type)]);
   }
@@ -116,6 +141,11 @@ export default function EditTest() {
   async function onSubmit(e) {
     e.preventDefault();
     setError('');
+    for (const q of questions) {
+      if (q.type === 'practical' && (!q.variants || q.variants.length === 0 || !q.variants[0].question_text)) {
+        return setError('Every practical question needs at least one variant with a problem statement.');
+      }
+    }
     setSaving(true);
     try {
       await api('/test-edit', {
@@ -263,6 +293,7 @@ export default function EditTest() {
                   {q.type === 'mcq' && '🔘 MCQ'}
                   {q.type === 'written' && '✍️ Written'}
                   {q.type === 'upload' && '📎 Upload'}
+                  {q.type === 'practical' && '💻 Practical'}
                 </span>
               </span>
               <button
@@ -276,8 +307,12 @@ export default function EditTest() {
               </button>
             </div>
 
-            <label>Question text</label>
-            <textarea value={q.question_text} onChange={(e) => updateQ(i, { question_text: e.target.value })} required />
+            {q.type !== 'practical' && (
+              <>
+                <label>Question text</label>
+                <textarea value={q.question_text} onChange={(e) => updateQ(i, { question_text: e.target.value })} required />
+              </>
+            )}
 
             <div style={{ flex: 1, maxWidth: 140 }}>
               <label>Marks</label>
@@ -314,6 +349,45 @@ export default function EditTest() {
             )}
             {q.type === 'written' && <p className="meta">Student types their answer. You grade it manually.</p>}
             {q.type === 'upload' && <p className="meta">Student uploads a photo/scan. You grade it manually.</p>}
+
+            {q.type === 'practical' && (
+              <div>
+                <label>Language</label>
+                <select value={q.language} onChange={(e) => updateQ(i, { language: e.target.value })} disabled={locked && !!q.id}>
+                  <option value="python">Python</option>
+                  <option value="html">HTML</option>
+                </select>
+                <p className="meta">
+                  Each variant below is a different problem. Every student gets exactly one, spread
+                  round-robin across the class roster by roll number.
+                </p>
+                {(q.variants || []).map((v, vi) => (
+                  <div key={vi} className="card" style={{ background: 'var(--paper)', marginBottom: 10 }}>
+                    <div className="eyebrow">Variant {vi + 1}</div>
+                    <label>Problem statement</label>
+                    <textarea
+                      value={v.question_text}
+                      onChange={(e) => updateVariant(i, vi, { question_text: e.target.value })}
+                      required
+                    />
+                    <label>Starter code (optional)</label>
+                    <textarea
+                      style={{ fontFamily: 'monospace', minHeight: 120 }}
+                      value={v.starter_code}
+                      onChange={(e) => updateVariant(i, vi, { starter_code: e.target.value })}
+                    />
+                    {q.variants.length > 1 && (
+                      <button type="button" className="danger small" onClick={() => removeVariant(i, vi)}>
+                        Remove variant
+                      </button>
+                    )}
+                  </div>
+                ))}
+                <button type="button" className="secondary" onClick={() => addVariant(i)}>
+                  + Add variant
+                </button>
+              </div>
+            )}
           </div>
         ))}
 
@@ -321,6 +395,7 @@ export default function EditTest() {
           <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('mcq')}>+ MCQ question</button>
           <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('written')}>+ Written question</button>
           <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('upload')}>+ Upload-answer question</button>
+          <button type="button" className="secondary" disabled={locked} onClick={() => addQuestion('practical')}>+ Practical (code) question</button>
           {locked && <p className="meta" style={{ margin: 0 }}>Adding/removing is disabled once students have submitted.</p>}
         </div>
 

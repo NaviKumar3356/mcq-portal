@@ -11,7 +11,11 @@ const MAX_TAB_SWITCHES = 3;
 
 // Measures the offset between this device's clock and the server's clock
 // ONCE, on load, so the countdown can't be tricked by changing the
-// system clock. Falls back to the client clock if the call fails.
+// system clock. Falls back to the client clock if the call fails. Because
+// this is an offset (not an absolute time), every student's countdown
+// compares against the exact same server clock regardless of their
+// device's timezone or clock drift — Indian Standard Time on the server
+// is what governs every test, everywhere.
 function useServerClock() {
   const offsetRef = useRef(0);
   useEffect(() => {
@@ -166,6 +170,25 @@ export default function TakeTest() {
       .catch((e) => setError(e.message));
   }, [testId]);
 
+  // Seed each practical question's starter code into the draft exactly
+  // once, the first time it loads — never overwrite anything the student
+  // has already typed (e.g. from a refresh-recovered draft).
+  useEffect(() => {
+    if (questions.length === 0) return;
+    setAnswers((prev) => {
+      let changed = false;
+      const next = { ...prev };
+      questions.forEach((q) => {
+        if (q.type === 'practical' && next[q.id]?.written_text === undefined) {
+          next[q.id] = { ...next[q.id], written_text: q.starter_code || '' };
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [questions]);
+
   // Save a local draft on every change so a page refresh never loses progress —
   // it's only cleared once the test is actually submitted.
   useEffect(() => {
@@ -218,6 +241,12 @@ export default function TakeTest() {
 
   const proctor = useTabProctor(!!test && !submittedRef.current, onMaxSwitchesExceeded);
 
+  // test.end_at is always the EFFECTIVE deadline for this student — for a
+  // normal attempt that's the paper's own end_at, but for a reopened
+  // attempt the server already computed a fresh window starting from the
+  // moment of reopening (see test-detail.js). That fix is what stops a
+  // reopened test from reading "0 seconds left" and instantly auto-
+  // submitting the moment the page loads.
   const remaining = useCountdown(test?.end_at, serverNow, () =>
     handleSubmit(true, null, { count: proctor.switchCount, log: proctor.getLog() })
   );
@@ -277,6 +306,7 @@ export default function TakeTest() {
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
+            {test.reopened && <span className="pill open" style={{ marginBottom: 6, display: 'inline-block' }}>Reopened attempt</span>}
             {test.end_at && <div className="timer">⏱ {formatMs(remaining)}</div>}
             <div className="meta" style={{ marginTop: 6 }}>
               🛡 Tab switches: {proctor.switchCount} / {MAX_TAB_SWITCHES}
@@ -290,9 +320,11 @@ export default function TakeTest() {
           {questions.map((q, idx) => (
             <div className="question-block" key={q.id}>
               <span className="q-marks">{q.marks} mark{q.marks === 1 ? '' : 's'}</span>
-              <div style={{ fontWeight: 600, marginBottom: 10 }}>
-                {idx + 1}. {q.question_text}
-              </div>
+              {q.type !== 'practical' && (
+                <div style={{ fontWeight: 600, marginBottom: 10 }}>
+                  {idx + 1}. {q.question_text}
+                </div>
+              )}
 
               {q.type === 'mcq' && (
                 <div>
@@ -326,6 +358,24 @@ export default function TakeTest() {
                   />
                   {uploadingFor === q.id && <p className="meta">Uploading…</p>}
                   {answers[q.id]?.file_name && <p className="meta">✓ Uploaded: {answers[q.id].file_name}</p>}
+                </div>
+              )}
+
+              {q.type === 'practical' && (
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>{idx + 1}. Practical question</div>
+                  <span className="type-badge practical" style={{ marginBottom: 8, display: 'inline-block' }}>
+                    💻 {q.language === 'python' ? 'Python' : 'HTML'}
+                  </span>
+                  <div className="card" style={{ background: 'var(--paper)', marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+                    {q.question_text}
+                  </div>
+                  <textarea
+                    className="code-editor"
+                    spellCheck={false}
+                    value={answers[q.id]?.written_text ?? (q.starter_code || '')}
+                    onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
+                  />
                 </div>
               )}
             </div>

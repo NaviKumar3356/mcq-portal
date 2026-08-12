@@ -96,7 +96,9 @@ export default function GradeOne() {
       {data.answers.map((a, i) => (
         <div className="card" key={a.id}>
           <div className="eyebrow">Question {i + 1} — {a.questions.type} — {a.questions.marks} marks</div>
-          <div style={{ fontWeight: 600, marginBottom: 10 }}>{a.questions.question_text}</div>
+          {a.questions.type !== 'practical' && (
+            <div style={{ fontWeight: 600, marginBottom: 10 }}>{a.questions.question_text}</div>
+          )}
 
           {a.questions.type === 'mcq' && (
             <p>
@@ -118,7 +120,23 @@ export default function GradeOne() {
             </div>
           )}
 
-          {a.questions.type !== 'mcq' && (
+          {a.questions.type === 'practical' && (
+            <div>
+              <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                <span className="type-badge practical" style={{ marginRight: 8 }}>
+                  💻 {a.variant_snapshot?.language === 'python' ? 'Python' : a.questions.language === 'python' ? 'Python' : 'HTML'}
+                </span>
+                Problem given to this student
+              </div>
+              <div className="card" style={{ background: 'var(--paper)', marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+                {a.variant_snapshot?.question_text || a.questions.question_text}
+              </div>
+              <label>Submitted code</label>
+              <pre className="code-block">{a.written_text || 'No code submitted'}</pre>
+            </div>
+          )}
+
+          {(a.questions.type === 'written' || a.questions.type === 'upload' || a.questions.type === 'practical') && (
             <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
               <div style={{ width: 120 }}>
                 <label>Marks (/{a.questions.marks})</label>

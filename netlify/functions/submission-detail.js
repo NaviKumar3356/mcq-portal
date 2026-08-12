@@ -30,7 +30,10 @@ exports.handler = async (event) => {
 
     const { data: answers, error: aErr } = await supabase
       .from('answers')
-      .select('id, question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, questions(question_text, type, options, correct_option, marks, order_index)')
+      .select(
+        'id, question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, variant_snapshot, ' +
+        'questions(question_text, type, options, correct_option, marks, order_index, language)'
+      )
       .eq('submission_id', submissionId)
       .order('questions(order_index)', { ascending: true });
     if (aErr) throw aErr;

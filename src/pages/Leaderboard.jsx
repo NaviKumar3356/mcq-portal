@@ -4,6 +4,7 @@ import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { CLASSES, SCHOOL_NAME } from '../lib/constants.js';
+import { drawWatermarkAndHeader, addFooter } from '../lib/reportExport.js';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -64,6 +65,7 @@ export default function Leaderboard() {
   const [klass, setKlass] = useState(isStudent ? auth?.class : (classOptions[0] || ''));
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
+  const [exporting, setExporting] = useState('');
 
   useEffect(() => {
     if (!klass) return;
@@ -74,10 +76,94 @@ export default function Leaderboard() {
       .catch((e) => setError(e.message));
   }, [klass]);
 
+  const fileBase = `leaderboard-class-${String(klass || 'class').toLowerCase()}`;
+
+  async function exportExcel() {
+    if (!data || data.leaderboard.length === 0) return;
+    setExporting('xlsx');
+    try {
+      const XLSX = await import('xlsx');
+      const header = [
+        [SCHOOL_NAME],
+        [`Class ${klass} Leaderboard — ranked by average score across every published test`],
+        [],
+        ['Rank', 'Name', 'Roll', 'Average %', 'Tests taken'],
+      ];
+      const rows = data.leaderboard.map((r) => [r.rank, r.name, r.roll_number, `${r.average_percent}%`, r.tests_taken]);
+      const ws = XLSX.utils.aoa_to_sheet([...header, ...rows]);
+      ws['!merges'] = [0, 1].map((r) => ({ s: { r, c: 0 }, e: { r, c: 4 } }));
+      ws['!cols'] = [8, 24, 8, 12, 12].map((wch) => ({ wch }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Leaderboard');
+      XLSX.writeFile(wb, `${fileBase}.xlsx`);
+    } catch (e) {
+      setError('Could not generate the Excel file: ' + e.message);
+    } finally {
+      setExporting('');
+    }
+  }
+
+  async function exportPDF() {
+    if (!data || data.leaderboard.length === 0) return;
+    setExporting('pdf');
+    try {
+      const { jsPDF } = await import('jspdf');
+      const doc = new jsPDF();
+      let y = await drawWatermarkAndHeader(doc, {
+        title: `Class ${klass} Leaderboard`,
+        subtitle: 'Ranked by average score across every published test',
+      });
+
+      doc.setFont(undefined, 'bold');
+      doc.setFontSize(10);
+      doc.text('Rank', 14, y);
+      doc.text('Name', 38, y);
+      doc.text('Roll', 120, y);
+      doc.text('Avg %', 145, y);
+      doc.text('Tests', 175, y);
+      doc.setDrawColor(220);
+      doc.line(14, y + 2, 196, y + 2);
+      doc.setFont(undefined, 'normal');
+      y += 8;
+
+      data.leaderboard.forEach((r) => {
+        if (y > 275) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(String(r.rank), 14, y);
+        doc.text(String(r.name).slice(0, 40), 38, y);
+        doc.text(String(r.roll_number), 120, y);
+        doc.text(`${r.average_percent}%`, 145, y);
+        doc.text(String(r.tests_taken), 175, y);
+        y += 7;
+      });
+
+      addFooter(doc);
+      doc.save(`${fileBase}.pdf`);
+    } catch (e) {
+      setError('Could not generate the PDF: ' + e.message);
+    } finally {
+      setExporting('');
+    }
+  }
+
   const description = (
     <p className="meta" style={{ marginTop: -6, marginBottom: 16 }}>
       Ranked by average score across every test whose result has been published for this class.
     </p>
+  );
+
+  const exportBar = data && data.leaderboard.length > 0 && (
+    <div className="export-bar">
+      <span className="meta">Download leaderboard as:</span>
+      <button className="secondary small" onClick={exportExcel} disabled={!!exporting}>
+        {exporting === 'xlsx' ? 'Preparing…' : '⬇ Excel'}
+      </button>
+      <button className="secondary small" onClick={exportPDF} disabled={!!exporting}>
+        {exporting === 'pdf' ? 'Preparing…' : '⬇ PDF report'}
+      </button>
+    </div>
   );
 
   if (isStudent) {
@@ -98,6 +184,7 @@ export default function Leaderboard() {
         {error && <div className="error-box">{error}</div>}
         {!data && !error && <p className="center-note">Loading…</p>}
         {data && <LeaderboardTable rows={data.leaderboard} highlightId={auth?.student_id} testsCounted={data.tests_counted} />}
+        {exportBar}
       </div>
     );
   }
@@ -117,6 +204,7 @@ export default function Leaderboard() {
       {error && <div className="error-box">{error}</div>}
       {!data && !error && klass && <p className="center-note">Loading…</p>}
       {data && <LeaderboardTable rows={data.leaderboard} highlightId={auth?.student_id} testsCounted={data.tests_counted} />}
+      {exportBar}
     </PanelLayout>
   );
 }

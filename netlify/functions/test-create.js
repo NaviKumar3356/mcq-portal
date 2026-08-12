@@ -27,6 +27,12 @@ exports.handler = async (event) => {
       }
     }
 
+    for (const q of questions) {
+      if (q.type === 'practical' && (!Array.isArray(q.variants) || q.variants.length === 0 || !q.variants[0].question_text)) {
+        return json(400, { error: 'Every practical question needs at least one variant with a problem statement' });
+      }
+    }
+
     const total_marks = questions.reduce((sum, q) => sum + Number(q.marks || 0), 0);
     const allMcqHaveAnswers = questions.every(
       (q) => q.type !== 'mcq' || (q.correct_option !== undefined && q.correct_option !== null)
@@ -56,11 +62,13 @@ exports.handler = async (event) => {
     const qRows = questions.map((q, i) => ({
       test_id: test.id,
       order_index: i,
-      type: q.type, // 'mcq' | 'written' | 'upload'
+      type: q.type, // 'mcq' | 'written' | 'upload' | 'practical'
       question_text: q.question_text,
       options: q.type === 'mcq' ? q.options : null,
       correct_option: q.type === 'mcq' ? q.correct_option : null,
       marks: q.marks || 1,
+      language: q.type === 'practical' ? q.language : null,
+      variants: q.type === 'practical' ? q.variants : null,
     }));
 
     const { error: qErr } = await supabase.from('questions').insert(qRows);

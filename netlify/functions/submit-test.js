@@ -1,5 +1,6 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { getRosterRank, pickVariant } = require('./utils/practical');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
@@ -24,12 +25,21 @@ exports.handler = async (event) => {
       .maybeSingle();
     if (already) return json(403, { error: 'You have already submitted this test' });
 
+    const { data: test } = await supabase.from('tests').select('class').eq('id', test_id).maybeSingle();
+
     const { data: questions, error: qErr } = await supabase
       .from('questions')
-      .select('id, type, correct_option, marks')
+      .select('id, type, correct_option, marks, language, variants')
       .eq('test_id', test_id);
     if (qErr) throw qErr;
     const qMap = Object.fromEntries(questions.map((q) => [q.id, q]));
+
+    // Practical questions need the same roster-rank used at test-detail
+    // time so the snapshot we save matches exactly what the student saw.
+    let rank = null;
+    if (test && questions.some((q) => q.type === 'practical')) {
+      rank = await getRosterRank(supabase, test.class, auth.student_id);
+    }
 
     // tab_switch_count / flagged_reason / proctor_log come from the
     // client's anti-cheating tab-switch tracker (see TakeTest.jsx). A
@@ -57,10 +67,17 @@ exports.handler = async (event) => {
     const rows = answers.map((a) => {
       const q = qMap[a.question_id];
       let marks_awarded = null;
+      let variant_snapshot = null;
 
       if (q && q.type === 'mcq') {
         marks_awarded = a.mcq_selected === q.correct_option ? q.marks : 0;
         autoTotal += marks_awarded;
+      } else if (q && q.type === 'practical') {
+        hasUngraded = true; // needs manual grading
+        const variant = pickVariant(q.variants, rank ?? 0);
+        variant_snapshot = variant
+          ? { language: q.language, question_text: variant.question_text, starter_code: variant.starter_code }
+          : null;
       } else {
         hasUngraded = true; // written / upload need manual grading
       }
@@ -72,6 +89,7 @@ exports.handler = async (event) => {
         written_text: a.written_text ?? null,
         file_path: a.file_path ?? null,
         marks_awarded,
+        variant_snapshot,
       };
     });
 

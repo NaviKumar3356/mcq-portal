@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
+import { drawWatermarkAndHeader, addFooter } from '../lib/reportExport.js';
 
 export default function StudentResult() {
   const { testId } = useParams();
@@ -40,21 +41,40 @@ export default function StudentResult() {
     try {
       const { jsPDF } = await import('jspdf');
       const doc = new jsPDF();
-      doc.setFontSize(16);
-      doc.text(result.test_title, 14, 18);
-      doc.setFontSize(12);
-      doc.text(`Score: ${result.total_marks_awarded} / ${result.total_marks}`, 14, 28);
+      let y = await drawWatermarkAndHeader(doc, {
+        title: result.test_title,
+        subtitle: `Score: ${result.total_marks_awarded} / ${result.total_marks}`,
+      });
 
-      let y = 42;
+      doc.setFont(undefined, 'bold');
       doc.setFontSize(10);
+      doc.text('Question', 14, y);
+      doc.text('Marks', 160, y);
+      doc.setDrawColor(220);
+      doc.line(14, y + 2, 196, y + 2);
+      doc.setFont(undefined, 'normal');
+      y += 8;
+
       result.breakdown.forEach((a, i) => {
-        if (y > 280) { doc.addPage(); y = 20; }
+        if (y > 270) {
+          doc.addPage();
+          y = 20;
+        }
         const q = a.questions?.question_text || `Question ${i + 1}`;
-        doc.text(`${i + 1}. ${q.slice(0, 78)}`, 14, y);
-        doc.text(`${a.marks_awarded ?? '-'} / ${a.questions?.marks ?? '-'}`, 175, y);
+        doc.text(`${i + 1}. ${q.slice(0, 90)}`, 14, y);
+        doc.text(`${a.marks_awarded ?? '-'} / ${a.questions?.marks ?? '-'}`, 165, y);
+        if (a.teacher_remark) {
+          y += 5;
+          doc.setFontSize(8);
+          doc.setTextColor(110);
+          doc.text(`Remark: ${a.teacher_remark.slice(0, 100)}`, 18, y);
+          doc.setTextColor(0);
+          doc.setFontSize(10);
+        }
         y += 7;
       });
 
+      addFooter(doc);
       doc.save(`${fileBase}.pdf`);
     } catch (e) {
       setError('Could not generate the PDF: ' + e.message);
@@ -110,7 +130,7 @@ export default function StudentResult() {
           {exporting === 'jpg' ? 'Preparing…' : '🖼 Image'}
         </button>
         <button className="secondary small" onClick={downloadPDF} disabled={!!exporting}>
-          {exporting === 'pdf' ? 'Preparing…' : '📄 PDF'}
+          {exporting === 'pdf' ? 'Preparing…' : '📄 PDF report card'}
         </button>
       </div>
 

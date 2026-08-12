@@ -48,6 +48,12 @@ exports.handler = async (event) => {
       if (!CLASSES.includes(className)) return json(400, { error: 'Invalid class' });
       if (!SUBJECTS.includes(subject)) return json(400, { error: 'Invalid subject' });
 
+      for (const q of questions) {
+        if (q.type === 'practical' && (!Array.isArray(q.variants) || q.variants.length === 0 || !q.variants[0].question_text)) {
+          return json(400, { error: 'Every practical question needs at least one variant with a problem statement' });
+        }
+      }
+
       const { data: existingTest } = await supabase.from('tests').select('*').eq('id', test_id).maybeSingle();
       if (!existingTest) return json(404, { error: 'Test not found' });
       if (!teacherCanAccess(auth, existingTest)) return json(403, { error: 'You are not assigned to this class/subject' });
@@ -86,6 +92,10 @@ exports.handler = async (event) => {
         if (q.type === 'mcq') {
           patch.options = q.options;
           patch.correct_option = q.correct_option;
+        }
+        if (q.type === 'practical') {
+          patch.language = q.language;
+          patch.variants = q.variants;
         }
         const { error } = await supabase.from('questions').update(patch).eq('id', q.id);
         if (error) throw error;
@@ -130,6 +140,8 @@ exports.handler = async (event) => {
           options: q.type === 'mcq' ? q.options : null,
           correct_option: q.type === 'mcq' ? q.correct_option : null,
           marks: q.marks || 1,
+          language: q.type === 'practical' ? q.language : null,
+          variants: q.type === 'practical' ? q.variants : null,
         }));
         const { error } = await supabase.from('questions').insert(rows);
         if (error) throw error;

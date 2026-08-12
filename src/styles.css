@@ -527,6 +527,7 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
 .type-badge.mcq { background: #e3edfb; color: #1d4e8f; }
 .type-badge.written { background: #f1e8fb; color: #6b3fa0; }
 .type-badge.upload { background: #fde9db; color: #b5570f; }
+.type-badge.practical { background: #e6f3ee; color: #1f7a5c; }
 
 .question-card {
   border-left: 4px solid var(--line);
@@ -534,6 +535,7 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
 .question-card.mcq { border-left-color: #4d7fc4; }
 .question-card.written { border-left-color: #9463c9; }
 .question-card.upload { border-left-color: #d9822b; }
+.question-card.practical { border-left-color: #1f9d7c; }
 
 .question-card-head {
   display: flex;
@@ -2503,4 +2505,37 @@ tr.leaderboard-me td:first-child { font-size: 1.05rem; }
   font-weight: 700;
   font-size: 0.92rem;
   display: inline-block;
+}
+
+/* ============================================================
+   Practical (code) questions — editor + read-only code block
+   ============================================================ */
+.code-editor {
+  width: 100%;
+  min-height: 220px;
+  font-family: 'Fira Code', Consolas, Menlo, monospace;
+  font-size: 0.88rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  white-space: pre;
+  tab-size: 4;
+}
+.code-editor:focus {
+  border-color: #1f9d7c;
+  box-shadow: 0 0 0 3px rgba(31, 157, 124, 0.18);
+}
+
+.code-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: 'Fira Code', Consolas, Menlo, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  margin: 6px 0 0;
 }
