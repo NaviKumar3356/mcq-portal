@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { api, getAuthInfo } from '../lib/api.js';
+import { api, getAuthInfo, uploadStudentPhoto, getPhotoUrl } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES } from '../lib/constants.js';
 
@@ -16,6 +16,15 @@ const ADMIN_ITEMS = [
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
 ];
 
+function initials(name) {
+  return (name || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase() || '')
+    .join('');
+}
+
 export default function ManageStudents() {
   const auth = getAuthInfo();
   const isAdmin = auth?.role === 'super_admin';
@@ -28,6 +37,7 @@ export default function ManageStudents() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', dob: '' });
   const [saving, setSaving] = useState(false);
+  const [photoUploadingId, setPhotoUploadingId] = useState(null);
 
   const [showCsv, setShowCsv] = useState(false);
   const [csvReport, setCsvReport] = useState(null);
@@ -67,6 +77,19 @@ export default function ManageStudents() {
       load();
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  async function handlePhoto(studentId, file) {
+    setPhotoUploadingId(studentId);
+    setError('');
+    try {
+      await uploadStudentPhoto({ student_id: studentId, file });
+      load();
+    } catch (e) {
+      setError('Could not upload photo: ' + e.message);
+    } finally {
+      setPhotoUploadingId(null);
     }
   }
 
@@ -121,7 +144,7 @@ export default function ManageStudents() {
             CSV needs columns <code>roll_number, name, class, dob</code> (dob as <code>YYYY-MM-DD</code>).
             One file can include students from several classes at once — each row's own <code>class</code>{' '}
             column decides where it goes. Existing students (same roll number + class) get updated instead
-            of duplicated.
+            of duplicated. Photos aren't part of CSV import — add them per student from the table below.
           </p>
           <input ref={fileInputRef} type="file" accept=".csv" onChange={onCsvSelected} />
           {csvUploading && <p className="meta">Uploading…</p>}
@@ -175,6 +198,7 @@ export default function ManageStudents() {
           <button className="primary" type="submit" disabled={saving} style={{ marginTop: 10 }}>
             {saving ? 'Saving…' : 'Add student'}
           </button>
+          <p className="meta" style={{ marginTop: 8 }}>You can add a photo once the student is saved, from the table below.</p>
         </form>
       )}
 
@@ -192,11 +216,33 @@ export default function ManageStudents() {
 
       {students && students.length > 0 && (
         <div className="card">
+          <p className="meta" style={{ marginTop: -4, marginBottom: 12 }}>
+            Click a student's photo to add or change it — photos of students who make the school-wide Hall of
+            Fame leaderboard are shown on the public landing page, so pick something appropriate.
+          </p>
           <table className="grade-table">
-            <thead><tr><th>Roll</th><th>Name</th><th>Class</th><th>DOB</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Roll</th><th>Name</th><th>Class</th><th>DOB</th><th></th></tr></thead>
             <tbody>
               {students.map((s) => (
                 <tr key={s.id}>
+                  <td>
+                    <label className="avatar-upload" title="Click to add/change photo">
+                      {photoUploadingId === s.id ? (
+                        <span className="avatar-fallback">…</span>
+                      ) : s.photo_path ? (
+                        <img src={getPhotoUrl(s.photo_path)} alt={s.name} className="avatar-img" />
+                      ) : (
+                        <span className="avatar-fallback">{initials(s.name)}</span>
+                      )}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        disabled={photoUploadingId === s.id}
+                        onChange={(e) => e.target.files[0] && handlePhoto(s.id, e.target.files[0])}
+                      />
+                    </label>
+                  </td>
                   <td>{s.roll_number}</td>
                   <td>{s.name}</td>
                   <td>{s.class}</td>

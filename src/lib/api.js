@@ -59,3 +59,32 @@ export async function uploadAnswerFile({ test_id, question_id, file }) {
 
   return path;
 }
+
+// Uploads a student's profile photo to the PUBLIC 'student-photos' bucket
+// (used by the landing-page Hall of Fame leaderboard and student rosters),
+// then persists the resulting path onto the student's row.
+export async function uploadStudentPhoto({ student_id, file }) {
+  const { supabase } = await import('./supabaseClient.js');
+  const ext = file.name.split('.').pop();
+  const { path, token } = await api('/student-photo-upload-url', {
+    method: 'POST',
+    body: { student_id, file_ext: ext },
+  });
+
+  const { error } = await supabase.storage
+    .from('student-photos')
+    .uploadToSignedUrl(path, token, file);
+  if (error) throw error;
+
+  await api('/student-photo-set', { method: 'POST', body: { student_id, photo_path: path } });
+  return path;
+}
+
+// Builds a public URL for a student photo path. The 'student-photos'
+// bucket is public read, so this needs no signed token — safe to call
+// from anywhere, including the unauthenticated landing page.
+export function getPhotoUrl(photo_path) {
+  if (!photo_path) return null;
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  return `${base}/storage/v1/object/public/student-photos/${photo_path}`;
+}

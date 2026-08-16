@@ -1,7 +1,111 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME, SCHOOL_PLACE } from '../lib/constants.js';
+import { api, getPhotoUrl } from '../lib/api.js';
+
+function initials(name) {
+  return (name || '?')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((n) => n[0]?.toUpperCase() || '')
+    .join('');
+}
+
+function HofAvatar({ student, size = 'normal' }) {
+  if (student.photo_path) {
+    return <img src={getPhotoUrl(student.photo_path)} alt={student.name} />;
+  }
+  return <span className={`hof-photo-fallback ${size === 'small' ? 'small' : ''}`}>{initials(student.name)}</span>;
+}
+
+// Public, unauthenticated "Hall of Fame" — top performers school-wide,
+// ranked by average score across every published test. Meant to make
+// students curious and a little competitive the moment they land on the
+// portal, before they've even logged in.
+function HallOfFame() {
+  const [top, setTop] = useState(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    api('/leaderboard-public?limit=5')
+      .then((d) => setTop(d.top))
+      .catch(() => setFailed(true));
+  }, []);
+
+  if (failed) return null; // fail silently on a public marketing page
+  if (top && top.length === 0) return null; // nothing published yet — don't show an empty section
+
+  const podium = top ? top.slice(0, 3) : [];
+  const rest = top ? top.slice(3) : [];
+  const gold = podium.find((s) => s.rank === 1);
+  const silver = podium.find((s) => s.rank === 2);
+  const bronze = podium.find((s) => s.rank === 3);
+  const ordered = [silver, gold, bronze].filter(Boolean);
+
+  return (
+    <section className="hof-section">
+      <div className="section-heading">
+        <span />
+        <div>
+          <h2>🏆 Hall of Fame</h2>
+          <p>This school's top performers — inspire, compete, and climb the board</p>
+        </div>
+        <span />
+      </div>
+
+      {!top && <p className="center-note">Loading leaderboard…</p>}
+
+      {top && top.length > 0 && (
+        <>
+          <div className="hof-podium">
+            {ordered.map((s) => (
+              <div key={s.student_id} className={`hof-podium-card rank-${s.rank}`}>
+                {s.rank === 1 && (
+                  <div className="confetti-burst">
+                    <span>🎉</span><span>✨</span><span>🎊</span><span>✨</span><span>🎉</span>
+                  </div>
+                )}
+                <div className="hof-medal">{s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : '🥉'}</div>
+                <div className="hof-photo">
+                  <HofAvatar student={s} />
+                </div>
+                <div className="hof-name">{s.name}</div>
+                <div className="hof-class">Class {s.class}</div>
+                <div className="hof-score">{s.average_percent}%</div>
+                {s.rank === 1 && <div className="hof-congrats">🎉 Congratulations!</div>}
+                <div className="hof-pedestal">#{s.rank}</div>
+              </div>
+            ))}
+          </div>
+
+          {rest.length > 0 && (
+            <div className="hof-list">
+              {rest.map((s) => (
+                <div className="hof-row" key={s.student_id}>
+                  <span className="hof-row-rank">#{s.rank}</span>
+                  <span className="hof-row-photo">
+                    <HofAvatar student={s} size="small" />
+                  </span>
+                  <span className="hof-row-name">
+                    {s.name} <span className="meta">· Class {s.class}</span>
+                  </span>
+                  <span className="hof-row-score">{s.average_percent}%</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p className="meta" style={{ textAlign: 'center', marginTop: 14 }}>
+            Ranked by average score across every published test, school-wide. Log in to see your own class's
+            leaderboard too.
+          </p>
+        </>
+      )}
+    </section>
+  );
+}
 
 export default function Landing() {
   return (
@@ -114,6 +218,8 @@ export default function Landing() {
           </Link>
         </div>
       </section>
+
+      <HallOfFame />
 
       <div style={{ padding: '0 clamp(20px, 6vw, 76px) 8px' }}>
         <div className="feature-strip">
