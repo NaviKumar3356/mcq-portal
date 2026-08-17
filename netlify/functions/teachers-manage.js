@@ -34,12 +34,30 @@ exports.handler = async (event) => {
     }
 
     if (event.httpMethod === 'PATCH') {
-      const { teacher_id, active, classes, subjects } = JSON.parse(event.body || '{}');
+      // Handles three kinds of edits, any combination in one call:
+      // - profile fields (name / username / classes / subjects)
+      // - toggling active/disabled
+      // - resetting the password (only if `password` is provided — used
+      //   when a teacher forgets theirs and needs the admin to set a new
+      //   one; leaving it out never touches the existing password)
+      const { teacher_id, active, classes, subjects, name, username, password } = JSON.parse(event.body || '{}');
       if (!teacher_id) return json(400, { error: 'teacher_id is required' });
+
       const patch = {};
       if (typeof active === 'boolean') patch.active = active;
       if (classes) patch.classes = classes;
       if (subjects) patch.subjects = subjects;
+      if (name) patch.name = name;
+      if (username) patch.username = username.trim();
+      if (password) {
+        if (password.length < 6) return json(400, { error: 'New password must be at least 6 characters' });
+        patch.password_hash = await bcrypt.hash(password, 10);
+      }
+
+      if (Object.keys(patch).length === 0) {
+        return json(400, { error: 'Nothing to update' });
+      }
+
       const { error } = await supabase.from('teachers').update(patch).eq('id', teacher_id);
       if (error) throw error;
       return json(200, { ok: true });

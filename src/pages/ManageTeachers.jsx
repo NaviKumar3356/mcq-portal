@@ -26,12 +26,27 @@ function MultiSelect({ options, selected, onChange }) {
   );
 }
 
+function blankEditForm(t) {
+  return {
+    name: t.name,
+    username: t.username,
+    classes: t.classes || [],
+    subjects: t.subjects || [],
+    password: '', // blank = leave their current password unchanged
+  };
+}
+
 export default function ManageTeachers() {
   const [teachers, setTeachers] = useState(null);
   const [error, setError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ username: '', password: '', name: '', classes: [], subjects: [] });
+
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
 
   function load() {
     api('/teachers-manage')
@@ -72,6 +87,43 @@ export default function ManageTeachers() {
       load();
     } catch (e) {
       setError(e.message);
+    }
+  }
+
+  function startEdit(t) {
+    setEditingId(t.id);
+    setEditForm(blankEditForm(t));
+    setEditError('');
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm(null);
+    setEditError('');
+  }
+
+  async function saveEdit(t) {
+    if (editForm.password && editForm.password.length < 6) {
+      setEditError('New password must be at least 6 characters');
+      return;
+    }
+    setEditSaving(true);
+    setEditError('');
+    try {
+      const body = {
+        teacher_id: t.id,
+        name: editForm.name,
+        username: editForm.username,
+        classes: editForm.classes,
+        subjects: editForm.subjects,
+      };
+      if (editForm.password) body.password = editForm.password;
+      await api('/teachers-manage', { method: 'PATCH', body });
+      cancelEdit();
+      load();
+    } catch (e) {
+      setEditError(e.message);
+    } finally {
+      setEditSaving(false);
     }
   }
 
@@ -119,18 +171,61 @@ export default function ManageTeachers() {
 
       {teachers && teachers.map((t) => (
         <div className="card" key={t.id}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          {editingId === t.id ? (
             <div>
-              <div style={{ fontWeight: 600 }}>{t.name} <span className="meta">@{t.username}</span></div>
-              <div className="meta">Classes: {t.classes.join(', ') || '—'}</div>
-              <div className="meta">Subjects: {t.subjects.join(', ') || '—'}</div>
+              <div className="card-section-title">✏️ Edit teacher</div>
+              {editError && <div className="error-box">{editError}</div>}
+
+              <div style={{ display: 'flex', gap: 12 }}>
+                <div style={{ flex: 1 }}>
+                  <label>Full name</label>
+                  <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label>Username</label>
+                  <input value={editForm.username} onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))} required />
+                </div>
+              </div>
+
+              <label>Assigned classes</label>
+              <MultiSelect options={CLASSES} selected={editForm.classes} onChange={(v) => setEditForm((f) => ({ ...f, classes: v }))} />
+
+              <label>Assigned subjects</label>
+              <MultiSelect options={SUBJECTS} selected={editForm.subjects} onChange={(v) => setEditForm((f) => ({ ...f, subjects: v }))} />
+
+              <label>Reset password (optional)</label>
+              <input
+                type="password"
+                placeholder="Leave blank to keep their current password"
+                value={editForm.password}
+                onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
+              />
+              <p className="meta">Only fill this in if the teacher needs a new password — e.g. they forgot theirs.</p>
+
+              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                <button className="primary" onClick={() => saveEdit(t)} disabled={editSaving}>
+                  {editSaving ? 'Saving…' : 'Save changes'}
+                </button>
+                <button className="secondary" onClick={cancelEdit} disabled={editSaving}>Cancel</button>
+              </div>
             </div>
-            <span className={`pill ${t.active ? 'open' : 'closed'}`}>{t.active ? 'active' : 'disabled'}</span>
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-            <button className="secondary" onClick={() => toggleActive(t)}>{t.active ? 'Disable login' : 'Re-enable'}</button>
-            <button className="danger" onClick={() => removeTeacher(t)}>Delete account</button>
-          </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{t.name} <span className="meta">@{t.username}</span></div>
+                  <div className="meta">Classes: {t.classes.join(', ') || '—'}</div>
+                  <div className="meta">Subjects: {t.subjects.join(', ') || '—'}</div>
+                </div>
+                <span className={`pill ${t.active ? 'open' : 'closed'}`}>{t.active ? 'active' : 'disabled'}</span>
+              </div>
+              <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button className="secondary" onClick={() => startEdit(t)}>✏️ Edit / Reset password</button>
+                <button className="secondary" onClick={() => toggleActive(t)}>{t.active ? 'Disable login' : 'Re-enable'}</button>
+                <button className="danger" onClick={() => removeTeacher(t)}>Delete account</button>
+              </div>
+            </>
+          )}
         </div>
       ))}
     </PanelLayout>

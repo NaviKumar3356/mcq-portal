@@ -1,77 +1,99 @@
-# What's in this zip (v2 — builds on the previous update)
+# What's in this zip (v3 — builds on the previous two updates)
 
 Drop these files into your project at the same paths (they overwrite the
-originals). New files are marked (NEW).
+originals). No new database migration this time — everything here is
+code-only.
 
-## 1. Database migration — RUN THIS FIRST (after v6, if you haven't already)
-- `supabase/schema_v7_migration.sql` (NEW)
-  Run once in Supabase → SQL Editor. Safe on existing data.
-  - Adds `photo_path` to `students`.
-  - Creates a **public** storage bucket `student-photos` (separate from the
-    private `answer-sheets` bucket — public because these photos are meant
-    to show on the unauthenticated landing page).
+## 1. Per-role code splitting (the "different pages" security request)
+- `src/App.jsx` — every page is now loaded with `React.lazy()` instead of
+  being bundled together up front.
 
-## 2. Backend (Netlify functions)
-- `netlify/functions/leaderboard-public.js` (NEW) — unauthenticated
-  endpoint powering the landing-page Hall of Fame. Returns only name,
-  class, average %, tests taken, and photo — never roll number or DOB.
-- `netlify/functions/student-photo-upload-url.js` (NEW) — signed upload
-  URL for a student's photo (teacher/admin only, same pattern as the
-  existing answer-sheet upload flow)
-- `netlify/functions/student-photo-set.js` (NEW) — persists the photo path
-  onto the student's row after a successful upload
-- `netlify/functions/students-list.js` — now also returns `photo_path`
+**What this actually changes:** a student's browser now only downloads
+the JS for the student portal — the teacher/admin panel code (CRUD forms,
+bulk-upload parsing, grading logic) is a separate chunk that's never
+fetched unless someone actually navigates into `/teacher/...` or
+`/admin/...`. Each portal is a genuinely separate bundle now, loaded on
+demand, not one file containing everything.
 
-## 3. Frontend
-- `src/lib/api.js` — adds `uploadStudentPhoto()` and `getPhotoUrl()`
-- `src/pages/ManageStudents.jsx` — every student row now has a clickable
-  round avatar (photo, or initials if none) to upload/change their photo
-- `src/pages/Landing.jsx` — new "🏆 Hall of Fame" section: top 3 on a
-  podium (photos, medals, confetti + "Congratulations!" on #1), ranks 4–5
-  in a simple list below. Shown to anyone before they log in.
-- `src/styles.css` — full file (previous update's content + new Hall of
-  Fame / podium / confetti / avatar-upload rules appended at the bottom)
+**What this does NOT change:** the actual security boundary was, and
+still is, server-side — every function in `netlify/functions/` checks the
+JWT's role (`requireRole(...)`) before doing anything, so a student token
+was already rejected by a teacher-only endpoint regardless of what the
+frontend looked like. This change reduces what an anonymous visitor's
+browser is exposed to; it isn't a replacement for that server-side check,
+which remains the real enforcement point. Worth keeping in mind if anyone
+ever asks "is this secure" — the honest answer is "the backend enforces
+it," and this is a good-practice improvement on top of that, not a fix
+for a hole that existed before.
 
-## 4. Favicon
-- `public/favicon.png`, `public/favicon-16.png`, `public/favicon-32.png`,
-  `public/favicon-48.png`, `public/favicon-180.png` (NEW) — generated from
-  the SNSVM Test Portal seal you shared
-- `index.html` — now links all of the above as the site favicon +
-  Apple touch icon, and sets a matching `theme-color`
+No routes changed — every URL is exactly the same as before.
+
+## 2. Teacher management: edit + password reset (was missing)
+- `netlify/functions/teachers-manage.js` — `PATCH` now also accepts
+  `name`, `username`, and an optional `password` (only changes the
+  password if you actually send one — omit it and their existing
+  password is untouched)
+- `src/pages/ManageTeachers.jsx` — every teacher card now has an
+  "✏️ Edit / Reset password" button that opens an inline form: name,
+  username, classes, subjects, and an optional new-password field
+
+## 3. Student management: Update was missing (Create/Read/Delete existed, not Update)
+- `netlify/functions/student-update.js` (NEW) — edits roll number, name,
+  class, and DOB for an existing student. A teacher can only edit a
+  student who's currently in one of their assigned classes, and can only
+  move them into another class they're also assigned to.
+- `src/pages/ManageStudents.jsx` — every row now has an "Edit" button
+  that turns that row into inline inputs (Save/Cancel), alongside the
+  photo upload from the last update.
+
+## 4. Landing page — compacted so the Hall of Fame fits above the fold
+- `src/styles.css` — full file (everything from the last two updates,
+  plus a new override block appended at the end)
+
+Shrunk: header height, hero title/paragraph/point sizes, the decorative
+laptop illustration, and the three role cards — all noticeably smaller
+and tighter, so there's less empty space before the leaderboard. On
+short browser windows (under ~760px tall) the decorative laptop graphic
+is hidden entirely rather than shrunk further, since it's purely
+decorative and the leaderboard is the priority. This gets the Hall of
+Fame within the first screen on most laptop/desktop windows; very small
+phones in portrait may still need a short scroll — there's a limit to how
+much text and a 3-person podium can be compressed before it stops being
+readable.
 
 ## Apply order
 
-1. Run `supabase/schema_v7_migration.sql`.
-2. Copy the 4 backend files into `netlify/functions/`.
-3. Copy the 3 frontend files into `src/`.
-4. Copy the 5 `public/favicon*.png` files into `public/`.
-5. Replace `index.html`.
-6. Deploy.
+1. Copy `src/App.jsx` in — no build config changes needed, Vite handles
+   the code-splitting automatically from the `import()` calls.
+2. Copy the 2 backend files into `netlify/functions/`.
+3. Copy the 2 frontend page files into `src/pages/`.
+4. Replace `src/styles.css`.
+5. Deploy.
 
-## Notes on the Hall of Fame
+Nothing here touches the database, so there's no migration to run for
+this batch.
 
-- **Ranking**: pooled across the *whole school* (not per-class), by
-  average percentage score across every test whose result has been
-  published — same normalization as the existing per-class leaderboard,
-  so a paper out of 20 and one out of 100 count fairly.
-- **Privacy**: the public endpoint only ever returns first/last name,
-  class, score, and photo. No roll number, no DOB, nothing else.
-- **Empty state**: if no results have been published anywhere yet, the
-  section simply doesn't render — no empty box on the landing page.
-- **Photos are optional**: any student without a photo gets a colored
-  circle with their initials instead, so the board looks complete either
-  way.
-- Adding a photo is a manual, one-at-a-time action from **Students** →
-  click a student's avatar. It's not part of the CSV bulk import — that
-  would need a second file per row, which CSV can't carry, so it stayed
-  out of scope for now. If you want bulk photo import later (e.g. a ZIP of
-  images named by roll number), that's a reasonable follow-up.
+---
 
-## Note on the favicon size
+## Project name suggestions
 
-Your uploaded logo is a large square PNG (a round seal on a transparent/
-white background), which is exactly what a favicon needs — no
-cropping or redesign was necessary. It's been resized down to 16/32/48px
-for the browser tab icon and 180px for the iOS home-screen icon; the
-original full-size file is also linked as a fallback for any browser that
-wants a larger one.
+A few directions, since "SNSVM Test Portal" works fine internally but
+you may want something with more personality if you ever show it off,
+rename the repo, or reuse it for other schools later:
+
+**Keeping it grounded in the school:**
+- **Vidya Setu** ("bridge of knowledge" — Hindi/Sanskrit, fits the
+  school's existing motto style)
+- **SNSVM ParikshaHub** (parīkṣā = exam/test in Hindi/Sanskrit)
+- **Gurukul Assess**
+
+**Generic enough to reuse for any school later, if that's ever useful:**
+- **TestNest**
+- **ExamOrbit**
+- **ClassCheck**
+- **PariksHub** (parīkṣā again, but standalone/brandable)
+- **MeritTrack**
+
+If you want, tell me which direction you like (rooted-in-the-school vs.
+generic/reusable) and I can narrow it down further or check nothing
+similar is already a well-known product name.

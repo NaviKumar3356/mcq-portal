@@ -39,6 +39,12 @@ export default function ManageStudents() {
   const [saving, setSaving] = useState(false);
   const [photoUploadingId, setPhotoUploadingId] = useState(null);
 
+  // Inline edit (Update — completes Create/Read/Update/Delete for students).
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState(null);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState('');
+
   const [showCsv, setShowCsv] = useState(false);
   const [csvReport, setCsvReport] = useState(null);
   const [csvUploading, setCsvUploading] = useState(false);
@@ -93,6 +99,30 @@ export default function ManageStudents() {
     }
   }
 
+  function startEdit(s) {
+    setEditingId(s.id);
+    setEditForm({ roll_number: s.roll_number, name: s.name, class: s.class, dob: s.dob });
+    setEditError('');
+  }
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm(null);
+    setEditError('');
+  }
+  async function saveEdit(id) {
+    setEditSaving(true);
+    setEditError('');
+    try {
+      await api('/student-update', { method: 'POST', body: { student_id: id, ...editForm } });
+      cancelEdit();
+      load();
+    } catch (e) {
+      setEditError(e.message);
+    } finally {
+      setEditSaving(false);
+    }
+  }
+
   function onCsvSelected(e) {
     const file = e.target.files[0];
     if (!file) return;
@@ -122,6 +152,27 @@ export default function ManageStudents() {
         }
       },
     });
+  }
+
+  function Avatar({ s }) {
+    return (
+      <label className="avatar-upload" title="Click to add/change photo">
+        {photoUploadingId === s.id ? (
+          <span className="avatar-fallback">…</span>
+        ) : s.photo_path ? (
+          <img src={getPhotoUrl(s.photo_path)} alt={s.name} className="avatar-img" />
+        ) : (
+          <span className="avatar-fallback">{initials(s.name)}</span>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          disabled={photoUploadingId === s.id}
+          onChange={(e) => e.target.files[0] && handlePhoto(s.id, e.target.files[0])}
+        />
+      </label>
+    );
   }
 
   return (
@@ -220,35 +271,61 @@ export default function ManageStudents() {
             Click a student's photo to add or change it — photos of students who make the school-wide Hall of
             Fame leaderboard are shown on the public landing page, so pick something appropriate.
           </p>
+          {editError && <div className="error-box">{editError}</div>}
           <table className="grade-table">
             <thead><tr><th></th><th>Roll</th><th>Name</th><th>Class</th><th>DOB</th><th></th></tr></thead>
             <tbody>
               {students.map((s) => (
-                <tr key={s.id}>
-                  <td>
-                    <label className="avatar-upload" title="Click to add/change photo">
-                      {photoUploadingId === s.id ? (
-                        <span className="avatar-fallback">…</span>
-                      ) : s.photo_path ? (
-                        <img src={getPhotoUrl(s.photo_path)} alt={s.name} className="avatar-img" />
-                      ) : (
-                        <span className="avatar-fallback">{initials(s.name)}</span>
-                      )}
+                editingId === s.id ? (
+                  <tr key={s.id}>
+                    <td><Avatar s={s} /></td>
+                    <td>
                       <input
-                        type="file"
-                        accept="image/*"
-                        style={{ display: 'none' }}
-                        disabled={photoUploadingId === s.id}
-                        onChange={(e) => e.target.files[0] && handlePhoto(s.id, e.target.files[0])}
+                        type="text"
+                        value={editForm.roll_number}
+                        onChange={(e) => setEditForm((f) => ({ ...f, roll_number: e.target.value }))}
+                        style={{ width: 72 }}
                       />
-                    </label>
-                  </td>
-                  <td>{s.roll_number}</td>
-                  <td>{s.name}</td>
-                  <td>{s.class}</td>
-                  <td>{s.dob}</td>
-                  <td><button className="danger small" onClick={() => deleteStudent(s.id, s.name)}>Remove</button></td>
-                </tr>
+                    </td>
+                    <td>
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
+                      />
+                    </td>
+                    <td>
+                      <select value={editForm.class} onChange={(e) => setEditForm((f) => ({ ...f, class: e.target.value }))}>
+                        {allowedClasses.map((c) => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="date"
+                        value={editForm.dob}
+                        onChange={(e) => setEditForm((f) => ({ ...f, dob: e.target.value }))}
+                      />
+                    </td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="secondary small" onClick={() => saveEdit(s.id)} disabled={editSaving}>
+                        {editSaving ? 'Saving…' : 'Save'}
+                      </button>{' '}
+                      <button className="secondary small" onClick={cancelEdit} disabled={editSaving}>Cancel</button>
+                    </td>
+                  </tr>
+                ) : (
+                  <tr key={s.id}>
+                    <td><Avatar s={s} /></td>
+                    <td>{s.roll_number}</td>
+                    <td>{s.name}</td>
+                    <td>{s.class}</td>
+                    <td>{s.dob}</td>
+                    <td style={{ whiteSpace: 'nowrap' }}>
+                      <button className="secondary small" onClick={() => startEdit(s)}>Edit</button>{' '}
+                      <button className="danger small" onClick={() => deleteStudent(s.id, s.name)}>Remove</button>
+                    </td>
+                  </tr>
+                )
               ))}
             </tbody>
           </table>
