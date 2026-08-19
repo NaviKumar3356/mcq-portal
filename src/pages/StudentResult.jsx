@@ -17,6 +17,8 @@ export default function StudentResult() {
       .catch((e) => setError(e.message));
   }, [testId]);
 
+  const breakdown = result?.breakdown || [];
+
   const fileBase = (result?.test_title || 'result').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
   async function downloadImage() {
@@ -56,12 +58,12 @@ export default function StudentResult() {
       doc.setFont(undefined, 'normal');
       y += 8;
 
-      result.breakdown.forEach((a, i) => {
+      breakdown.forEach((a, i) => {
         if (y > 270) {
           doc.addPage();
           y = 20;
         }
-        const q = a.questions?.question_text || `Question ${i + 1}`;
+        const q = a.questions?.question_text || a.variant_snapshot?.question_text || `Question ${i + 1}`;
         doc.text(`${i + 1}. ${q.slice(0, 90)}`, 14, y);
         doc.text(`${a.marks_awarded ?? '-'} / ${a.questions?.marks ?? '-'}`, 165, y);
         if (a.teacher_remark) {
@@ -108,20 +110,24 @@ export default function StudentResult() {
         </div>
 
         <div className="card">
-          <table className="grade-table">
-            <thead>
-              <tr><th>Question</th><th>Marks</th><th>Remark</th></tr>
-            </thead>
-            <tbody>
-              {result.breakdown.map((a) => (
-                <tr key={a.question_id}>
-                  <td>{a.questions?.question_text}</td>
-                  <td>{a.marks_awarded ?? '—'} / {a.questions?.marks}</td>
-                  <td>{a.teacher_remark || '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {breakdown.length === 0 ? (
+            <p className="center-note">No answer breakdown available for this result.</p>
+          ) : (
+            <table className="grade-table">
+              <thead>
+                <tr><th>Question</th><th>Marks</th><th>Remark</th></tr>
+              </thead>
+              <tbody>
+                {breakdown.map((a) => (
+                  <tr key={a.question_id}>
+                    <td>{a.questions?.question_text || a.variant_snapshot?.question_text || '—'}</td>
+                    <td>{a.marks_awarded ?? '—'} / {a.questions?.marks}</td>
+                    <td>{a.teacher_remark || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
@@ -143,13 +149,24 @@ export default function StudentResult() {
           </button>
         </div>
 
-        {reviewOpen && (
+        {reviewOpen && breakdown.length === 0 && (
+          <p className="meta" style={{ marginTop: 14 }}>Nothing to review for this submission.</p>
+        )}
+
+        {reviewOpen && breakdown.length > 0 && (
           <div style={{ marginTop: 14 }}>
-            {result.breakdown.map((a, i) => {
+            {breakdown.map((a, i) => {
               const q = a.questions;
               const isMcq = q?.type === 'mcq';
+              const isPractical = q?.type === 'practical';
               const isCorrect = isMcq && a.mcq_selected === q.correct_option;
               const answered = isMcq ? a.mcq_selected !== null && a.mcq_selected !== undefined : true;
+              // Practical questions store the actual problem statement given
+              // to THIS student on the answer's variant_snapshot, not on the
+              // shared questions row (that row's question_text is blank for
+              // practical papers, since every student gets a different variant).
+              const practicalPrompt = a.variant_snapshot?.question_text || q?.question_text;
+              const practicalLang = a.variant_snapshot?.language || q?.language;
               return (
                 <div className={`card question-card ${q?.type || ''}`} key={a.question_id} style={{ marginBottom: 12 }}>
                   <div className="eyebrow">
@@ -160,7 +177,10 @@ export default function StudentResult() {
                       </span>
                     )}
                   </div>
-                  <div style={{ fontWeight: 600, marginBottom: 10 }}>{q?.question_text}</div>
+
+                  {!isPractical && (
+                    <div style={{ fontWeight: 600, marginBottom: 10 }}>{q?.question_text}</div>
+                  )}
 
                   {isMcq && (
                     <div>
@@ -194,8 +214,17 @@ export default function StudentResult() {
                     </div>
                   )}
 
-                  {q?.type === 'practical' && (
-                    <pre className="code-block">{a.written_text || 'No code submitted'}</pre>
+                  {isPractical && (
+                    <div>
+                      <span className="type-badge practical" style={{ marginBottom: 8, display: 'inline-block' }}>
+                        💻 {practicalLang === 'python' ? 'Python' : 'HTML'}
+                      </span>
+                      <div className="card" style={{ background: 'var(--paper)', marginBottom: 10, whiteSpace: 'pre-wrap' }}>
+                        {practicalPrompt || <em>Problem statement unavailable</em>}
+                      </div>
+                      <label>Your submitted code</label>
+                      <pre className="code-block">{a.written_text || 'No code submitted'}</pre>
+                    </div>
                   )}
 
                   {a.teacher_remark && (

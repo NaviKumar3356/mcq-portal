@@ -4,8 +4,7 @@ const { getAuth, json } = require('./utils/auth');
 // Once a result is published, a student can now review their FULL paper —
 // their answer next to the correct one for every MCQ, and their own
 // submitted text/file/code for written/upload/practical questions — so
-// they can actually learn from mistakes before the next test. Before this,
-// only marks + remark were shown, with no way to see what went wrong.
+// they can actually learn from mistakes before the next test.
 exports.handler = async (event) => {
   const auth = getAuth(event);
   if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
@@ -33,14 +32,20 @@ exports.handler = async (event) => {
 
     if (!submission) return json(404, { error: 'No submission found for this test' });
 
-    const { data: answers } = await supabase
+    // NOTE: order by the embedded table's column using the { foreignTable }
+    // option, not 'questions(order_index)' as a literal column name — that
+    // form is unreliable and, if it fails, silently returned `answers` as
+    // undefined here (the query's `error` was never checked), which then
+    // crashed the "review your paper" screen on `result.breakdown.map(...)`.
+    const { data: answers, error: aErr } = await supabase
       .from('answers')
       .select(
-        'question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, ' +
-        'questions(question_text, marks, type, options, correct_option, order_index)'
+        'question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, variant_snapshot, ' +
+        'questions(question_text, marks, type, options, correct_option, order_index, language)'
       )
       .eq('submission_id', submission.id)
-      .order('questions(order_index)', { ascending: true });
+      .order('order_index', { foreignTable: 'questions', ascending: true });
+    if (aErr) throw aErr;
 
     for (const a of answers || []) {
       if (a.file_path) {
@@ -54,7 +59,7 @@ exports.handler = async (event) => {
       total_marks: test.total_marks,
       total_marks_awarded: submission.total_marks_awarded,
       submitted_at: submission.submitted_at,
-      breakdown: answers,
+      breakdown: answers || [],
     });
   } catch (e) {
     return json(500, { error: e.message });

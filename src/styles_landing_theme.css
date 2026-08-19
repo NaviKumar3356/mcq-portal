@@ -1,0 +1,110 @@
+/* ============================================================
+   LANDING PAGE — THEME ALIGNMENT PASS
+   ------------------------------------------------------------
+   The landing page was still on the older blue/green/purple SaaS
+   palette (accent blue #1768df, feature-strip blue, navy footer)
+   while every login page had already moved to the parchment /
+   green-gold-terracotta "exam stationery" theme (--paper, --ink,
+   --accent, --accent-2, --accent-3 from styles.css). This file
+   only changes color/texture — layout, spacing, and fonts are
+   untouched — so it's a safe drop-in, not a rebuild.
+
+   Load this AFTER styles.css and styles_design_fix.css so it wins
+   the cascade on the landing-page-scoped selectors below.
+   ============================================================ */
+
+/* ---- Header ---- */
+.landing-page .landing-header {
+  background: rgba(247, 245, 240, 0.97); /* var(--paper), translucent */
+  border-bottom: 1px solid var(--line);
+}
+.landing-page .trust-badge {
+  background: var(--card);
+  border-color: var(--line);
+  color: var(--accent-dark);
+}
+.landing-page .trust-badge i { color: var(--muted); }
+
+/* ---- Hero ---- */
+.landing-page .landing-hero {
+  background:
+    radial-gradient(circle at 14% 20%, rgba(47,111,79,0.10), transparent 26%),
+    radial-gradient(circle at 90% 78%, rgba(234,181,74,0.14), transparent 24%),
+    linear-gradient(135deg, #ffffff 0%, #f9f7f1 55%, #f6f9f4 100%);
+}
+.landing-page .hero-eyebrow { color: var(--accent-dark); }
+.landing-page .hero-eyebrow::after { background: var(--accent-2, #eab54a); }
+.landing-page .hero-copy h1 { color: var(--ink); text-shadow: none; }
+.landing-page .hero-copy p {
+  color: var(--ink-soft);
+  border-left-color: rgba(47,111,79,0.28);
+}
+.landing-page .hero-points > div { border-right-color: var(--line); }
+.landing-page .hero-points span {
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--accent-dark);
+  box-shadow: 0 5px 14px rgba(22,35,61,0.08);
+}
+.landing-page .hero-points em { color: var(--ink); }
+.landing-page .hero-points b { color: var(--muted); }
+
+/* Decorative laptop — recolor to match instead of bright blue */
+.landing-page .visual-glow { background: #f2ede0; }
+.landing-page .screen { border-color: var(--ink); }
+.landing-page .screen-bar { background: var(--accent); }
+.landing-page .screen-check { background: #e3f1e9; color: var(--accent-dark); }
+.landing-page .visual-books span:nth-child(1) { background: var(--accent-2, #eab54a); }
+.landing-page .visual-books span:nth-child(2) { background: var(--accent); }
+.landing-page .visual-books span:nth-child(3) { background: var(--accent-3, #d9694a); }
+.landing-page .graduation-cap { color: var(--ink); }
+.landing-page .pencil-cup { color: var(--accent-2, #eab54a); }
+
+/* ---- "Choose your portal" section ---- */
+.landing-page .portal-section { background: var(--paper); }
+.landing-page .section-heading > span { background: var(--accent-2, #eab54a); }
+.landing-page .section-heading h2 { color: var(--ink); }
+.landing-page .section-heading p { color: var(--muted); }
+
+.landing-page .portal-card {
+  background: var(--card);
+  border-color: var(--line);
+  box-shadow: var(--shadow);
+}
+
+/* Student — green (matches the primary site accent used everywhere else) */
+.landing-page .student-card { border-top-color: var(--accent); background: linear-gradient(135deg, #f6faf7, #ffffff); }
+.landing-page .student-card .portal-icon { background: #e3f1e9; color: var(--accent-dark); }
+.landing-page .student-card h3 { color: var(--accent-dark); }
+.landing-page .student-card .portal-button { background: var(--accent); }
+
+/* Teacher — terracotta, so all three roles read as distinct warm tones
+   instead of a leftover blue/green/purple SaaS triad */
+.landing-page .teacher-card { border-top-color: var(--accent-3, #d9694a); background: linear-gradient(135deg, #fdf5f1, #ffffff); }
+.landing-page .teacher-card .portal-icon { background: #fbe7de; color: var(--accent-3, #d9694a); }
+.landing-page .teacher-card h3 { color: #b5570f; }
+.landing-page .teacher-card .portal-button { background: var(--accent-3, #d9694a); }
+
+/* Super Admin — deep ink/plum, closest existing accent to the login page's purple */
+.landing-page .admin-card { border-top-color: #5c3d8f; background: linear-gradient(135deg, #f7f5fb, #ffffff); }
+.landing-page .admin-card .portal-icon { background: #ece6f5; color: #5c3d8f; }
+.landing-page .admin-card h3 { color: #5c3d8f; }
+.landing-page .admin-card .portal-button { background: #5c3d8f; }
+
+.landing-page .portal-content p { color: var(--muted); }
+
+/* ---- Feature strip ---- */
+.landing-page .feature-strip { background: var(--card); border-color: var(--line); }
+.landing-page .feature-strip span { background: #e3f1e9; color: var(--accent-dark); }
+.landing-page .feature-strip b { color: var(--ink); }
+.landing-page .feature-strip small { color: var(--muted); }
+
+/* ---- Footer — was a plain navy-blue block, now ties back to --ink ---- */
+.landing-page .landing-footer {
+  background: linear-gradient(115deg, var(--ink) 0%, #0e1830 75%, #0a1224 100%);
+}
+.landing-page .footer-motto { border-color: rgba(255,255,255,0.2); }
+.landing-page .footer-motto span { color: var(--accent-2, #eab54a); }
+
+/* Hall of Fame already used the right palette (accent-2/accent-3 golds) —
+   left untouched. */
