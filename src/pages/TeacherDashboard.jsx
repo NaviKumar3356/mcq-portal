@@ -87,22 +87,21 @@ export default function TeacherDashboard() {
       {filtered && filtered.length === 0 && <div className="card center-note">No papers match.</div>}
 
       {filtered && filtered.map((t) => (
-        <div className="card" key={t.id}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <div className={`card paper-card status-${t.status}`} key={t.id}>
+          <div className="paper-card-top">
             <div>
-              <div style={{ fontWeight: 600 }}>{t.title} <span className="meta">({t.class} · {t.subject})</span></div>
-              <div className="meta">{t.total_marks} marks · {t.duration_minutes} min</div>
+              <div className="paper-card-title">{t.title} <span className="meta">({t.class} · {t.subject})</span></div>
+              <div className="paper-card-meta">{t.total_marks} marks · {t.duration_minutes} min</div>
+              {!t.answer_key_set && (
+                <div className="notice-strip" style={{ marginTop: 8 }}>⚠ Answer key not finalized yet</div>
+              )}
             </div>
             <span className={`pill ${t.status === 'published' ? 'open' : t.status === 'closed' ? 'closed' : 'upcoming'}`}>
               {t.status}
             </span>
           </div>
 
-          {!t.answer_key_set && (
-            <div className="notice-strip">⚠ Answer key not finalized yet</div>
-          )}
-
-          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <div className="paper-card-actions">
             {t.status === 'draft' && (
               <button className="secondary" onClick={() => updateTest(t.id, { status: 'published' })}>Publish to students</button>
             )}

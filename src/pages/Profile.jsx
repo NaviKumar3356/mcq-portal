@@ -30,7 +30,7 @@ function initials(name) {
 
 function AvatarUpload({ photoPath, name, uploading, onFile }) {
   return (
-    <label className="profile-avatar-upload">
+    <label className="profile-avatar-upload" title="Click to add/change photo">
       {uploading ? (
         <span className="avatar-fallback">…</span>
       ) : photoPath ? (
@@ -46,6 +46,21 @@ function AvatarUpload({ photoPath, name, uploading, onFile }) {
         onChange={(e) => e.target.files[0] && onFile(e.target.files[0])}
       />
     </label>
+  );
+}
+
+// Shared header block: avatar + display name + optional handle + role pill.
+// Keeping this in one place means the student / teacher / admin profile
+// cards all get the exact same polished layout instead of three
+// slightly-different hand-rolled ones.
+function ProfileHead({ photoPath, name, uploading, onFile, roleLabel, roleClass, handle }) {
+  return (
+    <div className="profile-card-head">
+      <AvatarUpload photoPath={photoPath} name={name} uploading={uploading} onFile={onFile} />
+      <div className="profile-card-name">{name}</div>
+      {handle && <div className="profile-card-handle">@{handle}</div>}
+      {roleLabel && <span className={`profile-role-pill ${roleClass || ''}`}>{roleLabel}</span>}
+    </div>
   );
 }
 
@@ -87,17 +102,19 @@ function StudentProfile() {
       </div>
 
       <div className="card profile-card">
-        <AvatarUpload photoPath={photoPath} name={auth?.name} uploading={uploading} onFile={handleFile} />
-        <h3 style={{ textAlign: 'center' }}>{auth?.name}</h3>
-        <p className="meta" style={{ textAlign: 'center' }}>
-          Roll {auth?.roll_number} · Class {auth?.class}
-        </p>
+        <ProfileHead
+          photoPath={photoPath}
+          name={auth?.name}
+          uploading={uploading}
+          onFile={handleFile}
+          roleLabel={`Roll ${auth?.roll_number} · Class ${auth?.class}`}
+        />
         {error && <div className="error-box">{error}</div>}
-        <p className="meta" style={{ textAlign: 'center', marginTop: 14 }}>
+        <div className="assigned-box" style={{ textAlign: 'center' }}>
           Tap your photo to add or change it — this also appears on the school-wide Hall of Fame leaderboard
           if you make the top ranks. Other details (name, roll number, class, DOB) are managed by your
           teacher — ask them if anything needs correcting.
-        </p>
+        </div>
       </div>
     </div>
   );
@@ -164,8 +181,14 @@ function TeacherProfile() {
       {error && <div className="error-box">{error}</div>}
       {teacher && (
         <div className="card profile-card">
-          <AvatarUpload photoPath={teacher.photo_path} name={teacher.name} uploading={uploading} onFile={handleFile} />
-          <p className="meta" style={{ textAlign: 'center', marginBottom: 18 }}>@{teacher.username}</p>
+          <ProfileHead
+            photoPath={teacher.photo_path}
+            name={teacher.name}
+            uploading={uploading}
+            onFile={handleFile}
+            handle={teacher.username}
+            roleLabel="Teacher"
+          />
 
           <form onSubmit={saveProfile}>
             <label>Full name</label>
@@ -188,16 +211,16 @@ function TeacherProfile() {
 
             {success && <p style={{ color: 'var(--accent-dark)', fontWeight: 600, marginTop: 10 }}>{success}</p>}
 
-            <button className="primary" type="submit" disabled={saving} style={{ marginTop: 16 }}>
+            <button className="primary" type="submit" disabled={saving} style={{ marginTop: 16, width: '100%' }}>
               {saving ? 'Saving…' : 'Save changes'}
             </button>
           </form>
 
-          <p className="meta" style={{ marginTop: 16 }}>
-            Assigned classes: {(teacher.classes || []).join(', ') || '—'}<br />
-            Assigned subjects: {(teacher.subjects || []).join(', ') || '—'}<br />
+          <div className="assigned-box">
+            <strong>Assigned classes:</strong> {(teacher.classes || []).join(', ') || '—'}<br />
+            <strong>Assigned subjects:</strong> {(teacher.subjects || []).join(', ') || '—'}<br />
             <em>Classes/subjects are set by your Super Admin.</em>
-          </p>
+          </div>
         </div>
       )}
     </PanelLayout>
@@ -206,7 +229,6 @@ function TeacherProfile() {
 
 // --- Super admin profile ----------------------------------------------------
 function AdminProfile() {
-  const auth = getAuthInfo();
   const [photoPath, setPhotoPath] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -234,12 +256,18 @@ function AdminProfile() {
       <h2>My Profile</h2>
       {error && <div className="error-box">{error}</div>}
       <div className="card profile-card">
-        <AvatarUpload photoPath={photoPath} name="Super Admin" uploading={uploading} onFile={handleFile} />
-        <p className="meta" style={{ textAlign: 'center' }}>Super Admin</p>
-        <p className="meta" style={{ textAlign: 'center', marginTop: 14 }}>
+        <ProfileHead
+          photoPath={photoPath}
+          name="Super Admin"
+          uploading={uploading}
+          onFile={handleFile}
+          roleLabel="Super Admin"
+          roleClass="role-admin"
+        />
+        <div className="assigned-box" style={{ textAlign: 'center' }}>
           Username and password for the Super Admin account are set via environment variables on the server,
           not editable here — ask whoever deployed the site to change them.
-        </p>
+        </div>
       </div>
     </PanelLayout>
   );
