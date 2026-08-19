@@ -5,10 +5,6 @@ const { getAuth, json } = require('./utils/auth');
 // test in that class whose result has been published. Percentage (not raw
 // marks) is what's averaged, so a paper out of 20 and a paper out of 100
 // contribute fairly to the same ranking.
-//
-// Only published results count — this matches what students can already
-// see on their own dashboard, and keeps the leaderboard from leaking
-// ungraded/unpublished scores.
 exports.handler = async (event) => {
   const auth = getAuth(event);
   if (!auth) return json(401, { error: 'Not logged in' });
@@ -40,7 +36,7 @@ exports.handler = async (event) => {
 
     const { data: submissions, error: sErr } = await supabase
       .from('submissions')
-      .select('student_id, test_id, total_marks_awarded, students(name, roll_number)')
+      .select('student_id, test_id, total_marks_awarded, students(name, roll_number, photo_path)')
       .in('test_id', testIds)
       .not('total_marks_awarded', 'is', null);
     if (sErr) throw sErr;
@@ -56,6 +52,7 @@ exports.handler = async (event) => {
           student_id: s.student_id,
           name: s.students.name,
           roll_number: s.students.roll_number,
+          photo_path: s.students.photo_path || null,
           totalPct: 0,
           count: 0,
         };
@@ -69,6 +66,7 @@ exports.handler = async (event) => {
         student_id: s.student_id,
         name: s.name,
         roll_number: s.roll_number,
+        photo_path: s.photo_path,
         tests_taken: s.count,
         average_percent: Math.round((s.totalPct / s.count) * 10) / 10,
       }))

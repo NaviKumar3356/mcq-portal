@@ -62,7 +62,8 @@ export async function uploadAnswerFile({ test_id, question_id, file }) {
 
 // Uploads a student's profile photo to the PUBLIC 'student-photos' bucket
 // (used by the landing-page Hall of Fame leaderboard and student rosters),
-// then persists the resulting path onto the student's row.
+// then persists the resulting path onto the student's row. Called by a
+// teacher/admin from Manage Students.
 export async function uploadStudentPhoto({ student_id, file }) {
   const { supabase } = await import('./supabaseClient.js');
   const ext = file.name.split('.').pop();
@@ -80,9 +81,36 @@ export async function uploadStudentPhoto({ student_id, file }) {
   return path;
 }
 
-// Builds a public URL for a student photo path. The 'student-photos'
-// bucket is public read, so this needs no signed token — safe to call
-// from anywhere, including the unauthenticated landing page.
+// Self-service uploads — a person setting their OWN avatar, from their own
+// Profile page (as opposed to a teacher/admin setting a student's photo
+// for them, above).
+async function uploadOwnPhoto({ uploadUrlPath, setPath, file, extraBody = {} }) {
+  const { supabase } = await import('./supabaseClient.js');
+  const ext = file.name.split('.').pop();
+  const { path, token } = await api(uploadUrlPath, { method: 'POST', body: { ...extraBody, file_ext: ext } });
+
+  const { error } = await supabase.storage
+    .from('student-photos') // shared public avatar bucket for all roles
+    .uploadToSignedUrl(path, token, file);
+  if (error) throw error;
+
+  await api(setPath, { method: 'POST', body: { ...extraBody, photo_path: path } });
+  return path;
+}
+
+export function uploadOwnStudentPhoto({ file }) {
+  return uploadOwnPhoto({ uploadUrlPath: '/student-photo-self-upload-url', setPath: '/student-photo-self-set', file });
+}
+export function uploadOwnTeacherPhoto({ file }) {
+  return uploadOwnPhoto({ uploadUrlPath: '/teacher-photo-upload-url', setPath: '/teacher-photo-set', file });
+}
+export function uploadOwnAdminPhoto({ file }) {
+  return uploadOwnPhoto({ uploadUrlPath: '/admin-photo-upload-url', setPath: '/admin-photo-set', file });
+}
+
+// Builds a public URL for a student/teacher/admin photo path. The
+// 'student-photos' bucket is public read, so this needs no signed token —
+// safe to call from anywhere, including the unauthenticated landing page.
 export function getPhotoUrl(photo_path) {
   if (!photo_path) return null;
   const base = import.meta.env.VITE_SUPABASE_URL;

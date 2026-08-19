@@ -1,6 +1,11 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
 
+// Once a result is published, a student can now review their FULL paper —
+// their answer next to the correct one for every MCQ, and their own
+// submitted text/file/code for written/upload/practical questions — so
+// they can actually learn from mistakes before the next test. Before this,
+// only marks + remark were shown, with no way to see what went wrong.
 exports.handler = async (event) => {
   const auth = getAuth(event);
   if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
@@ -30,8 +35,19 @@ exports.handler = async (event) => {
 
     const { data: answers } = await supabase
       .from('answers')
-      .select('question_id, marks_awarded, teacher_remark, questions(question_text, marks, type)')
-      .eq('submission_id', submission.id);
+      .select(
+        'question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, ' +
+        'questions(question_text, marks, type, options, correct_option, order_index)'
+      )
+      .eq('submission_id', submission.id)
+      .order('questions(order_index)', { ascending: true });
+
+    for (const a of answers || []) {
+      if (a.file_path) {
+        const { data } = await supabase.storage.from('answer-sheets').createSignedUrl(a.file_path, 3600);
+        a.file_url = data?.signedUrl || null;
+      }
+    }
 
     return json(200, {
       test_title: test.title,

@@ -11,29 +11,41 @@ const MAX_TAB_SWITCHES = 3;
 
 // Measures the offset between this device's clock and the server's clock
 // ONCE, on load, so the countdown can't be tricked by changing the
-// system clock. Falls back to the client clock if the call fails. Because
-// this is an offset (not an absolute time), every student's countdown
-// compares against the exact same server clock regardless of their
-// device's timezone or clock drift — Indian Standard Time on the server
-// is what governs every test, everywhere.
+// system clock. Falls back to the client clock if the call fails.
+//
+// --- Reopen auto-submit bug fix -----------------------------------------
+// This hook now also exposes a `ready` flag. Previously the countdown
+// effect below could run its very first tick() BEFORE this async
+// server-time fetch resolved, using offset=0 (i.e. trusting the device's
+// own clock). For a normal test that's harmless — the deadline is far in
+// the future either way — but for a freshly REOPENED test, the fresh
+// deadline is often only a few minutes away. If a student's device clock
+// was running even slightly fast, that first, uncorrected tick could read
+// as "already expired" and fire the auto-submit instantly, before the
+// student ever got to see a question. Gating the countdown on `ready`
+// means it simply doesn't tick — and can never auto-submit — until we
+// actually know the real server time.
 function useServerClock() {
   const offsetRef = useRef(0);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
     api('/server-time')
       .then((d) => { offsetRef.current = new Date(d.now).getTime() - Date.now(); })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setReady(true));
   }, []);
-  return useCallback(() => Date.now() + offsetRef.current, []);
+  const nowFn = useCallback(() => Date.now() + offsetRef.current, []);
+  return { nowFn, ready };
 }
 
-function useCountdown(endAt, nowFn, onExpire) {
+function useCountdown(endAt, nowFn, ready, onExpire) {
   const [remaining, setRemaining] = useState(null);
   const fired = useRef(false);
   const onExpireRef = useRef(onExpire);
   onExpireRef.current = onExpire; // always call the freshest version
 
   useEffect(() => {
-    if (!endAt) return;
+    if (!endAt || !ready) return; // wait for the real server clock before ticking
     fired.current = false;
     const tick = () => {
       const ms = new Date(endAt).getTime() - nowFn();
@@ -46,7 +58,7 @@ function useCountdown(endAt, nowFn, onExpire) {
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [endAt, nowFn]);
+  }, [endAt, nowFn, ready]);
 
   return remaining;
 }
@@ -137,7 +149,7 @@ export default function TakeTest() {
   const nav = useNavigate();
   const auth = getAuthInfo();
   const draftKey = `draft:${testId}:${auth?.student_id || 'anon'}`;
-  const serverNow = useServerClock();
+  const { nowFn: serverNow, ready: clockReady } = useServerClock();
 
   const [test, setTest] = useState(null);
   const [questions, setQuestions] = useState([]);
@@ -244,10 +256,10 @@ export default function TakeTest() {
   // test.end_at is always the EFFECTIVE deadline for this student — for a
   // normal attempt that's the paper's own end_at, but for a reopened
   // attempt the server already computed a fresh window starting from the
-  // moment of reopening (see test-detail.js). That fix is what stops a
-  // reopened test from reading "0 seconds left" and instantly auto-
-  // submitting the moment the page loads.
-  const remaining = useCountdown(test?.end_at, serverNow, () =>
+  // moment of reopening (see test-detail.js). The `clockReady` gate below
+  // is the other half of the reopen-auto-submit fix — see useServerClock
+  // above for why it's needed.
+  const remaining = useCountdown(test?.end_at, serverNow, clockReady, () =>
     handleSubmit(true, null, { count: proctor.switchCount, log: proctor.getLog() })
   );
 
@@ -307,7 +319,7 @@ export default function TakeTest() {
           </div>
           <div style={{ textAlign: 'right' }}>
             {test.reopened && <span className="pill open" style={{ marginBottom: 6, display: 'inline-block' }}>Reopened attempt</span>}
-            {test.end_at && <div className="timer">⏱ {formatMs(remaining)}</div>}
+            {test.end_at && <div className="timer">⏱ {clockReady ? formatMs(remaining) : 'Syncing…'}</div>}
             <div className="meta" style={{ marginTop: 6 }}>
               🛡 Tab switches: {proctor.switchCount} / {MAX_TAB_SWITCHES}
             </div>

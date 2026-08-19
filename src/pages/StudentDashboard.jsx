@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getAuthInfo } from '../lib/api.js';
+import { api, getAuthInfo, getPhotoUrl } from '../lib/api.js';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
@@ -8,25 +8,34 @@ export default function StudentDashboard() {
   const auth = getAuthInfo();
   const [tests, setTests] = useState(null);
   const [error, setError] = useState('');
+  const [photoPath, setPhotoPath] = useState(null);
 
   useEffect(() => {
     api('/tests-list')
       .then((d) => setTests(d.tests))
       .catch((e) => setError(e.message));
+    api('/student-self').then((d) => setPhotoPath(d.student?.photo_path || null)).catch(() => {});
   }, []);
 
   return (
     <div className="container">
       <div className="card test-header-card">
         <div className="test-header-brand">
-          <SchoolLogo size={40} />
+          {photoPath ? (
+            <img src={getPhotoUrl(photoPath)} alt={auth?.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent)' }} />
+          ) : (
+            <SchoolLogo size={40} />
+          )}
           <div>
             <div className="test-header-school">{SCHOOL_NAME}</div>
             <h2 style={{ margin: 0 }}>Hi, {auth?.name || 'there'}</h2>
             <div className="meta">Roll {auth?.roll_number} · Class {auth?.class}</div>
           </div>
         </div>
-        <Link to="/student/leaderboard"><button className="secondary">🏆 Leaderboard</button></Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Link to="/student/profile"><button className="secondary">👤 My profile</button></Link>
+          <Link to="/student/leaderboard"><button className="secondary">🏆 Leaderboard</button></Link>
+        </div>
       </div>
 
       {error && <div className="error-box">{error}</div>}

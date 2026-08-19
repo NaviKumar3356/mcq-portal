@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getAuthInfo } from '../lib/api.js';
+import { api, getAuthInfo, getPhotoUrl } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { CLASSES, SCHOOL_NAME } from '../lib/constants.js';
@@ -22,6 +22,63 @@ const ADMIN_ITEMS = [
 
 const MEDAL = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
+function initials(name) {
+  return (name || '?').trim().split(/\s+/).slice(0, 2).map((n) => n[0]?.toUpperCase() || '').join('');
+}
+
+// Top-3 podium with photos that gently auto-rotates its emphasis (a light
+// "slider" feel) between rank 1/2/3 every few seconds, so the leaderboard
+// page has some life to it instead of sitting static. Clicking a dot jumps
+// straight to that rank. Falls back to nothing if there are no rows yet.
+function Podium({ rows, highlightId }) {
+  const top3 = rows.slice(0, 3);
+  const [focusIdx, setFocusIdx] = useState(0);
+
+  useEffect(() => {
+    if (top3.length <= 1) return;
+    const id = setInterval(() => setFocusIdx((i) => (i + 1) % top3.length), 3500);
+    return () => clearInterval(id);
+  }, [top3.length]);
+
+  if (top3.length === 0) return null;
+
+  return (
+    <>
+      <div className="lb-podium">
+        {top3.map((r, i) => (
+          <div
+            key={r.student_id}
+            className={`lb-podium-card rank-${r.rank} ${r.student_id === highlightId ? 'leaderboard-me' : ''}`}
+            style={{ opacity: i === focusIdx ? 1 : 0.72, transition: 'opacity 0.4s ease, transform 0.4s ease' }}
+          >
+            <div className="lb-podium-medal">{MEDAL[r.rank]}</div>
+            <div className="lb-podium-photo">
+              {r.photo_path ? (
+                <img src={getPhotoUrl(r.photo_path)} alt={r.name} />
+              ) : (
+                <span style={{ fontWeight: 800, fontFamily: 'Source Serif 4, serif' }}>{initials(r.name)}</span>
+              )}
+            </div>
+            <div className="lb-podium-name">{r.name}{r.student_id === highlightId ? ' (you)' : ''}</div>
+            <div className="lb-podium-score">{r.average_percent}%</div>
+          </div>
+        ))}
+      </div>
+      {top3.length > 1 && (
+        <div className="lb-slider-wrap">
+          {top3.map((r, i) => (
+            <span
+              key={r.student_id}
+              className={`lb-slider-dot ${i === focusIdx ? 'active' : ''}`}
+              onClick={() => setFocusIdx(i)}
+            />
+          ))}
+        </div>
+      )}
+    </>
+  );
+}
+
 function LeaderboardTable({ rows, highlightId, testsCounted }) {
   if (testsCounted === 0) {
     return (
@@ -35,24 +92,27 @@ function LeaderboardTable({ rows, highlightId, testsCounted }) {
     return <div className="card center-note">No graded, published submissions yet for this class.</div>;
   }
   return (
-    <div className="card">
-      <table className="grade-table">
-        <thead>
-          <tr><th>Rank</th><th>Student</th><th>Roll</th><th>Avg. score</th><th>Tests</th></tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.student_id} className={r.student_id === highlightId ? 'leaderboard-me' : ''}>
-              <td>{MEDAL[r.rank] || `#${r.rank}`}</td>
-              <td>{r.name}{r.student_id === highlightId ? ' (you)' : ''}</td>
-              <td>{r.roll_number}</td>
-              <td>{r.average_percent}%</td>
-              <td>{r.tests_taken}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      <Podium rows={rows} highlightId={highlightId} />
+      <div className="card">
+        <table className="grade-table">
+          <thead>
+            <tr><th>Rank</th><th>Student</th><th>Roll</th><th>Avg. score</th><th>Tests</th></tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => (
+              <tr key={r.student_id} className={r.student_id === highlightId ? 'leaderboard-me' : ''}>
+                <td>{MEDAL[r.rank] || `#${r.rank}`}</td>
+                <td>{r.name}{r.student_id === highlightId ? ' (you)' : ''}</td>
+                <td>{r.roll_number}</td>
+                <td>{r.average_percent}%</td>
+                <td>{r.tests_taken}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

@@ -5,20 +5,10 @@ import SchoolLogo from './components/SchoolLogo.jsx';
 import { SCHOOL_SHORT } from './lib/constants.js';
 
 // Every page is loaded lazily, on its own JS chunk, rather than bundled
-// together up front. Concretely this means: a student's browser never
-// downloads the Teacher/Admin panel code (CRUD forms, bulk-upload
-// parsing, grading logic, etc.) unless they actually navigate there —
-// and since Protected below redirects unauthenticated/wrong-role visits
-// before that page's component ever mounts, in practice it never does.
-// Each portal really is a separate bundle now, fetched on demand.
-//
-// This is defense in depth, not the actual security boundary — every
-// Netlify function independently verifies the JWT's role on every
-// request (see requireRole in netlify/functions/utils/auth.js) and
-// rejects anything that doesn't match, regardless of what the browser
-// has loaded. That server-side check is what actually stops a student
-// from performing a teacher/admin action; this split just means their
-// browser never has that code sitting there in the first place.
+// together up front — see comments in previous versions of this file for
+// why (student bundle never includes teacher/admin code). This is defense
+// in depth; the real security boundary is server-side (requireRole in
+// netlify/functions/utils/auth.js).
 const Landing = lazy(() => import('./pages/Landing.jsx'));
 
 const StudentLogin = lazy(() => import('./pages/StudentLogin.jsx'));
@@ -40,6 +30,7 @@ const AdminOverview = lazy(() => import('./pages/AdminOverview.jsx'));
 const ManageTeachers = lazy(() => import('./pages/ManageTeachers.jsx'));
 
 const Leaderboard = lazy(() => import('./pages/Leaderboard.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
 
 function Protected({ roles, children }) {
   const token = getToken();
@@ -88,6 +79,7 @@ export default function App() {
           <Route path="/student/test/:testId" element={<Protected roles={['student']}><TakeTest /></Protected>} />
           <Route path="/student/result/:testId" element={<Protected roles={['student']}><StudentResult /></Protected>} />
           <Route path="/student/leaderboard" element={<Protected roles={['student']}><Leaderboard /></Protected>} />
+          <Route path="/student/profile" element={<Protected roles={['student']}><Profile /></Protected>} />
 
           {/* Teacher */}
           <Route path="/teacher/login" element={<TeacherLogin />} />
@@ -95,6 +87,7 @@ export default function App() {
           <Route path="/teacher/create" element={<Protected roles={['teacher']}><CreateTest /></Protected>} />
           <Route path="/teacher/students" element={<Protected roles={['teacher']}><ManageStudents /></Protected>} />
           <Route path="/teacher/leaderboard" element={<Protected roles={['teacher']}><Leaderboard /></Protected>} />
+          <Route path="/teacher/profile" element={<Protected roles={['teacher']}><Profile /></Protected>} />
           <Route path="/teacher/test/:testId/edit" element={<Protected roles={['teacher']}><EditTest /></Protected>} />
           <Route path="/teacher/test/:testId/answer-key" element={<Protected roles={['teacher']}><AnswerKey /></Protected>} />
           <Route path="/teacher/test/:testId/submissions" element={<Protected roles={['teacher']}><GradeSubmissions /></Protected>} />
@@ -108,6 +101,7 @@ export default function App() {
           <Route path="/admin/papers" element={<Protected roles={['super_admin']}><TeacherDashboard /></Protected>} />
           <Route path="/admin/papers/create" element={<Protected roles={['super_admin']}><CreateTest /></Protected>} />
           <Route path="/admin/leaderboard" element={<Protected roles={['super_admin']}><Leaderboard /></Protected>} />
+          <Route path="/admin/profile" element={<Protected roles={['super_admin']}><Profile /></Protected>} />
           <Route path="/admin/test/:testId/edit" element={<Protected roles={['super_admin']}><EditTest /></Protected>} />
           <Route path="/admin/test/:testId/answer-key" element={<Protected roles={['super_admin']}><AnswerKey /></Protected>} />
           <Route path="/admin/test/:testId/submissions" element={<Protected roles={['super_admin']}><GradeSubmissions /></Protected>} />

@@ -8,6 +8,7 @@ export default function StudentResult() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -132,6 +133,79 @@ export default function StudentResult() {
         <button className="secondary small" onClick={downloadPDF} disabled={!!exporting}>
           {exporting === 'pdf' ? 'Preparing…' : '📄 PDF report card'}
         </button>
+      </div>
+
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="card-section-title" style={{ marginBottom: 0 }}>📝 Review your paper</div>
+          <button className="secondary small" onClick={() => setReviewOpen((v) => !v)}>
+            {reviewOpen ? 'Hide' : 'Show correct & wrong answers'}
+          </button>
+        </div>
+
+        {reviewOpen && (
+          <div style={{ marginTop: 14 }}>
+            {result.breakdown.map((a, i) => {
+              const q = a.questions;
+              const isMcq = q?.type === 'mcq';
+              const isCorrect = isMcq && a.mcq_selected === q.correct_option;
+              const answered = isMcq ? a.mcq_selected !== null && a.mcq_selected !== undefined : true;
+              return (
+                <div className={`card question-card ${q?.type || ''}`} key={a.question_id} style={{ marginBottom: 12 }}>
+                  <div className="eyebrow">
+                    Question {i + 1} — {q?.marks} mark{q?.marks === 1 ? '' : 's'}
+                    {isMcq && (
+                      <span style={{ marginLeft: 10, fontWeight: 700, color: !answered ? 'var(--muted)' : isCorrect ? 'var(--accent-dark)' : 'var(--danger)' }}>
+                        {!answered ? '· Not answered' : isCorrect ? '· ✅ Correct' : '· ❌ Incorrect'}
+                      </span>
+                    )}
+                  </div>
+                  <div style={{ fontWeight: 600, marginBottom: 10 }}>{q?.question_text}</div>
+
+                  {isMcq && (
+                    <div>
+                      {(q.options || []).map((opt, oi) => {
+                        const isYourPick = a.mcq_selected === oi;
+                        const isRight = q.correct_option === oi;
+                        let style = {};
+                        if (isRight) style = { borderColor: 'var(--accent)', background: '#eef6f0', fontWeight: 600 };
+                        else if (isYourPick && !isRight) style = { borderColor: 'var(--danger)', background: '#fbe9e7' };
+                        return (
+                          <div key={oi} className="option-row" style={style}>
+                            <span style={{ flex: 1 }}>{opt}</span>
+                            {isRight && <span style={{ color: 'var(--accent-dark)', fontWeight: 700 }}>✓ Correct answer</span>}
+                            {isYourPick && !isRight && <span style={{ color: 'var(--danger)', fontWeight: 700 }}>✗ Your answer</span>}
+                            {isYourPick && isRight && <span style={{ color: 'var(--accent-dark)', fontWeight: 700 }}>✓ Your answer</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {q?.type === 'written' && (
+                    <div className="card" style={{ background: 'var(--paper)' }}>
+                      {a.written_text || <em>No answer submitted</em>}
+                    </div>
+                  )}
+
+                  {q?.type === 'upload' && (
+                    <div className="file-thumb">
+                      {a.file_url ? <img src={a.file_url} alt="Uploaded answer" /> : <em>No file uploaded</em>}
+                    </div>
+                  )}
+
+                  {q?.type === 'practical' && (
+                    <pre className="code-block">{a.written_text || 'No code submitted'}</pre>
+                  )}
+
+                  {a.teacher_remark && (
+                    <p className="meta" style={{ marginTop: 10 }}>💬 Teacher's remark: {a.teacher_remark}</p>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       <Link to="/student/leaderboard"><button className="secondary">🏆 See the class leaderboard</button></Link>
