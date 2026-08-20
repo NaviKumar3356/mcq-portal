@@ -13,17 +13,31 @@ function initials(name) {
     .join('');
 }
 
-function HofAvatar({ student, size = 'normal' }) {
-  if (student.photo_path) {
-    return <img src={getPhotoUrl(student.photo_path)} alt={student.name} />;
-  }
-  return <span className={`hof-photo-fallback ${size === 'small' ? 'small' : ''}`}>{initials(student.name)}</span>;
+// One ribbon-medal rank row — reused by the landing page's Hall of Fame
+// and by /leaderboard, so ranking always looks the same everywhere.
+// rankClass falls back to "rank-other" for anything past 5th.
+export function RankRow({ s, highlightId }) {
+  const rankClass = s.rank <= 5 ? `rank-${s.rank}` : 'rank-other';
+  const isMe = s.student_id === highlightId;
+  return (
+    <div className={`rank-row ${rankClass} ${isMe ? 'rank-me' : ''}`}>
+      <div className="rank-medal">{s.rank}</div>
+      <div className="rank-row-photo">
+        {s.photo_path ? <img src={getPhotoUrl(s.photo_path)} alt={s.name} /> : initials(s.name)}
+      </div>
+      <div className="rank-row-info">
+        <div className="rank-row-name">{s.name}{isMe ? ' (you)' : ''}</div>
+        <div className="rank-row-class">Class {s.class}{s.roll_number ? ` · Roll ${s.roll_number}` : ''}</div>
+      </div>
+      <div className="rank-row-score">{s.average_percent}%</div>
+    </div>
+  );
 }
 
-// Public, unauthenticated "Hall of Fame" — top performers school-wide,
-// ranked by average score across every published test. Meant to make
-// students curious and a little competitive the moment they land on the
-// portal, before they've even logged in.
+// Public, unauthenticated "Hall of Fame" — top 5 performers school-wide,
+// ranked by average score across every published test, shown as ribbon
+// badges (matching the school's printed PTM rank-holder posters) so it
+// reads as a real award board rather than a generic table.
 function HallOfFame() {
   const [top, setTop] = useState(null);
   const [failed, setFailed] = useState(false);
@@ -36,13 +50,6 @@ function HallOfFame() {
 
   if (failed) return null; // fail silently on a public marketing page
   if (top && top.length === 0) return null; // nothing published yet — don't show an empty section
-
-  const podium = top ? top.slice(0, 3) : [];
-  const rest = top ? top.slice(3) : [];
-  const gold = podium.find((s) => s.rank === 1);
-  const silver = podium.find((s) => s.rank === 2);
-  const bronze = podium.find((s) => s.rank === 3);
-  const ordered = [silver, gold, bronze].filter(Boolean);
 
   return (
     <section className="hof-section">
@@ -59,45 +66,11 @@ function HallOfFame() {
 
       {top && top.length > 0 && (
         <>
-          <div className="hof-podium">
-            {ordered.map((s) => (
-              <div key={s.student_id} className={`hof-podium-card rank-${s.rank}`}>
-                {s.rank === 1 && (
-                  <div className="confetti-burst">
-                    <span>🎉</span><span>✨</span><span>🎊</span><span>✨</span><span>🎉</span>
-                  </div>
-                )}
-                <div className="hof-medal">{s.rank === 1 ? '🥇' : s.rank === 2 ? '🥈' : '🥉'}</div>
-                <div className="hof-photo">
-                  <HofAvatar student={s} />
-                </div>
-                <div className="hof-name">{s.name}</div>
-                <div className="hof-class">Class {s.class}</div>
-                <div className="hof-score">{s.average_percent}%</div>
-                {s.rank === 1 && <div className="hof-congrats">🎉 Congratulations!</div>}
-                <div className="hof-pedestal">#{s.rank}</div>
-              </div>
-            ))}
+          <div className="rank-board">
+            {top.map((s) => <RankRow s={s} key={s.student_id} />)}
           </div>
 
-          {rest.length > 0 && (
-            <div className="hof-list">
-              {rest.map((s) => (
-                <div className="hof-row" key={s.student_id}>
-                  <span className="hof-row-rank">#{s.rank}</span>
-                  <span className="hof-row-photo">
-                    <HofAvatar student={s} size="small" />
-                  </span>
-                  <span className="hof-row-name">
-                    {s.name} <span className="meta">· Class {s.class}</span>
-                  </span>
-                  <span className="hof-row-score">{s.average_percent}%</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <p className="meta" style={{ textAlign: 'center', marginTop: 14 }}>
+          <p className="meta" style={{ textAlign: 'center', marginTop: 16 }}>
             Ranked by average score across every published test, school-wide. Log in to see your own class's
             leaderboard too.
           </p>
@@ -157,25 +130,6 @@ export default function Landing() {
               </div>
             </div>
           </div>
-        </div>
-
-        <div className="hero-visual">
-          <div className="visual-glow" />
-          <div className="laptop">
-            <div className="screen">
-              <div className="screen-bar" />
-              <div className="screen-check">✓</div>
-              <div className="screen-line long" />
-              <div className="screen-line" />
-              <div className="screen-line short" />
-            </div>
-            <div className="base" />
-          </div>
-          <div className="visual-books">
-            <span /><span /><span />
-          </div>
-          <div className="graduation-cap">🎓</div>
-          <div className="pencil-cup">✏️</div>
         </div>
       </section>
 
