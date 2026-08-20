@@ -598,6 +598,1051 @@ button.secondary.small { padding: 5px 10px; font-size: 0.78rem; }
 }
 
 /* ============================================================
+   MODERN LANDING PAGE — MERGED FROM styles.css
+   ============================================================ */
+
+/* ============================================================
+   MODERN LANDING PAGE
+   SNSVM ONLINE ASSESSMENT PORTAL
+   ============================================================ */
+
+.landing-page {
+  min-height: 100vh;
+  background: #f8fafc;
+  color: #12254b;
+  overflow: hidden;
+}
+
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.landing-header {
+  min-height: 86px;
+  padding: 14px clamp(20px, 6vw, 76px);
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 24px;
+
+  background: rgba(255, 255, 255, 0.96);
+
+  border-bottom: 1px solid #e7edf5;
+
+  box-shadow:
+    0 4px 18px rgba(18, 37, 75, 0.05);
+
+  position: relative;
+  z-index: 2;
+}
+
+
+/* BRAND */
+
+.landing-brand {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+
+  color: #12254b;
+
+  text-decoration: none;
+}
+
+.landing-brand strong {
+  display: block;
+
+  font-family:
+    'Source Serif 4',
+    Georgia,
+    serif;
+
+  font-size:
+    clamp(1.05rem, 2vw, 1.45rem);
+
+  line-height: 1.12;
+}
+
+.landing-brand small {
+  display: block;
+
+  margin-top: 5px;
+
+  color: #637087;
+
+  font-size: 0.86rem;
+}
+
+
+/* TRUST BADGE */
+
+.trust-badge {
+  padding: 10px 17px;
+
+  border-radius: 999px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5ebf3;
+
+  box-shadow:
+    0 5px 18px rgba(18, 37, 75, 0.08);
+
+  color: #2168dc;
+
+  font-weight: 700;
+
+  font-size: 0.84rem;
+
+  white-space: nowrap;
+}
+
+.trust-badge span {
+  margin-right: 6px;
+}
+
+.trust-badge i {
+  color: #aab5c5;
+
+  font-style: normal;
+
+  margin: 0 5px;
+}
+
+
+/* ============================================================
+   HERO
+   ============================================================ */
+
+.landing-hero {
+  min-height: 430px;
+
+  padding:
+    66px
+    clamp(24px, 7vw, 92px)
+    52px;
+
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr;
+
+  gap: 30px;
+
+  align-items: center;
+
+  background:
+    radial-gradient(
+      circle at 78% 35%,
+      rgba(67, 133, 235, 0.12),
+      transparent 28%
+    ),
+    linear-gradient(
+      135deg,
+      #ffffff 0%,
+      #f7faff 100%
+    );
+}
+
+
+/* HERO TEXT */
+
+.hero-copy {
+  max-width: 620px;
+}
+
+.hero-eyebrow {
+  color: #1765d6;
+
+  font-size: 0.82rem;
+
+  font-weight: 800;
+
+  letter-spacing: 0.12em;
+
+  margin-bottom: 12px;
+}
+
+.hero-eyebrow::after {
+  content: '';
+
+  display: block;
+
+  width: 94px;
+
+  height: 3px;
+
+  margin-top: 11px;
+
+  background: #f4b629;
+
+  border-radius: 4px;
+}
+
+
+.hero-copy h1 {
+  margin: 0 0 16px;
+
+  font-family:
+    'Source Serif 4',
+    Georgia,
+    serif;
+
+  font-size:
+    clamp(2.8rem, 5vw, 4.5rem);
+
+  line-height: 0.98;
+
+  letter-spacing: -0.035em;
+
+  color: #102b5b;
+}
+
+
+.hero-copy p {
+  max-width: 570px;
+
+  margin: 0;
+
+  color: #5f6c80;
+
+  font-size: 1.03rem;
+
+  line-height: 1.7;
+}
+
+
+/* HERO POINTS */
+
+.hero-points {
+  display: flex;
+
+  gap: 34px;
+
+  margin-top: 28px;
+}
+
+.hero-points > div {
+  display: flex;
+
+  align-items: center;
+
+  gap: 11px;
+
+  padding-right: 32px;
+
+  border-right:
+    1px solid #d8e0eb;
+}
+
+.hero-points > div:last-child {
+  border-right: 0;
+}
+
+.hero-points span {
+  width: 46px;
+
+  height: 46px;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: #edf5ff;
+
+  color: #1765d6;
+
+  font-weight: 900;
+
+  font-size: 1.2rem;
+
+  box-shadow:
+    0 5px 16px rgba(23, 101, 214, 0.1);
+}
+
+.hero-points b {
+  font-size: 0.78rem;
+
+  color: #647084;
+
+  line-height: 1.25;
+}
+
+.hero-points em {
+  color: #102b5b;
+
+  font-style: normal;
+
+  font-size: 0.9rem;
+}
+
+
+/* ============================================================
+   PORTAL SECTION
+   ============================================================ */
+
+.portal-section {
+  padding:
+    30px
+    clamp(20px, 6vw, 76px)
+    34px;
+
+  background: #ffffff;
+}
+
+
+/* SECTION HEADING */
+
+.section-heading {
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 20px;
+
+  text-align: center;
+
+  margin-bottom: 22px;
+}
+
+.section-heading > span {
+  width: 34px;
+
+  height: 3px;
+
+  background: #f2b62c;
+
+  border-radius: 5px;
+}
+
+.section-heading h2 {
+  margin: 0;
+
+  font-size: 1.65rem;
+
+  color: #122b5c;
+}
+
+.section-heading p {
+  margin: 4px 0 0;
+
+  color: #778297;
+
+  font-size: 0.85rem;
+}
+
+
+/* PORTAL GRID */
+
+.portal-grid {
+  max-width: 1190px;
+
+  margin: 0 auto;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(3, 1fr);
+
+  gap: 24px;
+}
+
+
+/* PORTAL CARD */
+
+.portal-card {
+  min-height: 190px;
+
+  padding: 26px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 20px;
+
+  text-decoration: none;
+
+  border-radius: 16px;
+
+  background: #ffffff;
+
+  border: 1px solid #e5eaf2;
+
+  border-top: 4px solid;
+
+  box-shadow:
+    0 8px 24px rgba(18, 37, 75, 0.07);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.portal-card:hover {
+  transform: translateY(-6px);
+
+  box-shadow:
+    0 16px 35px rgba(18, 37, 75, 0.13);
+}
+
+
+/* STUDENT */
+
+.landing-page .student-card {
+  border-top-color: #1768df;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f7fbff,
+      #ffffff
+    );
+}
+
+
+/* TEACHER */
+
+.teacher-card {
+  border-top-color: #18a25a;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f7fff9,
+      #ffffff
+    );
+}
+
+
+/* ADMIN */
+
+.admin-card {
+  border-top-color: #7444df;
+
+  background:
+    linear-gradient(
+      135deg,
+      #fbf8ff,
+      #ffffff
+    );
+}
+
+
+/* PORTAL ICON */
+
+.portal-icon {
+  flex:
+    0 0 68px;
+
+  height: 68px;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  font-size: 1.9rem;
+
+  font-weight: 900;
+}
+
+.landing-page .student-card .portal-icon {
+  background: #eaf3ff;
+
+  color: #1768df;
+}
+
+.teacher-card .portal-icon {
+  background: #e8f9ef;
+
+  color: #18a25a;
+}
+
+.admin-card .portal-icon {
+  background: #f0eaff;
+
+  color: #7444df;
+}
+
+
+/* PORTAL CONTENT */
+
+.portal-content h3 {
+  margin: 0 0 7px;
+
+  font-size: 1.2rem;
+}
+
+.landing-page .student-card h3 {
+  color: #1768df;
+}
+
+.teacher-card h3 {
+  color: #18a25a;
+}
+
+.admin-card h3 {
+  color: #7444df;
+}
+
+.portal-content p {
+  margin: 0 0 17px;
+
+  color: #687489;
+
+  line-height: 1.5;
+
+  font-size: 0.84rem;
+}
+
+
+/* LOGIN BUTTON */
+
+.portal-button {
+  display: inline-block;
+
+  padding: 9px 15px;
+
+  border-radius: 8px;
+
+  color: #ffffff;
+
+  font-size: 0.78rem;
+
+  font-weight: 700;
+}
+
+.landing-page .student-card .portal-button {
+  background: #1768df;
+}
+
+.teacher-card .portal-button {
+  background: #18a25a;
+}
+
+.admin-card .portal-button {
+  background: #7444df;
+}
+
+.portal-button b {
+  margin-left: 8px;
+}
+
+
+/* ============================================================
+   FEATURES
+   ============================================================ */
+
+.feature-strip {
+  max-width: 1240px;
+
+  margin: 0 auto;
+
+  padding: 22px 28px;
+
+  display: grid;
+
+  grid-template-columns:
+    repeat(4, 1fr);
+
+  gap: 20px;
+
+  background: #ffffff;
+
+  border: 1px solid #e7ebf1;
+
+  border-radius: 15px;
+
+  box-shadow:
+    0 8px 24px rgba(18, 37, 75, 0.07);
+}
+
+.feature-strip > div {
+  display: grid;
+
+  grid-template-columns: 45px 1fr;
+
+  column-gap: 10px;
+
+  align-items: center;
+}
+
+.feature-strip span {
+  grid-row: 1 / 3;
+
+  width: 45px;
+
+  height: 45px;
+
+  border-radius: 50%;
+
+  display: grid;
+
+  place-items: center;
+
+  background: #edf5ff;
+
+  color: #1768df;
+
+  font-weight: 900;
+}
+
+.feature-strip b {
+  font-size: 0.82rem;
+
+  color: #1d3158;
+}
+
+.feature-strip small {
+  color: #7b8798;
+
+  font-size: 0.72rem;
+
+  margin-top: 3px;
+}
+
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.landing-footer {
+  margin-top: 30px;
+
+  padding:
+    30px
+    clamp(24px, 6vw, 78px);
+
+  display: grid;
+
+  grid-template-columns:
+    1fr 1fr 1fr;
+
+  align-items: center;
+
+  gap: 30px;
+
+  background:
+    linear-gradient(
+      110deg,
+      #123f7a,
+      #10194e
+    );
+
+  color: #ffffff;
+}
+
+
+/* SCHOOL */
+
+.footer-school {
+  display: flex;
+
+  align-items: center;
+
+  gap: 14px;
+}
+
+.footer-school strong,
+.footer-school span,
+.footer-school small {
+  display: block;
+}
+
+.footer-school strong {
+  font-size: 0.9rem;
+}
+
+.footer-school span {
+  margin-top: 5px;
+
+  font-size: 0.8rem;
+
+  opacity: 0.8;
+}
+
+.footer-school small {
+  margin-top: 8px;
+
+  font-size: 0.7rem;
+
+  opacity: 0.6;
+}
+
+
+/* MOTTO */
+
+.footer-motto {
+  text-align: center;
+
+  border-left:
+    1px solid rgba(255, 255, 255, 0.25);
+
+  border-right:
+    1px solid rgba(255, 255, 255, 0.25);
+}
+
+.footer-motto span {
+  color: #f3c44a;
+
+  font-size: 2rem;
+}
+
+.footer-motto p {
+  margin: 0;
+
+  font-weight: 700;
+
+  line-height: 1.45;
+
+  font-size: 0.84rem;
+}
+
+
+/* SOCIAL */
+
+.footer-follow {
+  text-align: right;
+}
+
+.footer-follow b {
+  font-size: 0.8rem;
+}
+
+.footer-follow div {
+  margin-top: 12px;
+
+  display: flex;
+
+  justify-content: flex-end;
+
+  gap: 9px;
+}
+
+.footer-follow span {
+  width: 34px;
+
+  height: 34px;
+
+  display: grid;
+
+  place-items: center;
+
+  border-radius: 50%;
+
+  background:
+    rgba(255, 255, 255, 0.18);
+
+  font-weight: 800;
+}
+
+
+/* Hidden location */
+
+.landing-location {
+  display: none;
+}
+
+
+/* ============================================================
+   TABLET
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+  .landing-hero {
+    grid-template-columns: 1fr;
+
+    text-align: center;
+
+    padding-top: 45px;
+  }
+
+  .hero-copy {
+    margin: 0 auto;
+  }
+
+  .hero-eyebrow::after {
+    margin-left: auto;
+
+    margin-right: auto;
+  }
+
+  .hero-points {
+    justify-content: center;
+  }
+
+  .portal-grid {
+    grid-template-columns: 1fr;
+
+    max-width: 650px;
+  }
+
+  .feature-strip {
+    grid-template-columns:
+      repeat(2, 1fr);
+
+    margin: 0 20px;
+  }
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 620px) {
+
+  .landing-header {
+    padding: 12px 18px;
+  }
+
+  .landing-brand strong {
+    font-size: 0.9rem;
+  }
+
+  .landing-brand small {
+    font-size: 0.72rem;
+  }
+
+  .trust-badge {
+    display: none;
+  }
+
+
+  .landing-hero {
+    padding:
+      38px
+      20px
+      30px;
+
+    min-height: auto;
+  }
+
+
+  .hero-copy h1 {
+    font-size: 2.65rem;
+  }
+
+
+  .hero-copy p {
+    font-size: 0.9rem;
+  }
+
+
+  .hero-points {
+    gap: 14px;
+  }
+
+
+  .hero-points > div {
+    padding-right: 14px;
+  }
+
+
+  .section-heading > span {
+    width: 20px;
+  }
+
+
+  .section-heading h2 {
+    font-size: 1.35rem;
+  }
+
+
+  .portal-card {
+    padding: 20px;
+  }
+
+
+  .portal-icon {
+    flex-basis: 55px;
+
+    height: 55px;
+
+    font-size: 1.5rem;
+  }
+
+
+  .feature-strip {
+    grid-template-columns: 1fr;
+  }
+
+
+  .landing-footer {
+    grid-template-columns: 1fr;
+
+    text-align: center;
+  }
+
+
+  .footer-school {
+    justify-content: center;
+  }
+
+
+  .footer-motto {
+    border: 0;
+
+    padding: 15px 0;
+  }
+
+
+  .footer-follow {
+    text-align: center;
+  }
+
+
+  .footer-follow div {
+    justify-content: center;
+  }
+
+}
+
+/* ============================================================
+   Tab-switch proctoring UI
+   ============================================================ */
+.proctor-blur {
+  filter: blur(10px) saturate(60%);
+  pointer-events: none;
+  user-select: none;
+  transition: filter 0.2s ease;
+}
+
+.proctor-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(22, 35, 61, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1200;
+}
+
+.proctor-card {
+  max-width: 420px;
+  text-align: center;
+  border-top: 6px solid var(--danger);
+  margin-bottom: 0;
+}
+.proctor-card-locked { border-top-color: var(--ink); }
+
+.proctor-count {
+  display: inline-block;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--danger);
+  background: #fbe4e1;
+  padding: 4px 16px;
+  border-radius: 999px;
+}
+
+/* ============================================================
+   Score export bar (Submissions screen, Result screen)
+   ============================================================ */
+.export-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 10px 0 18px;
+}
+.export-bar .meta { margin-right: 4px; }
+
+/* ============================================================
+   Class leaderboard
+   ============================================================ */
+tr.leaderboard-me {
+  background: linear-gradient(90deg, rgba(234,181,74,0.16), rgba(47,111,79,0.08));
+  font-weight: 700;
+}
+tr.leaderboard-me td:first-child { font-size: 1.05rem; }
+
+.scorecard-celebrate {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, rgba(234,181,74,0.18), rgba(217,105,74,0.10));
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.92rem;
+  display: inline-block;
+}
+
+/* ============================================================
+   Practical (code) questions — editor + read-only code block
+   ============================================================ */
+.code-editor {
+  width: 100%;
+  min-height: 220px;
+  font-family: 'Fira Code', Consolas, Menlo, monospace;
+  font-size: 0.88rem;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  white-space: pre;
+  tab-size: 4;
+}
+.code-editor:focus {
+  border-color: #1f9d7c;
+  box-shadow: 0 0 0 3px rgba(31, 157, 124, 0.18);
+}
+
+.code-block {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 14px;
+  border-radius: 10px;
+  overflow-x: auto;
+  font-family: 'Fira Code', Consolas, Menlo, monospace;
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  margin: 6px 0 0;
+}
+
+/* ============================================================
+   Student photo avatar upload (Manage Students page)
+   ============================================================ */
+.avatar-upload {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  background: #eef3ee;
+  border: 1px solid var(--line);
+  position: relative;
+  flex-shrink: 0;
+}
+.avatar-upload:hover::after {
+  content: '📷';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(22,35,61,0.55);
+  font-size: 0.85rem;
+}
+.avatar-img { width: 100%; height: 100%; object-fit: cover; }
+.avatar-fallback { font-weight: 700; font-size: 0.78rem; color: var(--ink); }
+
+/* ============================================================
    LANDING PAGE — THEME ALIGNMENT PASS
    ============================================================ */
 .landing-page .landing-header {
