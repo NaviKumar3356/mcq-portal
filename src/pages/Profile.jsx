@@ -22,6 +22,7 @@ const ADMIN_ITEMS = [
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
   { to: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/admin/profile', label: 'My profile', icon: '👤' },
+  { to: '/admin/settings', label: 'School & branding', icon: '🎨' },
 ];
 
 function initials(name) {

@@ -1,63 +1,58 @@
-# Landing page + leaderboard rebuild — what changed and why
+# Design fix — why the profile photo looked flat, and what changed
 
-## Why the last fix "didn't stick"
+## Root cause
 
-Last round I added a *second* stylesheet (`styles_design_fix.css`) plus a
-new `<link>` in `index.html`. That's fragile — if that link doesn't make
-it into the deployed `index.html` exactly right, none of those rules
-load, which is exactly what happened (the "PUBLISHED" pill fell onto its
-own line because the flex rule for `.paper-card-top` never applied).
+`src/styles_additions.css` already had the correct circular-avatar CSS
+(`.profile-avatar-upload`, `.sidebar-avatar`, podium styles, table
+centering fixes, etc.) — but **it was never linked in `index.html`**.
+Only `/src/styles.css` was loaded. So none of those rules ever applied,
+and the "click to upload" avatar rendered with no width/height/
+border-radius at all — just flat text ("NK"), which is exactly what you
+saw on the Profile page.
 
-This round, **everything is merged into the one `src/styles.css` you
-already had linked** — nothing new to add to `index.html`. I also found
-the actual cause of the overlapping grey box / misaligned hero on the
-landing page: there were several older "compact" and "polish" CSS passes
-for `.landing-page` stacked on top of each other, with mismatched
-`grid-template-columns` between normal and short-viewport rules, plus a
-decorative laptop illustration that only half-hid itself depending on
-viewport height. Rather than patch a patch again, I replaced that whole
-section with one clean, final block at the end of the file (CSS in the
-same file applies in the order it's written, so this one wins outright
-over the older conflicting rules — nothing had to be hunted down and
-deleted).
+(`src/styles_new_Theme.css` and `src/stylesold.css` are similarly
+unused/orphaned — safe to delete once you confirm nothing references
+them.)
 
 ## What's in this drop
 
-1. **`index.html`** — back to a single stylesheet link. You can now
-   delete `src/styles_additions.css`, `src/styles_design_fix.css`,
-   `src/styles_landing_theme.css`, `src/styles_new_Theme.css`, and
-   `src/stylesold.css` — nothing references any of them anymore.
-2. **`src/styles.css`** (replace in full) — your original file, plus the
-   avatar/profile fix and paper-card polish from last time, plus:
-   - A rebuilt landing hero: no more decorative laptop graphic (that was
-     the thing overlapping "Pick your role to continue"). The three
-     feature points now render as their own small cards under the
-     headline instead, which also fills the space better so the page
-     doesn't read as empty.
-   - A new **rank-badge / ribbon-medal** component (`.rank-board` /
-     `.rank-row`), styled like the PTM rank-holder poster you shared —
-     gold for #1, blue for #2, bronze for #3, purple for #4, green for
-     #5, each with a numbered medal circle, photo, name + class, and a
-     solid percentage pill.
-3. **`src/pages/Landing.jsx`** — Hall of Fame now shows the top 5 as
-   ribbon badges (via a new exported `RankRow` component) instead of a
-   3-person podium + plain list. Decorative laptop JSX removed too.
-4. **`src/pages/Leaderboard.jsx`** — the per-class leaderboard (used by
-   students, teachers, and admin) now shows its top 5 with the exact
-   same ribbon badges, via the same `RankRow` component imported from
-   `Landing.jsx`, so ranking looks consistent everywhere in the app.
-   Ranks 6+ still show in a plain table underneath for completeness.
+1. **`index.html`** — adds one `<link>` for the new stylesheet, right
+   after the existing `styles.css` link.
+2. **`src/styles_design_fix.css`** (new file) — re-includes everything
+   from `styles_additions.css` (so nothing is lost), plus a fresh polish
+   pass:
+   - A real 112px circular avatar with a permanent small camera badge in
+     the corner (previously the only "click me" hint was a hover overlay,
+     easy to miss on mobile) — plus the full "📷 Change" hover overlay is
+     still there as a bonus on desktop.
+   - A cleaner "My Profile" card: avatar, name, @handle, and a role pill
+     (Teacher / Super Admin / Roll+Class) all in one clearly separated
+     header block, with the assigned classes/subjects moved into a
+     subtly shaded box instead of trailing off as plain text.
+   - Papers list cards get a colored left border by status (green =
+     published, amber = closed, grey = draft), tighter title/meta
+     layout, and the action buttons are visually separated from the
+     title with their own row instead of floating loose in the card.
+3. **`src/pages/Profile.jsx`** — restructured to use the new
+   `profile-card-head` wrapper and role pill (shared across all three
+   roles via one `ProfileHead` component instead of three near-duplicate
+   blocks).
+4. **`src/pages/TeacherDashboard.jsx`** — paper cards now use
+   `paper-card` / `paper-card-top` / `paper-card-actions` classes.
 
 ## How to apply
 
+Drop these four files into your project at the same paths (they
+overwrite the originals), plus the one new CSS file. No database
+migration, no new dependencies.
+
 ```
 index.html
-src/styles.css
-src/pages/Landing.jsx
-src/pages/Leaderboard.jsx
+src/styles_design_fix.css   (new)
+src/pages/Profile.jsx
+src/pages/TeacherDashboard.jsx
 ```
 
-Then delete the five now-unused CSS files listed above so there's no
-confusion about which file is actually in effect. `src/pages/Profile.jsx`
-and `src/pages/TeacherDashboard.jsx` from the previous round are still
-current — no changes needed to them this time.
+If you also want the same paper-card treatment on `/admin/papers`, no
+extra work is needed — `AdminOverview`/`admin/papers` route to the same
+`TeacherDashboard.jsx` component already.

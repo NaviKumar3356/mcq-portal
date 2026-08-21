@@ -111,6 +111,12 @@ export function uploadOwnAdminPhoto({ file }) {
 // Builds a public URL for a student/teacher/admin photo path. The
 // 'student-photos' bucket is public read, so this needs no signed token —
 // safe to call from anywhere, including the unauthenticated landing page.
+export function getAssetUrl(asset_path) {
+  if (!asset_path) return null;
+  const base = import.meta.env.VITE_SUPABASE_URL;
+  return `${base}/storage/v1/object/public/site-assets/${asset_path}`;
+}
+
 export function getPhotoUrl(photo_path) {
   if (!photo_path) return null;
   const base = import.meta.env.VITE_SUPABASE_URL;

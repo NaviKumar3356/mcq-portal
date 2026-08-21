@@ -17,14 +17,16 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-    <!-- Everything (base theme, profile/avatar fix, papers-card polish,
-         landing rebuild, rank badges) now lives in this ONE file, in this
-         order, so there's nothing left to forget to link. You can delete
-         styles_additions.css, styles_design_fix.css, styles_landing_theme.css,
-         styles_new_Theme.css and stylesold.css from src/ — none of them are
-         referenced anywhere anymore. -->
     <link rel="stylesheet" href="/src/styles.css" />
+    <!-- Was written but never linked before — this is what actually makes
+         the profile avatar a real circle instead of flat text, plus new
+         polish on top of it. See comments at the top of the file. -->
+    <link rel="stylesheet" href="/src/styles_design_fix.css" />
+    <!-- Aligns the landing page's colors with the parchment/green-gold-
+         terracotta theme already used on the login pages. Loaded last so
+         it wins the cascade on landing-page-scoped selectors. -->
+    <link rel="stylesheet" href="/src/styles_landing_theme.css" />
+    <link rel="stylesheet" href="/src/styles_v7_public_rankings.css" />
   </head>
   <body>
     <div id="root"></div>

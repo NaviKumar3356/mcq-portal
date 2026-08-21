@@ -8,6 +8,7 @@ const ADMIN_ITEMS = [
   { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
   { to: '/admin/students', label: 'Students', icon: '🎓' },
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
+  { to: '/admin/settings', label: 'School & branding', icon: '🎨' },
 ];
 
 function MultiSelect({ options, selected, onChange }) {

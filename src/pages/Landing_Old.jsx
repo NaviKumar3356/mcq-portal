@@ -25,7 +25,7 @@ export default function Landing() {
             <div className="role-title">Teacher</div>
             <div className="role-sub">Set papers, grade &amp; publish</div>
           </Link>
-          <Link to="/admin/login" className="role-card">
+          <Link to="/school-admin-console-7f3c/login" className="role-card">
             <div className="role-icon">🛡️</div>
             <div className="role-title">Super Admin</div>
             <div className="role-sub">Manage teachers &amp; school data</div>

@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-
 import { getToken, clearToken, getAuthInfo } from './lib/api.js';
 import SchoolLogo from './components/SchoolLogo.jsx';
 import { SCHOOL_SHORT } from './lib/constants.js';
+import { ADMIN_LOGIN_PATH } from './lib/routes.js';
+import SiteTheme from './components/SiteTheme.jsx';
 
 // Every page is loaded lazily, on its own JS chunk, rather than bundled
 // together up front — see comments in previous versions of this file for
@@ -30,13 +32,15 @@ const AdminOverview = lazy(() => import('./pages/AdminOverview.jsx'));
 const ManageTeachers = lazy(() => import('./pages/ManageTeachers.jsx'));
 
 const Leaderboard = lazy(() => import('./pages/Leaderboard.jsx'));
+const PublicLeaderboard = lazy(() => import('./pages/PublicLeaderboard.jsx'));
 const Profile = lazy(() => import('./pages/Profile.jsx'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings.jsx'));
 
 function Protected({ roles, children }) {
   const token = getToken();
   const auth = getAuthInfo();
   if (!token || !auth || !roles.includes(auth.role)) {
-    const loginFor = roles.includes('student') ? '/student/login' : roles.includes('teacher') ? '/teacher/login' : '/admin/login';
+    const loginFor = roles.includes('student') ? '/student/login' : roles.includes('teacher') ? '/teacher/login' : ADMIN_LOGIN_PATH;
     return <Navigate to={loginFor} replace />;
   }
   return children;
@@ -67,11 +71,13 @@ function PageLoading() {
 export default function App() {
   return (
     <div className="app-shell">
+      <SiteTheme />
       <StudentTopbar />
       <Suspense fallback={<PageLoading />}>
         <Routes>
           {/* Landing / role selection */}
           <Route path="/" element={<Landing />} />
+          <Route path="/rankings" element={<PublicLeaderboard />} />
 
           {/* Student */}
           <Route path="/student/login" element={<StudentLogin />} />
@@ -94,7 +100,7 @@ export default function App() {
           <Route path="/teacher/submission/:submissionId" element={<Protected roles={['teacher']}><GradeOne /></Protected>} />
 
           {/* Super Admin */}
-          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path={ADMIN_LOGIN_PATH} element={<AdminLogin />} />
           <Route path="/admin" element={<Protected roles={['super_admin']}><AdminOverview /></Protected>} />
           <Route path="/admin/teachers" element={<Protected roles={['super_admin']}><ManageTeachers /></Protected>} />
           <Route path="/admin/students" element={<Protected roles={['super_admin']}><ManageStudents /></Protected>} />
@@ -102,6 +108,7 @@ export default function App() {
           <Route path="/admin/papers/create" element={<Protected roles={['super_admin']}><CreateTest /></Protected>} />
           <Route path="/admin/leaderboard" element={<Protected roles={['super_admin']}><Leaderboard /></Protected>} />
           <Route path="/admin/profile" element={<Protected roles={['super_admin']}><Profile /></Protected>} />
+          <Route path="/admin/settings" element={<Protected roles={['super_admin']}><AdminSettings /></Protected>} />
           <Route path="/admin/test/:testId/edit" element={<Protected roles={['super_admin']}><EditTest /></Protected>} />
           <Route path="/admin/test/:testId/answer-key" element={<Protected roles={['super_admin']}><AnswerKey /></Protected>} />
           <Route path="/admin/test/:testId/submissions" element={<Protected roles={['super_admin']}><GradeSubmissions /></Protected>} />

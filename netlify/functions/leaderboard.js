@@ -61,20 +61,30 @@ exports.handler = async (event) => {
       byStudent[s.student_id].count += 1;
     }
 
-    const leaderboard = Object.values(byStudent)
+    const ranked = Object.values(byStudent)
       .map((s) => ({
         student_id: s.student_id,
         name: s.name,
         roll_number: s.roll_number,
         photo_path: s.photo_path,
         tests_taken: s.count,
+        average_percent_exact: s.totalPct / s.count,
         average_percent: Math.round((s.totalPct / s.count) * 10) / 10,
       }))
       .sort((a, b) =>
-        b.average_percent - a.average_percent ||
+        b.average_percent_exact - a.average_percent_exact ||
         Number(a.roll_number) - Number(b.roll_number)
-      )
-      .map((s, i) => ({ ...s, rank: i + 1 }));
+      );
+
+    let lastScore = null;
+    let lastRank = 0;
+    const leaderboard = ranked.map((s, i) => {
+      const rank = lastScore !== null && s.average_percent_exact === lastScore ? lastRank : i + 1;
+      lastScore = s.average_percent_exact;
+      lastRank = rank;
+      const { average_percent_exact, ...student } = s;
+      return { ...student, rank };
+    });
 
     return json(200, { leaderboard, tests_counted: tests.length });
   } catch (e) {

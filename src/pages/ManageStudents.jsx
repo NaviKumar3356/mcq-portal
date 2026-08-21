@@ -14,6 +14,7 @@ const ADMIN_ITEMS = [
   { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
   { to: '/admin/students', label: 'Students', icon: '🎓' },
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
+  { to: '/admin/settings', label: 'School & branding', icon: '🎨' },
 ];
 
 function initials(name) {
@@ -164,6 +165,7 @@ export default function ManageStudents() {
         ) : (
           <span className="avatar-fallback">{initials(s.name)}</span>
         )}
+        <span className="avatar-upload-caption">{s.photo_path ? 'Change photo' : 'Upload photo'}</span>
         <input
           type="file"
           accept="image/*"

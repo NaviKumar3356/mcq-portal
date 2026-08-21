@@ -49,6 +49,14 @@ A free-to-run test portal for **Sant Nandlal Smriti Vidya Mandir, Malsisar**.
 
 ---
 
+
+## Public ranking + private admin access
+
+- Public rankings use **competition ranking**: equal average percentages receive the same rank, and the next rank skips accordingly (for example, `1, 1, 3`).
+- The landing-page ranking carousel does not wrap side cards, so rank `#10` never appears beside rank `#1`. Moving past `#10` starts a new view at `#1`, followed by `#2`.
+- Student photos can be uploaded by the student from **My Profile**, or by an authorized Teacher/Super Admin from **Students → Upload photo / Change photo**.
+- The Super Admin login is deliberately not linked from public pages. Configure `VITE_ADMIN_LOGIN_PATH` to a private path (for example `/school-admin-console-7f3c/login`) and share that URL only with the administrator. **The private URL is an extra layer of exposure reduction, not a replacement for server-side authentication and a strong password.**
+
 ## Architecture (unchanged, still 100% free-tier)
 
 ```

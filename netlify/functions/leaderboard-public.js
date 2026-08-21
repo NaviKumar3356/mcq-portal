@@ -14,7 +14,8 @@ const { json } = require('./utils/auth');
 // of 20 and a paper out of 100 contribute fairly.
 exports.handler = async (event) => {
   try {
-    const limit = Math.min(10, Math.max(1, Number(event.queryStringParameters?.limit) || 5));
+    const limit = Math.min(10, Math.max(1, Number(event.queryStringParameters?.limit) || 10));
+    const requestedClass = String(event.queryStringParameters?.class || '').trim();
 
     const { data: tests, error: tErr } = await supabase
       .from('tests')
@@ -39,6 +40,7 @@ exports.handler = async (event) => {
     const byStudent = {};
     for (const s of submissions || []) {
       if (!s.students) continue;
+      if (requestedClass && String(s.students.class || '') !== requestedClass) continue;
       const max = totalMarksByTest[s.test_id];
       if (!max) continue;
       const pct = (Number(s.total_marks_awarded) / max) * 100;
@@ -56,20 +58,37 @@ exports.handler = async (event) => {
       byStudent[s.student_id].count += 1;
     }
 
-    const top = Object.values(byStudent)
+    const ranked = Object.values(byStudent)
       .map((s) => ({
         student_id: s.student_id,
         name: s.name,
         class: s.class,
         photo_path: s.photo_path,
         tests_taken: s.count,
+        // Keep the unrounded value for ranking so students are tied only
+        // when their actual average percentage is equal. The rounded value
+        // is what we display publicly.
+        average_percent_exact: s.totalPct / s.count,
         average_percent: Math.round((s.totalPct / s.count) * 10) / 10,
       }))
-      .sort((a, b) => b.average_percent - a.average_percent || b.tests_taken - a.tests_taken)
-      .slice(0, limit)
-      .map((s, i) => ({ ...s, rank: i + 1 }));
+      .sort((a, b) => b.average_percent_exact - a.average_percent_exact || b.tests_taken - a.tests_taken || a.name.localeCompare(b.name));
 
-    return json(200, { top });
+    // Competition ranking: equal scores receive the same rank and the next
+    // rank skips accordingly (1, 1, 3). The secondary sort never changes
+    // the rank of a tied score.
+    let lastScore = null;
+    let lastRank = 0;
+    const top = ranked
+      .slice(0, limit)
+      .map((s, i) => {
+        const rank = lastScore !== null && s.average_percent_exact === lastScore ? lastRank : i + 1;
+        lastScore = s.average_percent_exact;
+        lastRank = rank;
+        const { average_percent_exact, ...publicStudent } = s;
+        return { ...publicStudent, rank };
+      });
+
+    return json(200, { top, class: requestedClass || null });
   } catch (e) {
     return json(500, { error: e.message });
   }
