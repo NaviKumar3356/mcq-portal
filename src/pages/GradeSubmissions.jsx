@@ -24,20 +24,28 @@ export default function GradeSubmissions() {
   const auth = getAuthInfo();
   const isAdmin = auth?.role === 'super_admin';
   const [subs, setSubs] = useState(null);
+  const [subsLoaded, setSubsLoaded] = useState(false);
   const [testMeta, setTestMeta] = useState({});
   const [roster, setRoster] = useState(null);
   const [showMissing, setShowMissing] = useState(false);
   const [error, setError] = useState('');
   const [exporting, setExporting] = useState('');
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [flagFilter, setFlagFilter] = useState('all');
+  const [absenceReasons, setAbsenceReasons] = useState({});
+  const [attendanceMigrationRequired, setAttendanceMigrationRequired] = useState(false);
   // Optional custom reopen duration (minutes) keyed by student id. Empty
   // string / unset means "use the paper's normal duration_minutes".
   const [reopenMinutes, setReopenMinutes] = useState({});
   const resultsRef = useRef(null);
 
   function load() {
+    setError('');
+    setSubsLoaded(false);
     api(`/submissions-list?test_id=${testId}`)
-      .then((d) => setSubs(d.submissions))
-      .catch((e) => setError(e.message));
+      .then((d) => { setSubs(d.submissions || []); setAttendanceMigrationRequired(!!d.attendanceMigrationRequired); setSubsLoaded(true); })
+      .catch((e) => { setSubs([]); setSubsLoaded(false); setError(e.message); });
   }
   useEffect(load, [testId]);
 
@@ -60,8 +68,63 @@ export default function GradeSubmissions() {
   }, [testMeta.class]);
 
   const submittedIds = new Set((subs || []).map((s) => s.students?.id));
-  const missing = (roster || []).filter((s) => !submittedIds.has(s.id));
+  // Only derive 'not submitted' students after the submissions request has
+  // successfully loaded. If the API fails (for example because a required
+  // migration has not been applied), treating every roster student as missing
+  // would incorrectly show submitted students as 'Not submitted'.
+  const missing = subsLoaded ? (roster || []).filter((s) => !submittedIds.has(s.id)) : [];
   const flaggedCount = (subs || []).filter((s) => s.flagged_reason).length;
+  const absentCount = (subs || []).filter((s) => s.status === 'absent').length;
+  const notSubmittedCount = missing.length;
+  const gradedCount = (subs || []).filter((s) => s.status === 'graded').length;
+  const pendingCount = (subs || []).filter((s) => s.status === 'submitted').length;
+  const totalStudents = subsLoaded ? Math.max((roster || []).length, (subs || []).length) : ((subs || []).length || (roster || []).length);
+
+  const allEntries = [
+    ...(subs || []).map((s) => ({ ...s, attendanceStatus: s.status === 'absent' ? 'absent' : s.status === 'graded' ? 'graded' : 'submitted' })),
+    ...missing.map((student) => ({
+      id: `missing-${student.id}`,
+      students: student,
+      status: 'not_submitted',
+      attendanceStatus: 'not_submitted',
+      total_marks_awarded: null,
+      flagged_reason: null,
+    })),
+  ];
+
+  const filteredSubs = allEntries.filter((s) => {
+    const haystack = `${s.students?.name || ''} ${s.students?.roll_number || ''} ${s.students?.class || ''}`.toLowerCase();
+    const matchesSearch = !search || haystack.includes(search.toLowerCase());
+    const matchesStatus = statusFilter === 'all' || s.attendanceStatus === statusFilter;
+    const matchesFlag = flagFilter === 'all' || (flagFilter === 'flagged' ? !!s.flagged_reason : !s.flagged_reason);
+    return matchesSearch && matchesStatus && matchesFlag;
+  });
+
+  async function setAbsent(studentId, name, reason) {
+    if (attendanceMigrationRequired) {
+      setError('Attendance is not enabled yet. Run supabase/schema_v10_migration.sql in Supabase, then reload this page.');
+      return;
+    }
+    if (!reason?.trim()) {
+      setError(`Please enter a reason for ${name}'s absence.`);
+      return;
+    }
+    if (!window.confirm(`Mark ${name} as absent for this test?`)) return;
+    try {
+      await api('/submission-absence', { method: 'POST', body: { test_id: testId, student_id: studentId, action: 'mark', reason: reason.trim() } });
+      setAbsenceReasons((current) => ({ ...current, [studentId]: '' }));
+      load();
+    } catch (e) { setError(e.message); }
+  }
+
+  async function unmarkAbsent(studentId, name) {
+    if (!window.confirm(`Remove the absent mark for ${name}? They will return to “Not submitted”.`)) return;
+    try {
+      await api('/submission-absence', { method: 'POST', body: { test_id: testId, student_id: studentId, action: 'unmark' } });
+      setAbsenceReasons((current) => ({ ...current, [studentId]: '' }));
+      load();
+    } catch (e) { setError(e.message); }
+  }
 
   async function removeSubmission(id, name) {
     if (!window.confirm(`Delete ${name}'s submission and answer copy? This cannot be undone.`)) return;
@@ -114,7 +177,7 @@ export default function GradeSubmissions() {
   const fileBase = (testMeta.title || 'results').replace(/[^a-z0-9]+/gi, '-').toLowerCase();
 
   async function exportExcel() {
-    if (!subs || subs.length === 0) return;
+    if (!allEntries || allEntries.length === 0) return;
     setExporting('xlsx');
     try {
       const XLSX = await import('xlsx');
@@ -124,7 +187,7 @@ export default function GradeSubmissions() {
         [],
         ['Roll', 'Name', 'Class', 'Score', 'Out of', 'Percent', 'Status', 'Flagged'],
       ];
-      const rows = subs.map((s) => {
+      const rows = allEntries.map((s) => {
         const pct = s.total_marks_awarded != null && testMeta.total_marks
           ? Math.round((s.total_marks_awarded / testMeta.total_marks) * 1000) / 10
           : '';
@@ -135,8 +198,8 @@ export default function GradeSubmissions() {
           s.total_marks_awarded ?? '',
           testMeta.total_marks ?? '',
           pct === '' ? '' : `${pct}%`,
-          s.status,
-          s.flagged_reason ? `Yes (${s.tab_switch_count} tab switches)` : 'No',
+          s.attendanceStatus === 'not_submitted' ? 'Not submitted' : s.status,
+          s.absence_reason ? `Absent: ${s.absence_reason}` : (s.flagged_reason ? `Yes (${s.tab_switch_count} tab switches)` : 'No'),
         ];
       });
       const ws = XLSX.utils.aoa_to_sheet([...header, ...rows]);
@@ -153,7 +216,7 @@ export default function GradeSubmissions() {
   }
 
   async function exportPDF() {
-    if (!subs || subs.length === 0) return;
+    if (!allEntries || allEntries.length === 0) return;
     setExporting('pdf');
     try {
       const { jsPDF } = await import('jspdf');
@@ -175,7 +238,7 @@ export default function GradeSubmissions() {
       doc.setFont(undefined, 'normal');
       y += 8;
 
-      subs.forEach((s) => {
+      allEntries.forEach((s) => {
         if (y > 275) {
           doc.addPage();
           y = 20;
@@ -187,7 +250,7 @@ export default function GradeSubmissions() {
         doc.text(String(s.students?.name ?? '').slice(0, 40), 38, y);
         doc.text(`${s.total_marks_awarded ?? '-'} / ${testMeta.total_marks ?? '-'}`, 128, y);
         doc.text(pct, 153, y);
-        doc.text(s.flagged_reason ? 'Flagged' : s.status, 172, y);
+        doc.text(s.attendanceStatus === 'not_submitted' ? 'Not submitted' : s.status === 'absent' ? 'Absent' : (s.flagged_reason ? 'Flagged' : s.status), 172, y);
         y += 7;
       });
 
@@ -220,9 +283,22 @@ export default function GradeSubmissions() {
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
       <Link to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
-      <h2>Submissions{testMeta.title ? ` — ${testMeta.title}` : ''}</h2>
+      <div className="submission-page-head">
+        <div>
+          <Link to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
+          <div className="eyebrow" style={{marginTop: 14}}>Assessment operations</div>
+          <h2>Submissions{testMeta.title ? ` — ${testMeta.title}` : ''}</h2>
+          <p className="meta">Track every student, grade submitted papers, and record attendance.</p>
+        </div>
+        <div className="submission-head-badge">📋 {testMeta.class || 'Class'}</div>
+      </div>
       {error && <div className="error-box">{error}</div>}
-      {!subs && !error && <p className="center-note">Loading…</p>}
+      {!subsLoaded && !error && <p className="center-note">Loading submissions…</p>}
+      {attendanceMigrationRequired && (
+        <div className="notice-strip notice-warning" style={{ display: 'block', marginBottom: 14 }}>
+          <strong>Attendance setup required.</strong> Submitted and graded attempts are shown correctly, but absent marking is disabled until <code>supabase/schema_v10_migration.sql</code> is run in Supabase.
+        </div>
+      )}
 
       {flaggedCount > 0 && (
         <div className="notice-strip notice-danger" style={{ display: 'block', marginBottom: 14 }}>
@@ -231,7 +307,38 @@ export default function GradeSubmissions() {
         </div>
       )}
 
-      {subs && subs.length > 0 && (
+      {(subs || roster) && (
+        <>
+        <div className="grade-review-stats">
+          <div className="grade-stat-card"><span className="grade-stat-icon">👥</span><strong>{totalStudents}</strong><small>Students</small></div>
+          <div className="grade-stat-card success"><span className="grade-stat-icon">✓</span><strong>{gradedCount}</strong><small>Graded</small></div>
+          <div className="grade-stat-card warning"><span className="grade-stat-icon">⏳</span><strong>{pendingCount}</strong><small>Pending grading</small></div>
+          <div className="grade-stat-card danger"><span className="grade-stat-icon">✕</span><strong>{absentCount}</strong><small>Absent</small></div>
+          <div className="grade-stat-card neutral"><span className="grade-stat-icon">◌</span><strong>{notSubmittedCount}</strong><small>Not submitted</small></div>
+          <div className="grade-stat-card flag"><span className="grade-stat-icon">⚠</span><strong>{flaggedCount}</strong><small>Flagged</small></div>
+        </div>
+        <div className="grade-review-toolbar">
+          <div>
+            <strong>Submission & attendance management</strong>
+            <div className="meta">{filteredSubs.length} of {allEntries.length} shown · mark absent, record a reason, reopen or review submissions</div>
+          </div>
+          <div className="grade-review-filters">
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search student or roll…" aria-label="Search submissions" />
+            <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="all">All students</option>
+              <option value="submitted">Pending grading</option>
+              <option value="graded">Graded</option>
+              <option value="absent">Absent</option>
+              <option value="not_submitted">Not submitted</option>
+            </select>
+            <select value={flagFilter} onChange={(e) => setFlagFilter(e.target.value)}>
+              <option value="all">All attempts</option>
+              <option value="flagged">Flagged only</option>
+              <option value="clear">Not flagged</option>
+            </select>
+            <button className="secondary small" onClick={() => { setSearch(''); setStatusFilter('all'); setFlagFilter('all'); }}>Reset</button>
+          </div>
+        </div>
         <div className="export-bar">
           <span className="meta">Download results as:</span>
           <button className="secondary small" onClick={exportExcel} disabled={!!exporting}>
@@ -244,75 +351,61 @@ export default function GradeSubmissions() {
             {exporting === 'jpg' ? 'Preparing…' : '🖼 Image (JPEG)'}
           </button>
         </div>
+        </>
       )}
 
       {subs && subs.length === 0 && <div className="card center-note">No submissions yet.</div>}
 
-      {subs && subs.length > 0 && (
-        <div className="card" ref={resultsRef}>
-          {subs.map((s) => (
-            <div className="test-row" key={s.id}>
-              <div>
-                <div style={{ fontWeight: 600 }}>{s.students?.name}</div>
-                <div className="meta">Roll {s.students?.roll_number} · {s.students?.class}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span className={`pill ${s.status === 'graded' ? 'graded' : 'pending'}`}>{s.status}</span>
-                {s.flagged_reason && (
-                  <span
-                    className="pill danger"
-                    style={{ marginLeft: 6 }}
-                    title={`Switched tabs/left the test window ${s.tab_switch_count} time${s.tab_switch_count === 1 ? '' : 's'} — auto-submitted`}
-                  >
-                    ⚠ Flagged
+      {allEntries.length > 0 && (
+        <div ref={resultsRef}>
+          {filteredSubs.map((s) => {
+            const isAbsent = s.attendanceStatus === 'absent';
+            const isMissing = s.attendanceStatus === 'not_submitted';
+            return (
+              <div className={`grade-submission-card ${isAbsent ? 'is-absent' : ''} ${isMissing ? 'is-missing' : ''}`} key={s.id}>
+                <div>
+                  <div className="grade-submission-name">{s.students?.name}</div>
+                  <div className="grade-submission-meta">Roll {s.students?.roll_number} · {s.students?.class}</div>
+                  {isAbsent && <div className="absence-reason-display"><strong>Absence reason:</strong> {s.absence_reason || 'No reason recorded'}</div>}
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span className={`pill ${s.attendanceStatus === 'graded' ? 'graded' : s.attendanceStatus === 'absent' ? 'danger' : s.attendanceStatus === 'not_submitted' ? 'pending' : 'pending'}`}>
+                    {isAbsent ? 'Absent' : isMissing ? 'Not submitted' : s.status === 'submitted' ? 'Pending grading' : s.status === 'graded' ? 'Graded' : s.status}
                   </span>
-                )}
-                <div style={{ marginTop: 8, display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <Link to={`${isAdmin ? '/admin' : '/teacher'}/submission/${s.id}`}>
-                    <button className="secondary">
-                      {s.status === 'graded' ? `Review (${s.total_marks_awarded})` : 'Grade'}
-                    </button>
-                  </Link>
-                  <ReopenControls studentId={s.students?.id} name={s.students?.name} />
-                  <button className="danger small" onClick={() => removeSubmission(s.id, s.students?.name)}>Delete</button>
+                  {s.flagged_reason && <span className="pill danger" style={{ marginLeft: 6 }}>⚠ Flagged</span>}
+                  {isAbsent || isMissing ? (
+                    <div className="absence-controls">
+                      <input
+                        value={absenceReasons[s.students?.id] ?? (isAbsent ? (s.absence_reason || '') : '')}
+                        onChange={(e) => setAbsenceReasons((current) => ({ ...current, [s.students?.id]: e.target.value }))}
+                        placeholder={isAbsent ? 'Update reason…' : 'Reason for absence…'}
+                        aria-label={`Absence reason for ${s.students?.name}`}
+                      />
+                      <button className="secondary small" disabled={attendanceMigrationRequired} onClick={() => isAbsent ? setAbsent(s.students.id, s.students.name, absenceReasons[s.students.id] ?? s.absence_reason) : setAbsent(s.students.id, s.students.name, absenceReasons[s.students.id])}>
+                        {isAbsent ? 'Save reason' : attendanceMigrationRequired ? 'Migration required' : 'Mark absent'}
+                      </button>
+                      {isAbsent && <button className="ghost small" onClick={() => unmarkAbsent(s.students.id, s.students.name)}>Unmark</button>}
+                      {isMissing && <ReopenControls studentId={s.students?.id} name={s.students?.name} />}
+                    </div>
+                  ) : (
+                    <div className="grade-submission-actions">
+                      <Link to={`${isAdmin ? '/admin' : '/teacher'}/submission/${s.id}`}>
+                        <button className="secondary">{s.status === 'graded' ? `Review · ${s.total_marks_awarded ?? 0}` : 'Open grading'}</button>
+                      </Link>
+                      <ReopenControls studentId={s.students?.id} name={s.students?.name} />
+                      <button className="danger small" onClick={() => removeSubmission(s.id, s.students?.name)}>Delete</button>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+          {filteredSubs.length === 0 && <div className="card center-note">No students match these filters.</div>}
         </div>
       )}
 
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="card-section-title" style={{ marginBottom: 0 }}>
-            🔓 Grant access to students who haven't submitted
-          </div>
-          <button className="secondary small" onClick={() => setShowMissing((v) => !v)}>
-            {showMissing ? 'Hide' : `Show (${missing.length})`}
-          </button>
-        </div>
-        {showMissing && (
-          missing.length === 0 ? (
-            <p className="meta" style={{ marginTop: 10 }}>Every student in this class has a submission.</p>
-          ) : (
-            <div style={{ marginTop: 10 }}>
-              <p className="meta">
-                Leave the minutes box blank to give the paper's normal {testMeta.duration_minutes || 30}-minute
-                duration, or enter a custom number of minutes for just this student's attempt.
-              </p>
-              {missing.map((st) => (
-                <div className="test-row" key={st.id}>
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{st.name}</div>
-                    <div className="meta">Roll {st.roll_number} · {st.class}</div>
-                  </div>
-                  <ReopenControls studentId={st.id} name={st.name} />
-                </div>
-              ))}
-            </div>
-          )
-        )}
-      </div>
+      {subs && subs.length === 0 && !roster && <div className="card center-note">No submissions yet.</div>}
+
     </PanelLayout>
   );
 }

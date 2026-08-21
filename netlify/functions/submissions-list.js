@@ -22,12 +22,31 @@ exports.handler = async (event) => {
 
     const { data: submissions, error } = await supabase
       .from('submissions')
-      .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, students(id, name, roll_number, class)')
+      .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, absence_reason, marked_absent_at, students(id, name, roll_number, class)')
       .eq('test_id', testId)
       .order('submitted_at', { ascending: true });
-    if (error) throw error;
+    if (error) {
+      const msg = String(error.message || error);
+      // Keep submitted/graded attempts visible even if the attendance migration
+      // has not yet been applied. This prevents a database schema issue from
+      // making every roster student appear as "Not submitted".
+      if (/absence_reason|marked_absent_at|column .* does not exist/i.test(msg)) {
+        const fallback = await supabase
+          .from('submissions')
+          .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, students(id, name, roll_number, class)')
+          .eq('test_id', testId)
+          .order('submitted_at', { ascending: true });
+        if (fallback.error) throw fallback.error;
+        return json(200, {
+          submissions: fallback.data || [],
+          attendanceMigrationRequired: true,
+          warning: 'Attendance fields are not available yet. Run supabase/schema_v10_migration.sql to enable absent marking and absence reasons.'
+        });
+      }
+      throw error;
+    }
 
-    return json(200, { submissions });
+    return json(200, { submissions, attendanceMigrationRequired: false });
   } catch (e) {
     return json(500, { error: e.message });
   }

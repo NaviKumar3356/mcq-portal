@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
@@ -160,16 +160,33 @@ export default function CreateTest() {
 
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-      <h2>New paper</h2>
+      <div className="create-page-head">
+        <div>
+          <Link className="create-back-link" to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
+          <div className="eyebrow">Assessment builder</div>
+          <h2>Create a new paper</h2>
+          <p className="meta">Set the schedule, security rules and questions in one guided workspace.</p>
+        </div>
+        <div className="create-progress">
+          <span className="create-progress-step active">01 <small>Details</small></span>
+          <span className="create-progress-line"></span>
+          <span className="create-progress-step">02 <small>Questions</small></span>
+          <span className="create-progress-line"></span>
+          <span className="create-progress-step">03 <small>Save</small></span>
+        </div>
+      </div>
       {error && <div className="error-box">{error}</div>}
 
       <form onSubmit={onSubmit}>
-        <div className="card">
-          <div className="card-section-title">📝 Paper details</div>
+        <div className="card create-section-card">
+          <div className="create-section-heading">
+            <div className="create-section-icon">📝</div>
+            <div><div className="card-section-title">Paper details</div><p className="meta">Give the assessment a clear identity and schedule.</p></div>
+          </div>
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Periodic Test 1" />
 
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="create-field-grid">
             <div style={{ flex: 1 }}>
               <label>📚 Subject</label>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
@@ -188,7 +205,7 @@ export default function CreateTest() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 12 }}>
+          <div className="create-field-grid">
             <div style={{ flex: 1 }}>
               <label>🕐 Opens at (optional)</label>
               <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
@@ -199,7 +216,7 @@ export default function CreateTest() {
             </div>
           </div>
 
-          <div className="shuffle-box">
+          <div className="shuffle-box create-section-card">
             <div className="card-section-title">🔀 Anti-cheating (optional)</div>
             <label className="checkbox-row">
               <input type="checkbox" checked={shuffleQuestions} onChange={(e) => setShuffleQuestions(e.target.checked)} />
@@ -229,7 +246,7 @@ export default function CreateTest() {
         </div>
 
         <div className="card">
-          <div className="card-section-title">📄 Import MCQs from Word (.docx)</div>
+          <div className="card-section-title">📥 Import questions from Word</div>
           <p className="meta">
             Format: number each question, list options as a) b) c) d), and end with a line like{' '}
             <code>Answer: b</code>. Add <code>[2 marks]</code> anywhere in a question to set its marks
@@ -252,6 +269,15 @@ export default function CreateTest() {
               )}
             </div>
           )}
+        </div>
+
+        <div className="create-question-library-head">
+          <div>
+            <div className="eyebrow">Question library</div>
+            <h3>Build your paper</h3>
+            <p className="meta">{questions.length} question{questions.length === 1 ? '' : 's'} added · mix MCQ, written, upload and practical questions.</p>
+          </div>
+          <div className="question-count-badge">{questions.length}</div>
         </div>
 
         {questions.map((q, i) => (
@@ -357,7 +383,7 @@ export default function CreateTest() {
           </div>
         ))}
 
-        <div className="card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div className="card create-add-question-card">
           <button type="button" className="secondary" onClick={() => addQuestion('mcq')}>🔘 + MCQ question</button>
           <button type="button" className="secondary" onClick={() => addQuestion('written')}>✍️ + Written question</button>
           <button type="button" className="secondary" onClick={() => addQuestion('upload')}>📎 + Upload-answer question</button>
@@ -368,9 +394,9 @@ export default function CreateTest() {
           You can also finalize or change the answer key later from the paper's "Answer key" button, even after saving.
         </p>
 
-        <button className="primary" type="submit" disabled={saving}>
+        <div className="create-save-bar"><div><strong>Ready to save?</strong><span className="meta">The paper will be saved as a draft. You can edit it later.</span></div><button className="primary" type="submit" disabled={saving}>
           {saving ? 'Saving…' : 'Save paper as draft'}
-        </button>
+        </button></div>
       </form>
     </PanelLayout>
   );

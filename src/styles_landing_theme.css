@@ -108,3 +108,116 @@
 
 /* Hall of Fame already used the right palette (accent-2/accent-3 golds) —
    left untouched. */
+
+/* ============================================================
+   V8 RESPONSIVE STABILITY PASS
+   Prevent desktop/laptop overlap while keeping the visual design.
+   ============================================================ */
+.landing-page {
+  overflow-x: hidden;
+}
+
+.landing-page .landing-hero {
+  grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
+  gap: clamp(24px, 3vw, 42px);
+  align-items: center;
+}
+
+.landing-page .hero-copy {
+  min-width: 0;
+  max-width: 680px;
+}
+
+.landing-page .hero-copy h1 {
+  font-size: clamp(2.45rem, 4vw, 3.8rem);
+  line-height: 1.02;
+  overflow-wrap: normal;
+}
+
+.landing-page .hero-copy p {
+  max-width: 610px;
+}
+
+.landing-page .hero-points {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  width: 100%;
+}
+
+.landing-page .hero-points > div {
+  min-width: 0;
+  padding-right: 14px;
+}
+
+.landing-page .hero-points > div:last-child {
+  padding-right: 0;
+}
+
+.landing-page .hero-points b,
+.landing-page .hero-points em {
+  overflow-wrap: anywhere;
+}
+
+.landing-page .hero-visual {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 1100px) {
+  .landing-page .landing-hero {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .landing-page .hero-copy {
+    max-width: 780px;
+  }
+
+  .landing-page .hero-visual {
+    width: min(100%, 900px);
+    margin-inline: auto;
+  }
+}
+
+@media (max-width: 760px) {
+  .landing-page .hero-points {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .landing-page .hero-points > div,
+  .landing-page .hero-points > div:last-child {
+    border-right: 0;
+    border-bottom: 1px solid var(--line);
+    padding: 10px 0;
+  }
+
+  .landing-page .hero-points > div:last-child {
+    border-bottom: 0;
+  }
+}
+
+@media (max-width: 620px) {
+  .landing-page .landing-hero {
+    padding: 30px 18px 26px;
+  }
+
+  .landing-page .hero-copy h1 {
+    font-size: clamp(2.2rem, 11vw, 3rem);
+    line-height: .98;
+  }
+
+  .landing-page .hero-copy p {
+    font-size: .92rem;
+    line-height: 1.55;
+  }
+
+  .landing-page .hero-visual {
+    height: auto;
+    transform: none;
+    margin: 8px auto 0;
+  }
+}

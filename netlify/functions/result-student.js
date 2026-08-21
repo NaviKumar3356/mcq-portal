@@ -30,7 +30,7 @@ exports.handler = async (event) => {
       .eq('student_id', auth.student_id)
       .maybeSingle();
 
-    if (!submission) return json(404, { error: 'No submission found for this test' });
+    if (!submission || submission.status === 'absent') return json(404, { error: 'No submitted attempt found for this test' });
 
     // NOTE: order by the embedded table's column using the { foreignTable }
     // option, not 'questions(order_index)' as a literal column name — that
