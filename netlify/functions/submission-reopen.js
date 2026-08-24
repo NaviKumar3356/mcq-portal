@@ -60,6 +60,7 @@ exports.handler = async (event) => {
           reopened_by: auth.role === 'teacher' ? auth.teacher_id : null,
           reopened_at: new Date().toISOString(),
           reopen_minutes,
+          attempt_type: 'reopen',
         },
         { onConflict: 'test_id,student_id' }
       );

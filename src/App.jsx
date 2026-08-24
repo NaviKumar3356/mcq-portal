@@ -58,7 +58,7 @@ function StudentTopbar() {
       </span>
       <span>
         <span className="who">Student panel &nbsp;</span>
-        <button className="link" onClick={() => { clearToken(); nav('/student/login'); }}>Log out</button>
+        <button className="topbar-logout-button" onClick={() => { clearToken(); nav('/student/login'); }} aria-label="Log out of student portal">↪ Log out</button>
       </span>
     </div>
   );
@@ -68,13 +68,47 @@ function PageLoading() {
   return <div className="center-note" style={{ padding: '60px 0' }}>Loading…</div>;
 }
 
+class AppErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error) {
+    console.error('Portal page error:', error);
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="container" style={{ paddingTop: 48, paddingBottom: 48 }}>
+        <div className="card" style={{ borderColor: '#e7b6b6', background: '#fff8f8' }}>
+          <span className="section-kicker">⚠️ PAGE ERROR</span>
+          <h2 style={{ marginTop: 8 }}>This page could not be displayed.</h2>
+          <p className="meta">The application caught the error instead of leaving a blank screen. Reload the page and try again.</p>
+          <details style={{ marginTop: 16 }}>
+            <summary style={{ cursor: 'pointer', fontWeight: 800 }}>Technical details</summary>
+            <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: 10 }}>{this.state.error?.stack || this.state.error?.message || String(this.state.error)}</pre>
+          </details>
+          <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+            <button className="primary" onClick={() => window.location.reload()}>Reload page</button>
+            <button className="secondary" onClick={() => window.history.back()}>Go back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+}
+
 export default function App() {
   return (
     <div className="app-shell">
       <SiteTheme />
       <StudentTopbar />
-      <Suspense fallback={<PageLoading />}>
-        <Routes>
+      <AppErrorBoundary>
+        <Suspense fallback={<PageLoading />}>
+          <Routes>
           {/* Landing / role selection */}
           <Route path="/" element={<Landing />} />
           <Route path="/rankings" element={<PublicLeaderboard />} />
@@ -114,9 +148,10 @@ export default function App() {
           <Route path="/admin/test/:testId/submissions" element={<Protected roles={['super_admin']}><GradeSubmissions /></Protected>} />
           <Route path="/admin/submission/:submissionId" element={<Protected roles={['super_admin']}><GradeOne /></Protected>} />
 
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Suspense>
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
+      </AppErrorBoundary>
     </div>
   );
 }

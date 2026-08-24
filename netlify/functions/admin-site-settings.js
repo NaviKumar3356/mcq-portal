@@ -2,8 +2,8 @@ const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
 
 const KEYS = new Set([
-  'site_logo_path','site_hero_1','site_hero_2','site_hero_3','site_school_name','site_school_place',
-  'theme_primary','theme_secondary','theme_accent'
+  'site_logo_path','site_hero_1','site_hero_2','site_hero_3','default_avatar','site_school_name','site_school_place',
+  'theme_primary','theme_secondary','theme_accent','ui_card_density','ui_corner_style'
 ]);
 
 exports.handler = async (event) => {

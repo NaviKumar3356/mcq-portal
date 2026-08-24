@@ -38,6 +38,10 @@ export default function GradeSubmissions() {
   // Optional custom reopen duration (minutes) keyed by student id. Empty
   // string / unset means "use the paper's normal duration_minutes".
   const [reopenMinutes, setReopenMinutes] = useState({});
+  const [makeUpMinutes, setMakeUpMinutes] = useState({});
+  const [makeUpReason, setMakeUpReason] = useState({});
+  const [mergeTarget, setMergeTarget] = useState({});
+  const [availableTests, setAvailableTests] = useState([]);
   const resultsRef = useRef(null);
 
   function load() {
@@ -58,10 +62,15 @@ export default function GradeSubmissions() {
         title: d.test.title,
         class: d.test.class,
         total_marks: d.test.total_marks,
+        subject: d.test.subject,
         duration_minutes: d.test.duration_minutes,
       }))
       .catch(() => {});
   }, [testId]);
+  useEffect(() => {
+    api('/admin-tests-list').then((d) => setAvailableTests((d.tests || []).filter((t) => t.id !== testId))).catch(() => {});
+  }, [testId]);
+
   useEffect(() => {
     if (!testMeta.class) return;
     api(`/students-list?class=${encodeURIComponent(testMeta.class)}`).then((d) => setRoster(d.students)).catch(() => {});
@@ -136,6 +145,33 @@ export default function GradeSubmissions() {
     }
   }
 
+  async function assignMakeUp(studentId, name) {
+    const minutes = makeUpMinutes[studentId];
+    const reason = makeUpReason[studentId] || '';
+    if (!window.confirm(`Assign the same paper as a make-up attempt to ${name}? Their current absent/not-submitted status will be cleared.`)) return;
+    try {
+      await api('/makeup-assign', {
+        method: 'POST',
+        body: { test_id: testId, student_id: studentId, minutes: minutes || undefined, reason },
+      });
+      setMakeUpMinutes((m) => ({ ...m, [studentId]: '' }));
+      setMakeUpReason((m) => ({ ...m, [studentId]: '' }));
+      load();
+    } catch (e) { setError(e.message); }
+  }
+
+  async function mergeSubmission(submissionId, studentName) {
+    const destination = mergeTarget[submissionId];
+    if (!destination) { setError(`Choose the original paper to merge ${studentName}'s attempt into.`); return; }
+    const target = availableTests.find((t) => t.id === destination);
+    if (!window.confirm(`Merge ${studentName}'s attempt into "${target?.title || 'the selected paper'}"? The system will first verify that both papers have the same questions.`)) return;
+    try {
+      await api('/submission-merge', { method: 'POST', body: { submission_id: submissionId, destination_test_id: destination } });
+      setMergeTarget((m) => ({ ...m, [submissionId]: '' }));
+      load();
+    } catch (e) { setError(e.message); }
+  }
+
   async function reopenFor(studentId, name) {
     const customMinutes = reopenMinutes[studentId];
     const usingCustom = customMinutes !== undefined && customMinutes !== '';
@@ -167,9 +203,31 @@ export default function GradeSubmissions() {
           onChange={(e) => setReopenMinutes((m) => ({ ...m, [studentId]: e.target.value.replace(/[^0-9]/g, '') }))}
           style={{ width: 64, padding: '6px 8px', fontSize: '0.78rem' }}
         />
-        <button className="secondary small" onClick={() => reopenFor(studentId, name)}>
-          🔓 Reopen
-        </button>
+        <button className="secondary small" onClick={() => reopenFor(studentId, name)}>🔓 Reopen</button>
+      </div>
+    );
+  }
+
+  function MakeUpControls({ studentId, name }) {
+    return (
+      <div className="makeup-controls" style={{ marginTop: 8 }}>
+        <div className="makeup-label">🔄 Assign make-up attempt</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <input
+            type="text" inputMode="numeric" placeholder={`${testMeta.duration_minutes || 30} min`}
+            value={makeUpMinutes[studentId] ?? ''}
+            onChange={(e) => setMakeUpMinutes((m) => ({ ...m, [studentId]: e.target.value.replace(/[^0-9]/g, '') }))}
+            style={{ width: 70, padding: '6px 8px', fontSize: '0.78rem' }}
+            title="Optional make-up duration"
+          />
+          <input
+            type="text" placeholder="Reason / note (optional)"
+            value={makeUpReason[studentId] ?? ''}
+            onChange={(e) => setMakeUpReason((m) => ({ ...m, [studentId]: e.target.value }))}
+            style={{ minWidth: 180, padding: '6px 8px', fontSize: '0.78rem' }}
+          />
+          <button className="primary small" onClick={() => assignMakeUp(studentId, name)}>Assign make-up</button>
+        </div>
       </div>
     );
   }
@@ -280,12 +338,42 @@ export default function GradeSubmissions() {
     }
   }
 
+  function MergeControls({ submissionId, studentName }) {
+    const compatibleCandidates = availableTests.filter(
+      (t) => t.class === testMeta.class && (!testMeta.subject || t.subject === testMeta.subject)
+    );
+    if (!compatibleCandidates.length) return null;
+    return (
+      <div className="merge-controls" style={{ marginTop: 8, display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <select
+          value={mergeTarget[submissionId] ?? ''}
+          onChange={(e) => setMergeTarget((m) => ({ ...m, [submissionId]: e.target.value }))}
+          aria-label={`Original test for merging ${studentName || 'student'} attempt`}
+          style={{ minWidth: 210, padding: '6px 8px', fontSize: '0.78rem' }}
+        >
+          <option value="">Merge into original test…</option>
+          {compatibleCandidates.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}{t.class ? ` — Class ${t.class}` : ''}
+            </option>
+          ))}
+        </select>
+        <button
+          className="secondary small"
+          disabled={!mergeTarget[submissionId]}
+          onClick={() => mergeSubmission(submissionId, studentName)}
+        >
+          ↔ Merge attempt
+        </button>
+      </div>
+    );
+  }
+
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-      <Link to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
       <div className="submission-page-head">
         <div>
-          <Link to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
+          <Link className="nav-action-button" to={isAdmin ? '/admin/papers' : '/teacher'}>← Back to papers</Link>
           <div className="eyebrow" style={{marginTop: 14}}>Assessment operations</div>
           <h2>Submissions{testMeta.title ? ` — ${testMeta.title}` : ''}</h2>
           <p className="meta">Track every student, grade submitted papers, and record attendance.</p>
@@ -385,14 +473,16 @@ export default function GradeSubmissions() {
                         {isAbsent ? 'Save reason' : attendanceMigrationRequired ? 'Migration required' : 'Mark absent'}
                       </button>
                       {isAbsent && <button className="ghost small" onClick={() => unmarkAbsent(s.students.id, s.students.name)}>Unmark</button>}
+                      {(isAbsent || isMissing) && <MakeUpControls studentId={s.students?.id} name={s.students?.name} />}
                       {isMissing && <ReopenControls studentId={s.students?.id} name={s.students?.name} />}
                     </div>
                   ) : (
                     <div className="grade-submission-actions">
-                      <Link to={`${isAdmin ? '/admin' : '/teacher'}/submission/${s.id}`}>
-                        <button className="secondary">{s.status === 'graded' ? `Review · ${s.total_marks_awarded ?? 0}` : 'Open grading'}</button>
+                      <Link className="secondary small nav-action-button" to={`${isAdmin ? '/admin' : '/teacher'}/submission/${s.id}`}>
+                        {s.status === 'graded' ? `Review · ${s.total_marks_awarded ?? 0}` : 'Open grading'}
                       </Link>
                       <ReopenControls studentId={s.students?.id} name={s.students?.name} />
+                      <MergeControls submissionId={s.id} studentName={s.students?.name} />
                       <button className="danger small" onClick={() => removeSubmission(s.id, s.students?.name)}>Delete</button>
                     </div>
                   )}

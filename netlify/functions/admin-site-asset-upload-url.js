@@ -1,7 +1,7 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
 
-const ALLOWED = new Set(['logo','hero_1','hero_2','hero_3']);
+const ALLOWED = new Set(['logo','hero_1','hero_2','hero_3','default_avatar']);
 const EXTENSIONS = new Set(['jpg','jpeg','png','webp','svg']);
 
 exports.handler = async (event) => {

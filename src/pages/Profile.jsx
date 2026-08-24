@@ -6,6 +6,7 @@ import {
 } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
 const TEACHER_ITEMS = [
@@ -25,19 +26,16 @@ const ADMIN_ITEMS = [
   { to: '/admin/settings', label: 'School & branding', icon: '🎨' },
 ];
 
-function initials(name) {
-  return (name || '?').trim().split(/\s+/).slice(0, 2).map((n) => n[0]?.toUpperCase() || '').join('');
-}
 
-function AvatarUpload({ photoPath, name, uploading, onFile }) {
+function AvatarUpload({ photoPath, name, uploading, onFile, useStudentDefault = false }) {
   return (
     <label className="profile-avatar-upload" title="Click to add/change photo">
       {uploading ? (
         <span className="avatar-fallback">…</span>
-      ) : photoPath ? (
-        <img src={getPhotoUrl(photoPath)} alt={name} />
+      ) : useStudentDefault ? (
+        <StudentAvatar student={{ name, photo_path: photoPath }} alt={name} />
       ) : (
-        <span className="avatar-fallback">{initials(name)}</span>
+        <img src={photoPath ? getPhotoUrl(photoPath) : '/default-student-avatar.svg'} alt={name} />
       )}
       <input
         type="file"
@@ -54,10 +52,10 @@ function AvatarUpload({ photoPath, name, uploading, onFile }) {
 // Keeping this in one place means the student / teacher / admin profile
 // cards all get the exact same polished layout instead of three
 // slightly-different hand-rolled ones.
-function ProfileHead({ photoPath, name, uploading, onFile, roleLabel, roleClass, handle }) {
+function ProfileHead({ photoPath, name, uploading, onFile, roleLabel, roleClass, handle, useStudentDefault = false }) {
   return (
     <div className="profile-card-head">
-      <AvatarUpload photoPath={photoPath} name={name} uploading={uploading} onFile={onFile} />
+      <AvatarUpload photoPath={photoPath} name={name} uploading={uploading} onFile={onFile} useStudentDefault={useStudentDefault} />
       <div className="profile-card-name">{name}</div>
       {handle && <div className="profile-card-handle">@{handle}</div>}
       {roleLabel && <span className={`profile-role-pill ${roleClass || ''}`}>{roleLabel}</span>}
@@ -99,7 +97,7 @@ function StudentProfile() {
             <h2 style={{ margin: 0 }}>My Profile</h2>
           </div>
         </div>
-        <Link to="/student/dashboard"><button className="secondary">&larr; Back to tests</button></Link>
+        <Link className="nav-action-button secondary" to="/student/dashboard">← Back to my tests</Link>
       </div>
 
       <div className="card profile-card">
@@ -109,6 +107,7 @@ function StudentProfile() {
           uploading={uploading}
           onFile={handleFile}
           roleLabel={`Roll ${auth?.roll_number} · Class ${auth?.class}`}
+          useStudentDefault
         />
         {error && <div className="error-box">{error}</div>}
         <div className="assigned-box" style={{ textAlign: 'center' }}>
@@ -192,22 +191,25 @@ function TeacherProfile() {
           />
 
           <form onSubmit={saveProfile}>
-            <label>Full name</label>
-            <input value={name} onChange={(e) => setName(e.target.value)} required />
-
-            <label style={{ marginTop: 20 }}>Change password (optional)</label>
+            <label htmlFor="teacher-full-name">Full name</label>
+            <div className="profile-input-wrap">
+              <span className="profile-input-icon">✦</span>
+              <input id="teacher-full-name" type="text" value={name} onChange={(e) => setName(e.target.value)} required autoComplete="name" />
+            </div>
+            <label className="profile-password-heading">Change password (optional)</label>
             <input
+              className="profile-form-input"
               type="password"
               placeholder="Current password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
             <input
+              className="profile-form-input"
               type="password"
               placeholder="New password (leave blank to keep current)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              style={{ marginTop: 8 }}
             />
 
             {success && <p style={{ color: 'var(--accent-dark)', fontWeight: 600, marginTop: 10 }}>{success}</p>}

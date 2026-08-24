@@ -160,7 +160,26 @@ export default function StudentResult() {
     }
   }
 
-  if (error) return <div className="container"><div className="error-box">{error}</div></div>;
+  if (error) {
+    return (
+      <div className="container student-result-page">
+        <div className="result-page-navigation">
+          <Link className="nav-action-button secondary" to="/student/dashboard">← Back to my tests</Link>
+        </div>
+        <section className="result-empty-state card">
+          <div className="result-empty-icon">📋</div>
+          <div className="eyebrow">ASSESSMENT REVIEW</div>
+          <h1>No attempt found</h1>
+          <p className="meta">This test has no submitted attempt for your account, so there is no result or paper review to display.</p>
+          <div className="result-empty-actions">
+            <Link className="nav-action-button primary" to="/student/dashboard">📚 Back to my tests</Link>
+            <Link className="nav-action-button secondary" to="/student/leaderboard">🏆 View my ranking</Link>
+          </div>
+          {error !== 'No submitted attempt found for this test' && <div className="error-box">{error}</div>}
+        </section>
+      </div>
+    );
+  }
   if (!result) return <div className="container center-note">Loading result…</div>;
 
   const pct = result.total_marks ? Math.round((result.total_marks_awarded / result.total_marks) * 1000) / 10 : null;
@@ -170,7 +189,7 @@ export default function StudentResult() {
 
   return (
     <div className="container student-result-page">
-      <Link className="result-back-link" to="/student/dashboard">&larr; Back to tests</Link>
+      <Link className="nav-action-button result-back-link" to="/student/dashboard">← Back to my tests</Link>
 
       <div ref={cardRef}>
         <section className="result-hero-card">
@@ -298,7 +317,7 @@ export default function StudentResult() {
         <button className="secondary small" onClick={downloadPDF} disabled={!!exporting}>{exporting === 'pdf' ? 'Preparing…' : '📄 PDF report card'}</button>
       </div>
 
-      <Link to="/student/leaderboard"><button className="secondary">🏆 See the class leaderboard</button></Link>
+      <Link className="nav-action-button" to="/student/leaderboard">🏆 See the class leaderboard</Link>
     </div>
   );
 }

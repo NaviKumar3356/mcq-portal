@@ -2,22 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME, SCHOOL_PLACE } from '../lib/constants.js';
-import { api, getPhotoUrl } from '../lib/api.js';
+import { api } from '../lib/api.js';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 
 const HERO_RANK_LIMIT = 10;
 
-function initials(name) {
-  return (name || '?').trim().split(/\s+/).slice(0, 2).map((n) => n[0]?.toUpperCase() || '').join('');
+function StudentAvatarCard({ student, large = false }) {
+  return (
+    <StudentAvatar
+      student={student}
+      className={large ? 'rank-avatar large' : 'rank-avatar'}
+      alt={student?.name || 'Student'}
+    />
+  );
 }
-
-function StudentAvatar({ student, large = false }) {
-  const [broken, setBroken] = useState(false);
-  if (student?.photo_path && !broken) {
-    return <img className={large ? 'rank-avatar large' : 'rank-avatar'} src={getPhotoUrl(student.photo_path)} alt="Student" onError={() => setBroken(true)} />;
-  }
-  return <div className={`rank-avatar-fallback ${large ? 'large' : ''}`}>{initials(student?.name)}</div>;
-}
-
 function RankingSlider() {
   const [students, setStudents] = useState(null);
   const [active, setActive] = useState(0);
@@ -98,7 +96,7 @@ function RankingSlider() {
                 aria-label={`View rank ${student.rank}, ${student.name}`}
               >
                 <div className="hero-rank-badge">#{student.rank}</div>
-                <StudentAvatar student={student} large={offset === 0} />
+                <StudentAvatar student={student} className="rank-avatar" large={offset === 0} />
                 {student.rank <= 3 && <div className="hero-rank-medal">{student.rank === 1 ? '🥇' : student.rank === 2 ? '🥈' : '🥉'}</div>}
                 <strong>{student.name}</strong>
                 <span>Class {student.class || '—'}</span>

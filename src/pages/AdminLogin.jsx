@@ -56,7 +56,7 @@ export default function AdminLogin() {
           This is a private administration URL. Do not share it publicly.
         </p>
         <p style={{ marginTop: 8, fontSize: '0.8rem', textAlign: 'center' }}>
-          <Link to="/">&larr; Back to home</Link>
+          <Link className="nav-action-button" to="/">← Back to home</Link>
         </p>
       </form>
     </div>

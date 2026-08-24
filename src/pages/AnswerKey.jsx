@@ -57,7 +57,7 @@ export default function AnswerKey() {
 
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-      <Link to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
+      <Link className="nav-action-button" to={isAdmin ? '/admin/papers' : '/teacher'}>← Back to papers</Link>
       <h2>Answer key {test && <span className="meta">— {test.title}</span>}</h2>
       {error && <div className="error-box">{error}</div>}
       {!test && !error && <p className="center-note">Loading…</p>}

@@ -53,7 +53,7 @@ export default function TeacherLogin() {
         </div>
 
         <p style={{ marginTop: 18, fontSize: '0.8rem', color: 'var(--muted)', textAlign: 'center' }}>
-          <Link to="/">&larr; Back to role selection</Link>
+          <Link className="nav-action-button" to="/">← Back to home</Link>
         </p>
       </form>
     </div>

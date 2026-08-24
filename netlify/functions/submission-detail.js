@@ -18,15 +18,24 @@ exports.handler = async (event) => {
       .from('submissions')
       .select(
         'id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, proctor_log, ' +
-        'students(name, roll_number, class), test_id, tests(class, subject)'
+        'students(name, roll_number, class), test_id, attempt_type, make_up_of_test_id, merged_from_test_id'
       )
       .eq('id', submissionId)
       .single();
     if (sErr) throw sErr;
 
-    if (!teacherCanAccessTest(auth, submission.tests)) {
+    const { data: test, error: testErr } = await supabase
+      .from('tests')
+      .select('id, class, subject, title')
+      .eq('id', submission.test_id)
+      .maybeSingle();
+    if (testErr) throw testErr;
+    if (!test) return json(404, { error: 'Test not found' });
+
+    if (!teacherCanAccessTest(auth, test)) {
       return json(403, { error: 'You are not assigned to this class/subject' });
     }
+    submission.tests = { class: test.class, subject: test.subject, title: test.title };
 
     const { data: answers, error: aErr } = await supabase
       .from('answers')

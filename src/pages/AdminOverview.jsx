@@ -32,22 +32,22 @@ export default function AdminOverview() {
         <div className="card stat-card">
           <div className="stat-num">{stats?.teachers ?? '—'}</div>
           <div className="stat-label">Teacher accounts</div>
-          <Link to="/admin/teachers"><button className="secondary">Manage</button></Link>
+          <Link className="nav-action-button" to="/admin/teachers">Manage</Link>
         </div>
         <div className="card stat-card">
           <div className="stat-num">{stats?.students ?? '—'}</div>
           <div className="stat-label">Students</div>
-          <Link to="/admin/students"><button className="secondary">Manage</button></Link>
+          <Link className="nav-action-button" to="/admin/students">Manage</Link>
         </div>
         <div className="card stat-card">
           <div className="stat-num">{stats?.activeTeachers ?? '—'}</div>
           <div className="stat-label">Active teachers</div>
-          <Link to="/admin/teachers"><button className="secondary">Review</button></Link>
+          <Link className="nav-action-button" to="/admin/teachers">Review</Link>
         </div>
         <div className="card stat-card">
           <div className="stat-num">{stats?.papers ?? '—'}</div>
           <div className="stat-label">Papers set</div>
-          <Link to="/admin/papers"><button className="secondary">View</button></Link>
+          <Link className="nav-action-button" to="/admin/papers">View</Link>
         </div>
       </div>
 
@@ -55,17 +55,17 @@ export default function AdminOverview() {
         <div className="card-section-title">🎛️ Administration control centre</div>
         <p className="meta">Manage the school identity, public branding, logo, landing media and theme without editing the source code.</p>
         <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:10}}>
-          <Link to="/admin/settings"><button className="primary">Open school settings</button></Link>
-          <Link to="/admin/teachers"><button className="secondary">Manage teachers</button></Link>
-          <Link to="/admin/students"><button className="secondary">Manage students</button></Link>
-          <Link to="/admin/papers"><button className="secondary">Manage papers</button></Link>
+          <Link className="nav-action-button nav-action-primary" to="/admin/settings">Open school settings</Link>
+          <Link className="nav-action-button" to="/admin/teachers">Manage teachers</Link>
+          <Link className="nav-action-button" to="/admin/students">Manage students</Link>
+          <Link className="nav-action-button" to="/admin/papers">Manage papers</Link>
         </div>
       </div>
 
       <div className="card">
         <div className="card-section-title">🏆 Class leaderboards</div>
         <p className="meta">See how students in any class are ranking once results are published.</p>
-        <Link to="/admin/leaderboard"><button className="secondary">Open leaderboard</button></Link>
+        <Link className="nav-action-button" to="/admin/leaderboard">Open leaderboard</Link>
       </div>
     </PanelLayout>
   );

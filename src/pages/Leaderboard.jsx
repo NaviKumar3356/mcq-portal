@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getAuthInfo, getPhotoUrl } from '../lib/api.js';
+import { api, getAuthInfo } from '../lib/api.js';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { CLASSES, SCHOOL_NAME } from '../lib/constants.js';
@@ -53,11 +54,7 @@ function Podium({ rows, highlightId }) {
           >
             <div className="lb-podium-medal">{MEDAL[r.rank]}</div>
             <div className="lb-podium-photo">
-              {r.photo_path ? (
-                <img src={getPhotoUrl(r.photo_path)} alt={r.name} />
-              ) : (
-                <span style={{ fontWeight: 800, fontFamily: 'Source Serif 4, serif' }}>{initials(r.name)}</span>
-              )}
+              <StudentAvatar student={r} className="lb-podium-student-avatar" alt={r.name} />
             </div>
             <div className="lb-podium-name">{r.name}{r.student_id === highlightId ? ' (you)' : ''}</div>
             <div className="lb-podium-score">{r.average_percent}%</div>
@@ -237,7 +234,7 @@ export default function Leaderboard() {
               <h2 style={{ margin: 0 }}>🏆 Class Leaderboard</h2>
             </div>
           </div>
-          <Link to="/student/dashboard"><button className="secondary">&larr; Back to tests</button></Link>
+          <Link className="nav-action-button" to="/student/dashboard">← Back to tests</Link>
         </div>
 
         {description}

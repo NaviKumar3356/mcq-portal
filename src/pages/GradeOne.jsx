@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -98,7 +99,7 @@ export default function GradeOne() {
 
   return (
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
-      <Link to="#" onClick={(e) => { e.preventDefault(); nav(-1); }}>&larr; Back to submissions</Link>
+      <Link className="nav-action-button" to="#" onClick={(e) => { e.preventDefault(); nav(-1); }}>← Back to submissions</Link>
 
       {data.submission.flagged_reason && (
         <div className="notice-strip notice-danger" style={{ display: 'block', margin: '14px 0' }}>
@@ -108,7 +109,7 @@ export default function GradeOne() {
 
       <section className="grade-review-hero">
         <div className="grade-review-student">
-          <div className="grade-review-avatar">{initials(data.submission.students?.name)}</div>
+          <StudentAvatar student={data.submission.students} className="grade-review-avatar grade-review-avatar-image" alt={data.submission.students?.name || 'Student'} />
           <div>
             <div className="eyebrow">TEACHER REVIEW · {data.submission.status || 'SUBMISSION'}</div>
             <h1>{data.submission.students?.name || 'Student submission'}</h1>

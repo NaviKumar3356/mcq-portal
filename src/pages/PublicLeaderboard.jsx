@@ -2,23 +2,21 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME, SCHOOL_PLACE, CLASSES } from '../lib/constants.js';
-import { api, getPhotoUrl } from '../lib/api.js';
+import { api } from '../lib/api.js';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 
 const LIMIT = 10;
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
-function initials(name) {
-  return (name || '?').trim().split(/\s+/).slice(0, 2).map((n) => n[0]?.toUpperCase() || '').join('');
-}
-
 function Avatar({ student, large = false }) {
-  const [broken, setBroken] = useState(false);
-  if (student?.photo_path && !broken) {
-    return <img className={`public-rank-avatar ${large ? 'large' : ''}`} src={getPhotoUrl(student.photo_path)} alt="Student" onError={() => setBroken(true)} />;
-  }
-  return <div className={`public-rank-avatar-fallback ${large ? 'large' : ''}`}>{initials(student?.name)}</div>;
+  return (
+    <StudentAvatar
+      student={student}
+      className={`public-rank-avatar ${large ? 'large' : ''}`}
+      alt={student?.name || 'Student'}
+    />
+  );
 }
-
 function RankingCard({ student, featured = false }) {
   return (
     <article className={`public-rank-card ${featured ? 'featured' : ''}`}>
@@ -117,7 +115,7 @@ export default function PublicLeaderboard() {
 
       <footer className="landing-footer public-ranking-footer">
         <div className="footer-school"><SchoolLogo size={52} /><div><strong>{SCHOOL_NAME}</strong><span>{SCHOOL_PLACE}</span><small>Online Test Portal</small></div></div>
-        <Link to="/" className="public-back-home">← Back to home</Link>
+        <Link to="/" className="nav-action-button public-back-home">← Back to home</Link>
       </footer>
     </div>
   );

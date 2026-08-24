@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getAuthInfo, getPhotoUrl } from '../lib/api.js';
-import SchoolLogo from '../components/SchoolLogo.jsx';
+import { api, getAuthInfo } from '../lib/api.js';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
 export default function StudentDashboard() {
@@ -19,22 +19,31 @@ export default function StudentDashboard() {
 
   return (
     <div className="container">
-      <div className="card test-header-card">
+      <div className="card test-header-card student-dashboard-header">
         <div className="test-header-brand">
-          {photoPath ? (
-            <img src={getPhotoUrl(photoPath)} alt={auth?.name} style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent)' }} />
-          ) : (
-            <SchoolLogo size={40} />
-          )}
+          <StudentAvatar student={{ name: auth?.name, photo_path: photoPath }} className="student-dashboard-avatar" alt={auth?.name || 'Student'} />
           <div>
             <div className="test-header-school">{SCHOOL_NAME}</div>
             <h2 style={{ margin: 0 }}>Hi, {auth?.name || 'there'}</h2>
             <div className="meta">Roll {auth?.roll_number} · Class {auth?.class}</div>
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <Link to="/student/profile"><button className="secondary">👤 My profile</button></Link>
-          <Link to="/student/leaderboard"><button className="secondary">🏆 Leaderboard</button></Link>
+        <div className="student-quick-actions" aria-label="Student self-service">
+          <Link className="nav-action-button secondary" to="/student/profile">👤 My profile</Link>
+          <Link className="nav-action-button secondary" to="/student/leaderboard">🏆 My ranking</Link>
+        </div>
+      </div>
+
+      <div className="student-self-service card">
+        <div>
+          <div className="eyebrow">STUDENT SELF-SERVICE</div>
+          <h3>Manage your own learning record</h3>
+          <p className="meta">Safely update your profile photo, review published results, download report cards and view your class ranking. Personal marks, class, roll number and tests remain protected from student editing.</p>
+        </div>
+        <div className="student-service-grid">
+          <Link to="/student/profile" className="student-service-card"><span>📸</span><strong>Profile & photo</strong><small>Update your own photo</small></Link>
+          <Link to="/student/leaderboard" className="student-service-card"><span>🏆</span><strong>My ranking</strong><small>See class leaderboard</small></Link>
+          <a href="#my-tests" className="student-service-card"><span>📚</span><strong>My tests</strong><small>Open active assessments</small></a>
         </div>
       </div>
 
@@ -46,7 +55,7 @@ export default function StudentDashboard() {
       )}
 
       {tests && tests.length > 0 && (
-        <div className="card">
+        <div id="my-tests" className="card">
           {tests.map((t) => (
             <div className="test-row" key={t.id}>
               <div>

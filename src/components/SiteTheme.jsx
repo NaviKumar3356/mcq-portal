@@ -13,6 +13,8 @@ export default function SiteTheme() {
           document.documentElement.style.setProperty('--accent-dark', s.theme_secondary);
         }
         if (s.theme_accent) document.documentElement.style.setProperty('--accent-2', s.theme_accent);
+        if (s.card_density) document.documentElement.dataset.cardDensity = s.card_density;
+        if (s.corner_style) document.documentElement.dataset.cornerStyle = s.corner_style;
       })
       .catch(() => {});
     return () => { active = false; };

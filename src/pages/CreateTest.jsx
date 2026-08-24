@@ -117,6 +117,7 @@ export default function CreateTest() {
     setError('');
     if (questions.length === 0) return setError('Add at least one question.');
     if (!klass || !subject) return setError('Choose a class and subject.');
+    if (startAt && endAt && new Date(endAt) <= new Date(startAt)) return setError('The closing time must be later than the opening time.');
     for (const q of questions) {
       if (q.type === 'practical' && (!q.variants || q.variants.length === 0 || !q.variants[0].question_text)) {
         return setError('Every practical question needs at least one variant with a problem statement.');
@@ -162,7 +163,7 @@ export default function CreateTest() {
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
       <div className="create-page-head">
         <div>
-          <Link className="create-back-link" to={isAdmin ? '/admin/papers' : '/teacher'}>&larr; Back to papers</Link>
+          <Link className="nav-action-button create-back-link" to={isAdmin ? '/admin/papers' : '/teacher'}>← Back to papers</Link>
           <div className="eyebrow">Assessment builder</div>
           <h2>Create a new paper</h2>
           <p className="meta">Set the schedule, security rules and questions in one guided workspace.</p>
@@ -183,8 +184,22 @@ export default function CreateTest() {
             <div className="create-section-icon">📝</div>
             <div><div className="card-section-title">Paper details</div><p className="meta">Give the assessment a clear identity and schedule.</p></div>
           </div>
-          <label>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g. Periodic Test 1" />
+          <div className="create-title-field">
+            <label htmlFor="paper-title">Paper name</label>
+            <div className="create-title-input-wrap">
+              <span className="create-input-icon">📝</span>
+              <input
+                id="paper-title"
+                className="create-title-input"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                placeholder="e.g. Periodic Test 1"
+                autoComplete="off"
+              />
+            </div>
+            <span className="create-field-hint">Use a clear name students and teachers will recognise in results and reports.</span>
+          </div>
 
           <div className="create-field-grid">
             <div style={{ flex: 1 }}>
@@ -205,14 +220,28 @@ export default function CreateTest() {
             </div>
           </div>
 
-          <div className="create-field-grid">
-            <div style={{ flex: 1 }}>
-              <label>🕐 Opens at (optional)</label>
-              <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+          <div className="create-schedule-grid">
+            <div className="create-schedule-field open">
+              <div className="create-schedule-label-row">
+                <label htmlFor="paper-opens">Opens at <span>(optional)</span></label>
+                <span className="create-schedule-chip">🟢 Start</span>
+              </div>
+              <div className="create-datetime-wrap">
+                <span className="create-input-icon">🕐</span>
+                <input id="paper-opens" className="create-datetime-input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
+              </div>
+              <span className="create-field-hint">Students can start from this time. Leave blank to allow immediate access.</span>
             </div>
-            <div style={{ flex: 1 }}>
-              <label>🔒 Closes at (optional)</label>
-              <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+            <div className="create-schedule-field close">
+              <div className="create-schedule-label-row">
+                <label htmlFor="paper-closes">Closes at <span>(optional)</span></label>
+                <span className="create-schedule-chip">🔒 End</span>
+              </div>
+              <div className="create-datetime-wrap">
+                <span className="create-input-icon">📅</span>
+                <input id="paper-closes" className="create-datetime-input" type="datetime-local" min={startAt || undefined} value={endAt} onChange={(e) => setEndAt(e.target.value)} />
+              </div>
+              <span className="create-field-hint">Students cannot start a new attempt after this time. Server time controls enforcement.</span>
             </div>
           </div>
 
@@ -227,7 +256,7 @@ export default function CreateTest() {
               Shuffle each MCQ's option order per student
             </label>
             {(shuffleQuestions || shuffleOptions) && (
-              <div style={{ marginTop: 8, maxWidth: 260 }}>
+              <div className="shuffle-group-settings">
                 <label>Same order for every… students (in a row, by roll no.)</label>
                 <input
                   type="text"

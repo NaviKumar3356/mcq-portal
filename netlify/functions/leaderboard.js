@@ -34,25 +34,37 @@ exports.handler = async (event) => {
     const testIds = tests.map((t) => t.id);
     const totalMarksByTest = Object.fromEntries(tests.map((t) => [t.id, Number(t.total_marks) || 0]));
 
+    // Do not embed students here. Older Supabase schemas can contain more
+    // than one relationship between submissions and students, which makes
+    // PostgREST fail with an ambiguous-relationship error. Fetch the
+    // submission facts first, then resolve the student records explicitly.
     const { data: submissions, error: sErr } = await supabase
       .from('submissions')
-      .select('student_id, test_id, total_marks_awarded, students(name, roll_number, photo_path)')
+      .select('student_id, test_id, total_marks_awarded')
       .in('test_id', testIds)
       .not('total_marks_awarded', 'is', null);
     if (sErr) throw sErr;
 
+    const studentIds = [...new Set((submissions || []).map((s) => s.student_id).filter(Boolean))];
+    const { data: students, error: stErr } = studentIds.length
+      ? await supabase.from('students').select('id, name, roll_number, photo_path').in('id', studentIds)
+      : { data: [], error: null };
+    if (stErr) throw stErr;
+    const studentById = Object.fromEntries((students || []).map((s) => [s.id, s]));
+
     const byStudent = {};
     for (const s of submissions || []) {
-      if (!s.students) continue;
+      const student = studentById[s.student_id];
+      if (!student) continue;
       const max = totalMarksByTest[s.test_id];
       if (!max) continue;
       const pct = (Number(s.total_marks_awarded) / max) * 100;
       if (!byStudent[s.student_id]) {
         byStudent[s.student_id] = {
           student_id: s.student_id,
-          name: s.students.name,
-          roll_number: s.students.roll_number,
-          photo_path: s.students.photo_path || null,
+          name: student.name,
+          roll_number: student.roll_number,
+          photo_path: student.photo_path || null,
           totalPct: 0,
           count: 0,
         };

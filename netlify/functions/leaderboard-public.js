@@ -30,26 +30,37 @@ exports.handler = async (event) => {
     const testIds = tests.map((t) => t.id);
     const totalMarksByTest = Object.fromEntries(tests.map((t) => [t.id, Number(t.total_marks) || 0]));
 
+    // Resolve students in a second query rather than embedding them. This
+    // keeps the public ranking endpoint stable even if the database has
+    // multiple foreign-key relationships involving submissions/students.
     const { data: submissions, error: sErr } = await supabase
       .from('submissions')
-      .select('student_id, test_id, total_marks_awarded, students(name, class, photo_path)')
+      .select('student_id, test_id, total_marks_awarded')
       .in('test_id', testIds)
       .not('total_marks_awarded', 'is', null);
     if (sErr) throw sErr;
 
+    const studentIds = [...new Set((submissions || []).map((s) => s.student_id).filter(Boolean))];
+    const { data: students, error: stErr } = studentIds.length
+      ? await supabase.from('students').select('id, name, class, photo_path').in('id', studentIds)
+      : { data: [], error: null };
+    if (stErr) throw stErr;
+    const studentById = Object.fromEntries((students || []).map((s) => [s.id, s]));
+
     const byStudent = {};
     for (const s of submissions || []) {
-      if (!s.students) continue;
-      if (requestedClass && String(s.students.class || '') !== requestedClass) continue;
+      const student = studentById[s.student_id];
+      if (!student) continue;
+      if (requestedClass && String(student.class || '') !== requestedClass) continue;
       const max = totalMarksByTest[s.test_id];
       if (!max) continue;
       const pct = (Number(s.total_marks_awarded) / max) * 100;
       if (!byStudent[s.student_id]) {
         byStudent[s.student_id] = {
           student_id: s.student_id,
-          name: s.students.name,
-          class: s.students.class,
-          photo_path: s.students.photo_path || null,
+          name: student.name,
+          class: student.class,
+          photo_path: student.photo_path || null,
           totalPct: 0,
           count: 0,
         };

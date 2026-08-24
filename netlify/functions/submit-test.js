@@ -47,12 +47,21 @@ exports.handler = async (event) => {
     // switch limit and this submission was auto-submitted — it still
     // gets graded normally, but the teacher sees a warning before
     // publishing results.
+    const { data: reopen } = await supabase
+      .from('test_reopens')
+      .select('attempt_type, absence_reason_snapshot')
+      .eq('test_id', test_id)
+      .eq('student_id', auth.student_id)
+      .maybeSingle();
+
     const { data: submission, error: sErr } = await supabase
       .from('submissions')
       .insert({
         test_id,
         student_id: auth.student_id,
         status: 'submitted',
+        attempt_type: reopen?.attempt_type === 'make_up' ? 'make_up' : 'original',
+        make_up_of_test_id: reopen?.attempt_type === 'make_up' ? test_id : null,
         tab_switch_count: Number(tab_switch_count) || 0,
         flagged_reason: flagged_reason || null,
         proctor_log: Array.isArray(proctor_log) ? proctor_log : [],

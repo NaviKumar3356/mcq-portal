@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { api, getAuthInfo, uploadStudentPhoto, getPhotoUrl } from '../lib/api.js';
+import { api, getAuthInfo, uploadStudentPhoto } from '../lib/api.js';
+import StudentAvatar from '../components/StudentAvatar.jsx';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES } from '../lib/constants.js';
 
@@ -160,10 +161,8 @@ export default function ManageStudents() {
       <label className="avatar-upload" title="Click to add/change photo">
         {photoUploadingId === s.id ? (
           <span className="avatar-fallback">…</span>
-        ) : s.photo_path ? (
-          <img src={getPhotoUrl(s.photo_path)} alt={s.name} className="avatar-img" />
         ) : (
-          <span className="avatar-fallback">{initials(s.name)}</span>
+          <StudentAvatar student={s} className="avatar-img" alt={s.name} />
         )}
         <span className="avatar-upload-caption">{s.photo_path ? 'Change photo' : 'Upload photo'}</span>
         <input

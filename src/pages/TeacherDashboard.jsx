@@ -67,7 +67,7 @@ export default function TeacherDashboard() {
     <PanelLayout items={isAdmin ? ADMIN_ITEMS : TEACHER_ITEMS}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Papers</h2>
-        <Link to={isAdmin ? '/admin/papers/create' : '/teacher/create'}><button className="primary">+ New paper</button></Link>
+        <Link className="nav-action-button nav-action-primary" to={isAdmin ? '/admin/papers/create' : '/teacher/create'}>+ New paper</Link>
       </div>
 
       <div className="card filter-bar">
@@ -108,9 +108,9 @@ export default function TeacherDashboard() {
             {t.status === 'published' && (
               <button className="secondary" onClick={() => updateTest(t.id, { status: 'closed' })}>Close now</button>
             )}
-            <Link to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/edit`}><button className="secondary">Edit</button></Link>
-            <Link to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/answer-key`}><button className="secondary">Answer key</button></Link>
-            <Link to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/submissions`}><button className="secondary">Submissions</button></Link>
+            <Link className="nav-action-button" to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/edit`}>Edit</Link>
+            <Link className="nav-action-button" to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/answer-key`}>Answer key</Link>
+            <Link className="nav-action-button" to={`${isAdmin ? '/admin' : '/teacher'}/test/${t.id}/submissions`}>Submissions</Link>
             {!t.results_published ? (
               <button className="primary" onClick={() => updateTest(t.id, { results_published: true })}>Publish result</button>
             ) : (

@@ -22,7 +22,7 @@ exports.handler = async (event) => {
 
     const { data: submissions, error } = await supabase
       .from('submissions')
-      .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, absence_reason, marked_absent_at, students(id, name, roll_number, class)')
+      .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, absence_reason, marked_absent_at, attempt_type, make_up_of_test_id, merged_from_test_id, students(id, name, roll_number, class)')
       .eq('test_id', testId)
       .order('submitted_at', { ascending: true });
     if (error) {
@@ -30,7 +30,7 @@ exports.handler = async (event) => {
       // Keep submitted/graded attempts visible even if the attendance migration
       // has not yet been applied. This prevents a database schema issue from
       // making every roster student appear as "Not submitted".
-      if (/absence_reason|marked_absent_at|column .* does not exist/i.test(msg)) {
+      if (/absence_reason|marked_absent_at|attempt_type|make_up_of_test_id|merged_from_test_id|column .* does not exist/i.test(msg)) {
         const fallback = await supabase
           .from('submissions')
           .select('id, status, total_marks_awarded, submitted_at, tab_switch_count, flagged_reason, students(id, name, roll_number, class)')
