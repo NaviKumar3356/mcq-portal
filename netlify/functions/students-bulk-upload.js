@@ -1,6 +1,6 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
-const { CLASSES } = require('./utils/constants');
+const { getCatalog } = require('./utils/catalog');
 
 // Body: { rows: [{ srno, roll_number, name, class, dob }, ...] }
 // srno is optional (your own record/attendance-sheet numbering — not used
@@ -23,7 +23,8 @@ exports.handler = async (event) => {
       return json(400, { error: 'Please upload 2000 rows or fewer at a time' });
     }
 
-    const allowedClasses = auth.role === 'super_admin' ? CLASSES : (auth.classes || []);
+    const catalog = await getCatalog();
+    const allowedClasses = auth.role === 'super_admin' ? catalog.classes : (auth.classes || []);
 
     const results = [];
     for (const [i, raw] of rows.entries()) {
@@ -31,6 +32,7 @@ exports.handler = async (event) => {
       const name = String(raw.name || '').trim();
       const klass = String(raw.class || '').trim();
       const dob = String(raw.dob || '').trim();
+      const section = String(raw.section || '').trim();
       const srnoRaw = String(raw.srno ?? '').trim();
       const rowNum = i + 1;
 
@@ -38,7 +40,7 @@ exports.handler = async (event) => {
         results.push({ row: rowNum, ok: false, error: 'Missing roll_number, name, class or dob' });
         continue;
       }
-      if (!CLASSES.includes(klass)) {
+      if (!catalog.classes.includes(klass)) {
         results.push({ row: rowNum, ok: false, error: `Unknown class "${klass}"` });
         continue;
       }
@@ -46,6 +48,7 @@ exports.handler = async (event) => {
         results.push({ row: rowNum, ok: false, error: `You are not assigned to class ${klass}` });
         continue;
       }
+      if (section && !catalog.sections.includes(section)) { results.push({ row: rowNum, ok: false, error: `Unknown section "${section}"` }); continue; }
       if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
         results.push({ row: rowNum, ok: false, error: 'dob must be YYYY-MM-DD' });
         continue;
@@ -63,6 +66,7 @@ exports.handler = async (event) => {
             roll_number,
             name,
             class: klass,
+            section: section || null,
             dob,
             added_by: auth.role === 'teacher' ? auth.teacher_id : null,
           },

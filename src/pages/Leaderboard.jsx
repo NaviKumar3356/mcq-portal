@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { api, getAuthInfo } from '../lib/api.js';
-import StudentAvatar from '../components/StudentAvatar.jsx';
+import { api, getAuthInfo, getPhotoUrl } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { CLASSES, SCHOOL_NAME } from '../lib/constants.js';
@@ -54,7 +53,11 @@ function Podium({ rows, highlightId }) {
           >
             <div className="lb-podium-medal">{MEDAL[r.rank]}</div>
             <div className="lb-podium-photo">
-              <StudentAvatar student={r} className="lb-podium-student-avatar" alt={r.name} />
+              {r.photo_path ? (
+                <img src={getPhotoUrl(r.photo_path)} alt={r.name} />
+              ) : (
+                <span style={{ fontWeight: 800, fontFamily: 'Source Serif 4, serif' }}>{initials(r.name)}</span>
+              )}
             </div>
             <div className="lb-podium-name">{r.name}{r.student_id === highlightId ? ' (you)' : ''}</div>
             <div className="lb-podium-score">{r.average_percent}%</div>

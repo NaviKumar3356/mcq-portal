@@ -6,7 +6,6 @@ import {
 } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import SchoolLogo from '../components/SchoolLogo.jsx';
-import StudentAvatar from '../components/StudentAvatar.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
 
 const TEACHER_ITEMS = [
@@ -27,15 +26,15 @@ const ADMIN_ITEMS = [
 ];
 
 
-function AvatarUpload({ photoPath, name, uploading, onFile, useStudentDefault = false }) {
+function AvatarUpload({ photoPath, name, uploading, onFile }) {
+  const [broken, setBroken] = useState(false);
+  const src = photoPath && !broken ? getPhotoUrl(photoPath) : '/default-student-avatar.svg';
   return (
     <label className="profile-avatar-upload" title="Click to add/change photo">
       {uploading ? (
         <span className="avatar-fallback">…</span>
-      ) : useStudentDefault ? (
-        <StudentAvatar student={{ name, photo_path: photoPath }} alt={name} />
       ) : (
-        <img src={photoPath ? getPhotoUrl(photoPath) : '/default-student-avatar.svg'} alt={name} />
+        <img src={src} alt={name} onError={() => setBroken(true)} />
       )}
       <input
         type="file"
@@ -52,10 +51,10 @@ function AvatarUpload({ photoPath, name, uploading, onFile, useStudentDefault = 
 // Keeping this in one place means the student / teacher / admin profile
 // cards all get the exact same polished layout instead of three
 // slightly-different hand-rolled ones.
-function ProfileHead({ photoPath, name, uploading, onFile, roleLabel, roleClass, handle, useStudentDefault = false }) {
+function ProfileHead({ photoPath, name, uploading, onFile, roleLabel, roleClass, handle }) {
   return (
     <div className="profile-card-head">
-      <AvatarUpload photoPath={photoPath} name={name} uploading={uploading} onFile={onFile} useStudentDefault={useStudentDefault} />
+      <AvatarUpload photoPath={photoPath} name={name} uploading={uploading} onFile={onFile} />
       <div className="profile-card-name">{name}</div>
       {handle && <div className="profile-card-handle">@{handle}</div>}
       {roleLabel && <span className={`profile-role-pill ${roleClass || ''}`}>{roleLabel}</span>}
@@ -107,7 +106,6 @@ function StudentProfile() {
           uploading={uploading}
           onFile={handleFile}
           roleLabel={`Roll ${auth?.roll_number} · Class ${auth?.class}`}
-          useStudentDefault
         />
         {error && <div className="error-box">{error}</div>}
         <div className="assigned-box" style={{ textAlign: 'center' }}>

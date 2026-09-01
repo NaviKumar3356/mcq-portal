@@ -89,7 +89,7 @@ class AppErrorBoundary extends React.Component {
           <p className="meta">The application caught the error instead of leaving a blank screen. Reload the page and try again.</p>
           <details style={{ marginTop: 16 }}>
             <summary style={{ cursor: 'pointer', fontWeight: 800 }}>Technical details</summary>
-            <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: 10 }}>{this.state.error?.stack || this.state.error?.message || String(this.state.error)}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', marginTop: 10 }}>An unexpected application error occurred. Please reload the page. If the problem continues, contact the administrator.</pre>
           </details>
           <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
             <button className="primary" onClick={() => window.location.reload()}>Reload page</button>

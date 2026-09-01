@@ -3936,81 +3936,34 @@ html[data-corner-style="classic"] .card, html[data-corner-style="classic"] .admi
 }
 .grade-review-avatar-image { display: block; object-fit: cover; }
 
-
-/* V18.3.2 — unified avatar rendering + admin settings polish */
-.hero-ranking-card .rank-avatar,
-.hero-ranking-card .rank-avatar-fallback,
-.public-rank-card .public-rank-avatar,
-.lb-podium-student-avatar,
-.avatar-upload .avatar-img,
-.profile-avatar-upload img {
-  display: block;
-  flex: 0 0 auto;
-  max-width: 100%;
-  object-fit: cover;
-}
-.hero-ranking-card .rank-avatar { width: 86px; height: 86px; }
-.hero-ranking-card .rank-avatar.large { width: 112px; height: 112px; }
-.hero-ranking-card > strong, .hero-ranking-card > span, .hero-ranking-card > b { flex: 0 0 auto; }
-.lb-podium-photo { overflow: hidden; display: grid; place-items: center; border-radius: 50%; }
-.lb-podium-student-avatar { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
-.avatar-upload .avatar-img { width: 58px; height: 58px; border-radius: 50%; object-fit: cover; }
-.profile-avatar-upload img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
-
-/* The landing page must never create horizontal viewport overflow. */
-.landing-page { overflow-x: hidden; width: 100%; }
-.landing-hero-combined, .hero-right-column, .hero-ranking-panel { min-width: 0; }
-.hero-ranking-track { min-width: 0; }
-
-/* Professional School & Branding controls. */
-.admin-settings-page .card { position: relative; }
-.admin-settings-page input:not([type="color"]),
-.admin-settings-page select,
-.admin-settings-page textarea {
-  width: 100%;
-  min-height: 50px;
-  box-sizing: border-box;
-  border: 1px solid #d9cdbd;
-  border-radius: 13px;
-  background: linear-gradient(180deg, #fff, #fffdf9);
-  color: var(--ink);
-  padding: 12px 15px;
-  font: inherit;
-  font-size: .95rem;
-  box-shadow: 0 3px 12px rgba(40,30,20,.035);
-  transition: border-color .16s ease, box-shadow .16s ease, transform .16s ease;
-}
-.admin-settings-page input:not([type="color"]):hover,
-.admin-settings-page select:hover { border-color: #c6b59e; }
-.admin-settings-page input:not([type="color"]):focus,
-.admin-settings-page select:focus,
-.admin-settings-page textarea:focus {
-  outline: none;
-  border-color: var(--accent-2);
-  box-shadow: 0 0 0 4px rgba(224,165,44,.13), 0 8px 20px rgba(44,31,20,.06);
-}
-.admin-settings-page .form-grid-2 > div { min-width: 0; }
-.admin-settings-page .form-grid-2 label,
-.admin-settings-page .theme-control-grid label,
-.admin-settings-page .admin-option-card label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--ink);
-  font-weight: 800;
-}
-.admin-settings-page .admin-settings-intro { border-radius: 20px; padding: 22px 24px; }
-.admin-settings-page .branding-asset-card { border-radius: 20px; padding: 18px; background: linear-gradient(145deg,#fff,#fcf8ef); }
-.admin-settings-page .branding-asset-preview { box-shadow: inset 0 0 0 1px rgba(139,30,45,.04); }
-.admin-settings-page .branding-upload-button { border-radius: 11px; font-weight: 800; }
-.admin-settings-page .theme-control-grid { align-items: stretch; }
-.admin-settings-page .theme-control-grid label { padding: 14px; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg,#fff,#faf7f0); }
-.admin-settings-page .theme-control-grid input[type="color"] { float: right; margin-top: -4px; }
-.admin-settings-page .admin-theme-preset { min-height: 112px; }
-
-@media (max-width: 760px) {
-  .hero-ranking-track { min-height: 285px; }
-  .hero-ranking-card { flex-basis: 150px; height: 245px; }
-  .hero-ranking-card.rank-offset-0 { flex-basis: 205px; height: 275px; }
-  .admin-settings-page .form-grid-2,
-  .admin-settings-page .theme-control-grid { grid-template-columns: 1fr; }
-}
+/* ============================================================
+   V18.4 — ADMIN / CATALOG / MEDIA POLISH
+   ============================================================ */
+.admin-catalog-card { background:linear-gradient(145deg,#fffdf8,#fff); }
+.admin-catalog-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; margin-top:16px; }
+.admin-catalog-editor { padding:16px; border:1px solid var(--line); border-radius:18px; background:#fbfaf6; }
+.admin-catalog-editor label { font-weight:850; margin:0 0 8px; }
+.admin-catalog-editor textarea { width:100%; min-height:160px; resize:vertical; border:1px solid #d9cdbd; border-radius:13px; padding:12px 14px; background:#fff; line-height:1.65; font-weight:600; }
+.admin-catalog-editor textarea:focus { outline:none; border-color:var(--accent-2); box-shadow:0 0 0 4px rgba(185,143,43,.12); }
+.admin-catalog-editor small { display:block; margin-top:7px; color:var(--muted); font-weight:700; }
+.admin-catalog-actions { display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:16px; }
+.teacher-admin-summary { display:flex; align-items:center; gap:12px; }
+.teacher-admin-avatar { width:54px; height:54px; flex:0 0 54px; border-radius:50%; object-fit:cover; border:3px solid #fff; box-shadow:0 5px 16px rgba(22,35,61,.13); background:#edf4ee; }
+.teacher-admin-avatar-fallback { display:grid; place-items:center; color:var(--accent-dark); font-weight:950; background:linear-gradient(135deg,#e5f1e9,#f4e2b5); }
+.admin-settings-intro { padding:22px !important; }
+.admin-settings-intro p { max-width:900px; line-height:1.7; }
+.form-grid-2 > div { min-width:0; }
+.form-grid-2 input, .form-grid-2 select { width:100%; min-height:52px; border-radius:14px; font-size:.98rem; font-weight:650; }
+.create-title-input, .create-datetime-input { box-sizing:border-box; }
+.create-datetime-input { padding-left:16px !important; padding-right:48px !important; min-height:60px; font-size:1rem; }
+.create-datetime-input::-webkit-calendar-picker-indicator { width:22px; height:22px; padding:7px; cursor:pointer; opacity:.85; }
+.create-schedule-grid { grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+.create-schedule-field { min-width:0; }
+.hero-ranking-card .rank-avatar { width:86px; height:86px; object-fit:cover; border-radius:50%; border:4px solid #fff; box-shadow:0 9px 26px rgba(22,35,61,.15); background:#edf4ee; flex:0 0 auto; }
+.hero-ranking-card.rank-offset-0 .rank-avatar.large { width:112px; height:112px; border-width:5px; }
+.hero-ranking-card > strong, .hero-ranking-card > span, .hero-ranking-card > b { position:relative; z-index:2; }
+@media (max-width:900px) { .admin-catalog-grid { grid-template-columns:1fr; } }
+@media (max-width:760px) { .create-schedule-grid { grid-template-columns:1fr; } .teacher-admin-summary { align-items:flex-start; } }
+.admin-mini-stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:18px; }
+.admin-mini-stat-grid .stat-card { min-height:120px; }
+@media (max-width:760px) { .admin-mini-stat-grid { grid-template-columns:1fr; } }

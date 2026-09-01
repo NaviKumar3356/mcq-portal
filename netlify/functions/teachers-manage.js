@@ -10,7 +10,7 @@ exports.handler = async (event) => {
     if (event.httpMethod === 'GET') {
       const { data: teachers, error } = await supabase
         .from('teachers')
-        .select('id, username, name, classes, subjects, active, created_at')
+        .select('id, username, name, classes, subjects, photo_path, active, created_at')
         .order('created_at', { ascending: false });
       if (error) throw error;
       return json(200, { teachers });

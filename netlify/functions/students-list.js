@@ -10,7 +10,7 @@ exports.handler = async (event) => {
 
     let query = supabase
       .from('students')
-      .select('id, srno, roll_number, name, class, dob, photo_path, created_at')
+      .select('id, srno, roll_number, name, class, section, dob, photo_path, created_at')
       .order('class', { ascending: true })
       .order('srno', { ascending: true, nullsFirst: false })
       .order('roll_number', { ascending: true });
@@ -21,7 +21,10 @@ exports.handler = async (event) => {
       query = query.in('class', allowed);
     }
     if (klass) query = query.eq('class', klass);
-    if (q) query = query.or(`name.ilike.%${q}%,roll_number.ilike.%${q}%`);
+    if (q) {
+      const safeQ = String(q).replace(/[\\,%()*]/g, '\\$&');
+      query = query.or(`name.ilike.%${safeQ}%,roll_number.ilike.%${safeQ}%`);
+    }
 
     const { data: students, error } = await query;
     if (error) throw error;

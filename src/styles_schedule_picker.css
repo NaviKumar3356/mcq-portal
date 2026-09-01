@@ -1,0 +1,283 @@
+/* ============================================================
+   SCHEDULE RANGE PICKER
+   A custom, visual replacement for the two native datetime-local
+   inputs used when opening/closing a paper. Built to sit inside the
+   existing "create-schedule-field" cards and inherit the site's
+   parchment / maroon-green-gold palette (--ink, --accent, --accent-2,
+   --accent-3) rather than introduce a new visual language.
+   ============================================================ */
+
+.schedpick-range {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.schedpick-fields {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.schedpick-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding-top: 42px;
+}
+.schedpick-connector-line {
+  width: 1.5px;
+  height: 16px;
+  background: var(--line);
+}
+.schedpick-connector-dot {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(47,111,79,0.22);
+}
+
+.schedpick-field { position: relative; }
+
+.schedpick-field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+.schedpick-field-label-row label {
+  margin: 0;
+  color: var(--ink);
+  font-weight: 800;
+}
+.schedpick-chip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 0.66rem;
+  font-weight: 850;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  background: #f0e8d8;
+  color: #69583f;
+}
+.schedpick-field.open .schedpick-chip { background: #e3f1e9; color: var(--accent-dark); }
+.schedpick-field.close .schedpick-chip { background: #fbeee0; color: var(--warn); }
+
+.schedpick-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 62px;
+  padding: 10px 16px;
+  border: 1.5px solid #d9cdbd;
+  border-radius: 15px;
+  background: linear-gradient(180deg, #fff, #fffdf9);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.8), 0 4px 14px rgba(44,31,20,.035);
+  transition: border-color .15s ease, box-shadow .15s ease, transform .1s ease;
+}
+.schedpick-trigger:hover { border-color: #c6b59e; }
+.schedpick-trigger.is-open,
+.schedpick-trigger:focus-visible {
+  outline: none;
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 4px rgba(224,165,44,.14), 0 8px 20px rgba(44,31,20,.07);
+}
+.schedpick-field.close .schedpick-trigger.is-open { border-color: var(--warn); box-shadow: 0 0 0 4px rgba(181,73,15,.12); }
+
+.schedpick-trigger-icon {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: #f7edd6;
+  font-size: 1rem;
+}
+.schedpick-field.open .schedpick-trigger-icon { background: #e3f1e9; }
+.schedpick-field.close .schedpick-trigger-icon { background: #fbeee0; }
+
+.schedpick-trigger-value { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.schedpick-trigger-value strong { font-size: 0.92rem; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.schedpick-trigger-value small { color: var(--accent-dark); font-weight: 800; font-size: 0.8rem; }
+.schedpick-field.close .schedpick-trigger-value small { color: var(--warn); }
+
+.schedpick-trigger-placeholder { flex: 1; color: #9b948b; font-weight: 600; font-size: 0.92rem; }
+
+.schedpick-trigger-caret { flex: 0 0 auto; color: var(--muted); font-size: 0.75rem; transition: transform .15s ease; }
+.schedpick-trigger.is-open .schedpick-trigger-caret { transform: rotate(180deg); }
+
+.schedpick-hint {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+/* ---- Popover ---- */
+.schedpick-popover {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 8px);
+  left: 0;
+  width: min(320px, 92vw);
+  padding: 16px 16px 14px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 22px 55px rgba(22,35,61,.18), 0 4px 14px rgba(22,35,61,.08);
+  animation: schedpick-pop-in .14s ease;
+}
+@keyframes schedpick-pop-in {
+  from { opacity: 0; transform: translateY(-4px) scale(.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.schedpick-cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.schedpick-cal-title { font-weight: 850; color: var(--ink); font-size: 0.92rem; }
+.schedpick-nav {
+  width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line);
+  background: #fff; color: var(--ink); cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.schedpick-nav:hover { background: #f7f2e8; border-color: var(--accent-2); }
+
+.schedpick-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.schedpick-weekdays span {
+  text-align: center;
+  font-size: 0.66rem;
+  font-weight: 800;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+
+.schedpick-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.schedpick-cell {
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.schedpick-cell.empty { cursor: default; }
+.schedpick-cell:not(.empty):not(:disabled):hover { background: #f4efe2; }
+.schedpick-cell.is-today { box-shadow: inset 0 0 0 1.5px var(--accent-2); font-weight: 800; }
+.schedpick-cell.is-selected {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-weight: 800;
+}
+.schedpick-field.close .schedpick-cell.is-selected {
+  background: linear-gradient(135deg, var(--warn), #8f3a0c);
+}
+.schedpick-cell:disabled { color: #cfc8ba; cursor: not-allowed; }
+
+.schedpick-time-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+.schedpick-time-label { font-size: 0.78rem; font-weight: 800; color: var(--ink-soft); white-space: nowrap; }
+.schedpick-time-row select {
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 9px;
+  font-size: 0.84rem;
+}
+
+.schedpick-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+.schedpick-quick-chip {
+  border: 1px solid var(--line);
+  background: #faf7f0;
+  color: var(--ink-soft);
+  border-radius: 999px;
+  padding: 5px 10px;
+  font-size: 0.7rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+.schedpick-quick-chip:hover { border-color: var(--accent-2); background: #fff7e6; color: var(--ink); }
+
+.schedpick-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+.schedpick-clear { background: none; border: 0; color: var(--danger); font-weight: 800; font-size: 0.8rem; cursor: pointer; padding: 4px 2px; }
+.schedpick-done {
+  margin-left: auto;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 16px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.82rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(47,111,79,.24);
+}
+
+.schedpick-summary {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(47,111,79,.08), rgba(234,181,74,.10));
+  border: 1px solid rgba(47,111,79,.18);
+  color: var(--accent-dark);
+  font-weight: 750;
+  font-size: 0.84rem;
+  text-align: center;
+}
+.schedpick-summary.is-invalid {
+  background: #fbe9e7;
+  border-color: #f2c2bd;
+  color: var(--danger);
+}
+
+@media (max-width: 700px) {
+  .schedpick-fields { grid-template-columns: 1fr; }
+  .schedpick-connector { flex-direction: row; padding-top: 0; padding: 6px 0; justify-content: center; }
+  .schedpick-connector-line { width: 16px; height: 1.5px; }
+  .schedpick-popover { left: 50%; transform: translateX(-50%); width: min(340px, 90vw); }
+}

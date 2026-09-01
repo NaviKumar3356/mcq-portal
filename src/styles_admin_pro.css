@@ -1,0 +1,207 @@
+/* ============================================================
+   ADMIN PANEL — PROFESSIONAL DATA LAYOUT PASS
+   Dashboard stat cards, table alignment, and form polish for the
+   Super Admin panel (Overview, Teachers, Students, Settings).
+   Additive only — nothing here removes existing functionality.
+   ============================================================ */
+
+/* ---- Dashboard hero ---- */
+.admin-dash-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.admin-dash-hero h2 { margin: 6px 0 4px; font-size: 1.9rem; }
+.admin-dash-hero-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 150px;
+  padding: 14px 20px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #f5f0ff, #eef8f3);
+  border: 1px solid #e0d3f0;
+  box-shadow: 0 8px 20px rgba(116,68,223,.08);
+}
+.admin-dash-hero-badge strong { font-family: 'Source Serif 4', serif; font-size: 1.9rem; color: #5c39ae; line-height: 1; }
+.admin-dash-hero-badge span { margin-top: 4px; font-size: .72rem; color: var(--muted); text-align: center; font-weight: 700; }
+
+/* ---- Stat grid ---- */
+.admin-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.admin-stat-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 18px 18px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: #fff;
+  text-decoration: none;
+  color: var(--ink);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(22,35,61,.05);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.admin-stat-card:hover { transform: translateY(-3px); box-shadow: 0 14px 30px rgba(22,35,61,.1); }
+.admin-stat-card::after {
+  content: '';
+  position: absolute;
+  right: -30px; bottom: -30px;
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  opacity: .5;
+}
+.admin-stat-icon {
+  flex: 0 0 auto;
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border-radius: 13px;
+  font-size: 1.25rem;
+  z-index: 1;
+}
+.admin-stat-body { flex: 1; min-width: 0; z-index: 1; }
+.admin-stat-num { font-family: 'Source Serif 4', serif; font-weight: 800; font-size: 1.7rem; line-height: 1; color: var(--ink); }
+.admin-stat-label { margin-top: 4px; font-size: .76rem; color: var(--muted); font-weight: 700; }
+.admin-stat-cta {
+  position: absolute; right: 16px; bottom: 12px;
+  font-size: .66rem; font-weight: 800; opacity: 0; transform: translateX(-4px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.admin-stat-card:hover .admin-stat-cta { opacity: 1; transform: translateX(0); }
+
+.admin-stat-card.tone-plum .admin-stat-icon { background: #f0eaff; color: #7444df; }
+.admin-stat-card.tone-plum::after { background: #f0eaff; }
+.admin-stat-card.tone-plum .admin-stat-cta { color: #7444df; }
+.admin-stat-card.tone-green .admin-stat-icon { background: #e3f1e9; color: var(--accent-dark); }
+.admin-stat-card.tone-green::after { background: #e3f1e9; }
+.admin-stat-card.tone-green .admin-stat-cta { color: var(--accent-dark); }
+.admin-stat-card.tone-blue .admin-stat-icon { background: #e3edfb; color: #1d4e8f; }
+.admin-stat-card.tone-blue::after { background: #e3edfb; }
+.admin-stat-card.tone-blue .admin-stat-cta { color: #1d4e8f; }
+.admin-stat-card.tone-gold .admin-stat-icon { background: #fdf1d6; color: #a3730c; }
+.admin-stat-card.tone-gold::after { background: #fdf1d6; }
+.admin-stat-card.tone-gold .admin-stat-cta { color: #a3730c; }
+.admin-stat-card.tone-terracotta .admin-stat-icon { background: #fde9db; color: #b5570f; }
+.admin-stat-card.tone-terracotta::after { background: #fde9db; }
+.admin-stat-card.tone-terracotta .admin-stat-cta { color: #b5570f; }
+
+/* ---- Panel grid (control centre + leaderboard cards) ---- */
+.admin-panel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+.admin-panel-card { display: flex; flex-direction: column; margin-bottom: 0; }
+.admin-panel-card .card-section-title { margin-bottom: 8px; }
+.admin-panel-card > p.meta { flex: 1; }
+.admin-quick-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+
+.admin-security-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: linear-gradient(135deg, #fbf7ff, #f4faf6);
+  border-color: #e5dcf5;
+}
+.admin-security-strip-icon {
+  flex: 0 0 auto; width: 40px; height: 40px; border-radius: 11px;
+  display: grid; place-items: center; background: #f0eaff; font-size: 1.05rem;
+}
+.admin-security-strip strong { color: var(--ink); font-size: .92rem; }
+.admin-security-strip p { margin: 5px 0 0; }
+
+@media (max-width: 900px) {
+  .admin-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .admin-panel-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .admin-stat-grid { grid-template-columns: 1fr; }
+  .admin-dash-hero { align-items: flex-start; }
+}
+
+/* ============================================================
+   DATA TABLES — Students list, grade tables, etc.
+   Sticky header, zebra striping, tidy cell alignment, sortable-
+   looking headers, and a cleaner filter bar.
+   ============================================================ */
+.card table.grade-table { border-radius: 12px; overflow: hidden; }
+table.grade-table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: linear-gradient(180deg, #faf7ef, #f3efe3);
+  color: var(--ink);
+  font-size: .72rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  font-weight: 800;
+  border-bottom: 2px solid var(--line);
+  padding: 12px 10px;
+}
+table.grade-table tbody tr { transition: background .1s ease; }
+table.grade-table tbody tr:nth-child(even) { background: rgba(0,0,0,.012); }
+table.grade-table tbody tr:hover { background: #faf5e8; }
+table.grade-table td { padding: 10px 10px; vertical-align: middle; }
+table.grade-table td, table.grade-table th { border-bottom: 1px solid #ece6d8; }
+
+.filter-bar {
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fffdf9, #f7f4ec);
+  border-radius: 16px;
+}
+.filter-bar input, .filter-bar select {
+  min-height: 44px;
+  border-radius: 11px;
+}
+
+/* ============================================================
+   TEACHER MANAGEMENT — card list polish
+   ============================================================ */
+.teacher-row-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.teacher-row-identity { display: flex; align-items: center; gap: 12px; }
+.teacher-row-avatar {
+  width: 44px; height: 44px; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(135deg, #f0eaff, #eef8f3);
+  color: #5c39ae; font-weight: 800; font-size: .9rem;
+  flex: 0 0 auto;
+  border: 2px solid #fff;
+  box-shadow: 0 3px 10px rgba(116,68,223,.14);
+}
+.teacher-row-name { font-weight: 800; color: var(--ink); font-size: .98rem; }
+.teacher-row-handle { color: var(--muted); font-size: .78rem; margin-left: 6px; font-weight: 600; }
+.teacher-row-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.teacher-row-tag {
+  padding: 3px 9px; border-radius: 999px; font-size: .68rem; font-weight: 750;
+  background: #f2ede1; color: var(--ink-soft);
+}
+.teacher-row-tag.subject { background: #e3f1e9; color: var(--accent-dark); }
+
+/* ============================================================
+   SCHOOL & BRANDING — section rhythm and spacing polish
+   ============================================================ */
+.admin-settings-page .card { margin-bottom: 18px; }
+.admin-settings-page .card-section-title { margin-bottom: 12px; }
+.admin-settings-grid { align-items: stretch; }
+.branding-asset-card { min-height: 152px; }
+
+/* ============================================================
+   FORM ALIGNMENT — consistent label/field rhythm across admin forms
+   ============================================================ */
+form .card > div[style*="display: flex"] > div { min-width: 0; }
+.multiselect { margin-top: 4px; }

@@ -1,48 +1,44 @@
 import React, { useEffect, useState } from 'react';
 import { getPhotoUrl } from '../lib/api.js';
 
-const BUILT_IN_DEFAULT = '/default-student-avatar.svg';
 let cachedDefaultAvatar = null;
 let defaultAvatarLoading = null;
 
-async function loadDefaultAvatar(force = false) {
-  if (!force && cachedDefaultAvatar) return cachedDefaultAvatar;
-  if (!defaultAvatarLoading || force) {
-    const url = `/api/site-settings?avatar_cache=${Date.now()}`;
-    defaultAvatarLoading = fetch(url, { cache: 'no-store' })
+async function loadDefaultAvatar() {
+  if (cachedDefaultAvatar) return cachedDefaultAvatar;
+  if (!defaultAvatarLoading) {
+    defaultAvatarLoading = fetch('/api/site-settings')
       .then((r) => (r.ok ? r.json() : {}))
       .then((d) => {
-        const value = typeof d?.default_avatar_url === 'string' ? d.default_avatar_url.trim() : '';
-        cachedDefaultAvatar = value || BUILT_IN_DEFAULT;
+        cachedDefaultAvatar = d.default_avatar_url || '/default-student-avatar.svg';
         return cachedDefaultAvatar;
       })
-      .catch(() => {
-        cachedDefaultAvatar = BUILT_IN_DEFAULT;
-        return cachedDefaultAvatar;
-      });
+      .catch(() => '/default-student-avatar.svg');
   }
   return defaultAvatarLoading;
 }
 
-export function refreshDefaultStudentAvatar() {
-  cachedDefaultAvatar = null;
-  defaultAvatarLoading = null;
-  return loadDefaultAvatar(true);
-}
-
-/** Shared student avatar priority: uploaded student photo -> admin-selected default -> built-in fallback. */
+/**
+ * Shared student avatar.
+ *
+ * Priority:
+ *  1. Student's uploaded photo.
+ *  2. Super-admin selected default avatar from School & Branding.
+ *  3. Built-in school-themed SVG fallback.
+ */
 export default function StudentAvatar({ student, className = '', alt = 'Student', large = false }) {
   const [broken, setBroken] = useState(false);
   const [defaultBroken, setDefaultBroken] = useState(false);
-  const [defaultAvatar, setDefaultAvatar] = useState(cachedDefaultAvatar || BUILT_IN_DEFAULT);
+  const [defaultAvatar, setDefaultAvatar] = useState(cachedDefaultAvatar || '/default-student-avatar.svg');
 
   useEffect(() => {
     let mounted = true;
     loadDefaultAvatar().then((url) => mounted && setDefaultAvatar(url));
 
     const refresh = () => {
-      refreshDefaultStudentAvatar().then((url) => mounted && setDefaultAvatar(url));
-      if (mounted) setDefaultBroken(false);
+      cachedDefaultAvatar = null;
+      defaultAvatarLoading = null;
+      loadDefaultAvatar().then((url) => mounted && setDefaultAvatar(url));
     };
 
     window.addEventListener('site-settings-updated', refresh);
@@ -52,15 +48,14 @@ export default function StudentAvatar({ student, className = '', alt = 'Student'
     };
   }, []);
 
-  const photoPath = student?.photo_path || student?.avatar_path || null;
-  const hasStudentPhoto = Boolean(photoPath) && !broken;
+  const hasStudentPhoto = Boolean(student?.photo_path) && !broken;
   const src = hasStudentPhoto
-    ? getPhotoUrl(photoPath)
-    : (defaultBroken ? BUILT_IN_DEFAULT : defaultAvatar);
+    ? getPhotoUrl(student.photo_path)
+    : (defaultBroken ? '/default-student-avatar.svg' : defaultAvatar);
 
   return (
     <img
-      className={`${className}${large ? ' large' : ''}`}
+      className={`${className} ${large ? 'large' : ''}`.trim()}
       src={src}
       alt={alt}
       onError={() => (hasStudentPhoto ? setBroken(true) : setDefaultBroken(true))}

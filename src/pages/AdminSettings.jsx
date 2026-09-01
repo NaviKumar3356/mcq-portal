@@ -52,6 +52,9 @@ export default function AdminSettings() {
   const [themePreset, setThemePreset] = useState('school-emblem');
   const [cardDensity, setCardDensity] = useState('comfortable');
   const [cornerStyle, setCornerStyle] = useState('rounded');
+  const [catalog, setCatalog] = useState({ classes: [], subjects: [], sections: [] });
+  const [catalogDraft, setCatalogDraft] = useState({ classes: '', subjects: '', sections: '' });
+  const [catalogSaving, setCatalogSaving] = useState(false);
 
   async function load() {
     setError('');
@@ -68,6 +71,10 @@ export default function AdminSettings() {
       setCornerStyle(unwrapSetting(s.ui_corner_style, 'rounded'));
       const matchedPreset = THEME_PRESETS.find((p) => p.primary === primary && p.secondary === secondary && p.accent === accent);
       setThemePreset(matchedPreset?.id || 'custom');
+      const catalogData = await api('/admin-catalog');
+      const nextCatalog = { classes: catalogData.classes || [], subjects: catalogData.subjects || [], sections: catalogData.sections || [] };
+      setCatalog(nextCatalog);
+      setCatalogDraft({ classes: nextCatalog.classes.join('\n'), subjects: nextCatalog.subjects.join('\n'), sections: nextCatalog.sections.join('\n') });
       setAssets({
         logo: settingPath(s.site_logo_path),
         hero_1: settingPath(s.site_hero_1),
@@ -113,6 +120,22 @@ export default function AdminSettings() {
       setSuccess('School branding and theme saved.');
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
+  }
+
+
+  async function saveCatalog() {
+    setCatalogSaving(true); setError(''); setSuccess('');
+    try {
+      const body = {};
+      for (const key of ['classes','subjects','sections']) {
+        body[key] = catalogDraft[key].split(/\n|,/).map(v => v.trim()).filter(Boolean);
+      }
+      const d = await api('/admin-catalog', { method: 'PATCH', body });
+      setCatalog({ classes: d.classes || body.classes, subjects: d.subjects || body.subjects, sections: d.sections || body.sections });
+      setSuccess('School catalog saved. New classes, subjects and sections are now available in the portal.');
+      window.dispatchEvent(new Event('school-catalog-updated'));
+    } catch (e) { setError(e.message); }
+    finally { setCatalogSaving(false); }
   }
 
   async function upload(slot, file) {
@@ -179,7 +202,6 @@ export default function AdminSettings() {
 
   return (
     <PanelLayout items={ITEMS}>
-      <div className="admin-settings-page">
       <div className="admin-page-heading">
         <div><span className="section-kicker">🎨 SCHOOL CONTROL CENTRE</span><h2>School & branding</h2><p className="meta">Change the public identity, colours and media without touching source code.</p></div>
         <button className="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save all changes'}</button>
@@ -205,6 +227,29 @@ export default function AdminSettings() {
         <div className="form-grid-2">
           <div><label>School name</label><input value={form.schoolName} onChange={(e) => setForm({ ...form, schoolName: e.target.value })} /></div>
           <div><label>Location / campus</label><input value={form.schoolPlace} onChange={(e) => setForm({ ...form, schoolPlace: e.target.value })} /></div>
+        </div>
+      </div>
+
+
+      <div className="card admin-catalog-card">
+        <div className="card-section-title">🗂️ School academic catalogue</div>
+        <p className="meta">Manage the options used across student records, teacher assignments and paper creation. Put one item per line; existing records are not deleted when an option is removed from this list.</p>
+        <div className="admin-catalog-grid">
+          {[
+            ['classes','Classes','I\nII\nIII\nIV'],
+            ['subjects','Subjects','Mathematics\nEnglish\nScience'],
+            ['sections','Sections','A\nB\nC'],
+          ].map(([key,label,placeholder]) => (
+            <div className="admin-catalog-editor" key={key}>
+              <label>{label}</label>
+              <textarea rows={7} value={catalogDraft[key]} placeholder={placeholder} onChange={e => setCatalogDraft(d => ({ ...d, [key]: e.target.value }))} />
+              <small>{(catalogDraft[key].split(/\n|,/).map(v => v.trim()).filter(Boolean)).length} configured</small>
+            </div>
+          ))}
+        </div>
+        <div className="admin-catalog-actions">
+          <button className="primary" type="button" onClick={saveCatalog} disabled={catalogSaving}>{catalogSaving ? 'Saving catalogue…' : 'Save academic catalogue'}</button>
+          <span className="meta">Sections are assigned to students; classes and subjects are also used for teacher permissions.</span>
         </div>
       </div>
 
@@ -254,7 +299,6 @@ export default function AdminSettings() {
         <p className="meta">The administration login is not linked from public navigation. Current private route:</p>
         <code>/secure-admin-console/login</code>
         <p className="meta">For production, set <code>VITE_ADMIN_LOGIN_PATH</code> to a private route known only to authorised administrators. Server-side role checks remain the real security boundary.</p>
-      </div>
       </div>
     </PanelLayout>
   );

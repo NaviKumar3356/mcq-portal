@@ -21,92 +21,107 @@
 // teacher can check/fix those by hand after import — nothing is silently
 // dropped without being reported except blocks with no options at all.
 
-const QUESTION_START = /^\s*(?:Q\.?\s*)?(\d{1,3})[.)]\s+(.*)$/i;
+export const QUESTION_START = /^\s*(?:Q\.?\s*)?(\d{1,3})[.)]\s+(.*)$/i;
 const OPTION_LINE = /^\s*\(?([A-Da-d])\)?[.)]\s+(.*)$/;
 const ANSWER_LETTER = /^\s*(?:ans(?:wer)?|correct\s*answer)\s*[:\-]?\s*\(?([A-Da-d])\)?\s*\.?\s*$/i;
 const ANSWER_TEXT = /^\s*(?:ans(?:wer)?|correct\s*answer)\s*[:\-]\s*(.+)$/i;
 const MARKS_TAG = /\[?\bmarks?\s*[:\-]?\s*(\d+(?:\.\d+)?)\]?/i;
 
-export function parseMcqDocx(rawText) {
+// Splits raw text into one block per detected question number. Anything
+// before the first numbered line (a title, instructions, etc.) is ignored.
+// Shared by every docx question parser so MCQ and practical blocks are
+// numbered/split identically, letting a single document mix both types.
+export function splitNumberedBlocks(rawText) {
   const lines = rawText
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
-  // Group lines into one block per detected question number. Anything
-  // before the first numbered line (a title, instructions, etc.) is ignored.
   const blocks = [];
   let current = null;
   for (const line of lines) {
     const m = line.match(QUESTION_START);
     if (m) {
       if (current) blocks.push(current);
-      current = { firstLine: m[2] };
-      current.lines = [];
+      current = { firstLine: m[2], lines: [] };
     } else if (current) {
       current.lines.push(line);
     }
   }
   if (current) blocks.push(current);
+  return blocks;
+}
 
+// Parses a single already-split question block (block.firstLine + block.lines)
+// as an MCQ question. Returns { question, warnings } — question is null if
+// the block couldn't be parsed as MCQ at all (fewer than 2 options found).
+export function parseMcqBlock(block) {
+  const warnings = [];
+  const allLines = [block.firstLine, ...block.lines];
+  const questionTextParts = [];
+  const options = [];
+  let correct_option = null;
+  let marks = 1;
+  let sawOption = false;
+
+  for (const rawLine of allLines) {
+    const marksMatch = rawLine.match(MARKS_TAG);
+    if (marksMatch) marks = Number(marksMatch[1]);
+    const line = rawLine.replace(MARKS_TAG, '').trim();
+    if (!line) continue;
+
+    const optMatch = line.match(OPTION_LINE);
+    if (optMatch && options.length < 8) {
+      options.push(optMatch[2].trim());
+      sawOption = true;
+      continue;
+    }
+
+    const letterMatch = line.match(ANSWER_LETTER);
+    if (letterMatch) {
+      correct_option = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
+      continue;
+    }
+    const textMatch = line.match(ANSWER_TEXT);
+    if (textMatch) {
+      const ansText = textMatch[1].trim().toLowerCase();
+      const foundIdx = options.findIndex((o) => o.toLowerCase() === ansText);
+      if (foundIdx >= 0) correct_option = foundIdx;
+      continue;
+    }
+
+    if (!sawOption) {
+      questionTextParts.push(line);
+    }
+  }
+
+  const question_text = questionTextParts.join(' ').trim();
+  const preview = (question_text || block.firstLine || '').slice(0, 60);
+
+  if (!question_text || options.length < 2) {
+    warnings.push(`Skipped a block near "${preview}…" — couldn't find at least 2 options.`);
+    return { question: null, warnings };
+  }
+
+  if (correct_option === null || correct_option >= options.length) {
+    warnings.push(`"${preview}…" — answer key not detected, please pick the correct option manually.`);
+    correct_option = null;
+  }
+
+  while (options.length < 4) options.push(''); // pad for a consistent 4-option UI
+
+  return { question: { type: 'mcq', question_text, options, correct_option, marks }, warnings };
+}
+
+export function parseMcqDocx(rawText) {
+  const blocks = splitNumberedBlocks(rawText);
   const questions = [];
   const warnings = [];
 
   blocks.forEach((block) => {
-    const allLines = [block.firstLine, ...block.lines];
-    const questionTextParts = [];
-    const options = [];
-    let correct_option = null;
-    let marks = 1;
-    let sawOption = false;
-
-    for (const rawLine of allLines) {
-      const marksMatch = rawLine.match(MARKS_TAG);
-      if (marksMatch) marks = Number(marksMatch[1]);
-      const line = rawLine.replace(MARKS_TAG, '').trim();
-      if (!line) continue;
-
-      const optMatch = line.match(OPTION_LINE);
-      if (optMatch && options.length < 8) {
-        options.push(optMatch[2].trim());
-        sawOption = true;
-        continue;
-      }
-
-      const letterMatch = line.match(ANSWER_LETTER);
-      if (letterMatch) {
-        correct_option = letterMatch[1].toUpperCase().charCodeAt(0) - 65;
-        continue;
-      }
-      const textMatch = line.match(ANSWER_TEXT);
-      if (textMatch) {
-        const ansText = textMatch[1].trim().toLowerCase();
-        const foundIdx = options.findIndex((o) => o.toLowerCase() === ansText);
-        if (foundIdx >= 0) correct_option = foundIdx;
-        continue;
-      }
-
-      if (!sawOption) {
-        questionTextParts.push(line);
-      }
-    }
-
-    const question_text = questionTextParts.join(' ').trim();
-    const preview = (question_text || block.firstLine || '').slice(0, 60);
-
-    if (!question_text || options.length < 2) {
-      warnings.push(`Skipped a block near "${preview}…" — couldn't find at least 2 options.`);
-      return;
-    }
-
-    if (correct_option === null || correct_option >= options.length) {
-      warnings.push(`"${preview}…" — answer key not detected, please pick the correct option manually.`);
-      correct_option = null;
-    }
-
-    while (options.length < 4) options.push(''); // pad for a consistent 4-option UI
-
-    questions.push({ type: 'mcq', question_text, options, correct_option, marks });
+    const { question, warnings: w } = parseMcqBlock(block);
+    warnings.push(...w);
+    if (question) questions.push(question);
   });
 
   if (blocks.length === 0) {

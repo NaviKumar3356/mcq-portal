@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api, getAuthInfo } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
-import { parseMcqDocx } from '../lib/parseMcqDocx.js';
+import { parseQuestionsDocx } from '../lib/parseQuestionsDocx.js';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -61,7 +61,9 @@ export default function EditTest() {
       const arrayBuffer = await file.arrayBuffer();
       const mammoth = (await import('mammoth')).default;
       const { value: rawText } = await mammoth.extractRawText({ arrayBuffer });
-      const { questions: parsed, warnings } = parseMcqDocx(rawText);
+      // Auto-detects MCQ vs practical/code-completion documents and
+      // returns questions in the right shape for either type.
+      const { questions: parsed, warnings } = parseQuestionsDocx(rawText);
       if (parsed.length > 0) {
         setQuestions((qs) => [...qs, ...parsed]);
       }
@@ -256,12 +258,25 @@ export default function EditTest() {
 
         {!locked && (
           <div className="card">
-            <div className="card-section-title">📄 Import MCQs from Word (.docx)</div>
+            <div className="card-section-title">📄 Import questions from Word (.docx)</div>
             <p className="meta">
-              Format: number each question, list options as a) b) c) d), and end with a line like{' '}
+              Supports two kinds of documents, auto-detected:
+            </p>
+            <p className="meta">
+              <strong>MCQ:</strong> number each question, list options as a) b) c) d), and end with a line like{' '}
               <code>Answer: b</code>. Add <code>[2 marks]</code> anywhere in a question to set its marks
-              (defaults to 1). Imported questions are added below — review each one, especially any marked
-              ⚠, before saving.
+              (defaults to 1).
+            </p>
+            <p className="meta">
+              <strong>Practical / code completion:</strong> either a set of <code>VARIANT 1</code>, <code>VARIANT 2</code>…
+              blocks (each with a "Problem Statement" and a "Starter Code" section) — imported as ONE practical
+              question with that many variants — or separate numbered questions, each with its own{' '}
+              <code>Code:</code> block and an optional trailing <code>Answer: …</code> line. Reference answers are
+              never stored or shown to students (practical questions are always graded manually) — they're only
+              surfaced back to you as an import note.
+            </p>
+            <p className="meta">
+              Imported questions are added below — review each one, especially any marked ⚠, before saving.
             </p>
             <input type="file" accept=".docx" onChange={handleDocxImport} disabled={importing} />
             {importing && <p className="meta">Reading file…</p>}

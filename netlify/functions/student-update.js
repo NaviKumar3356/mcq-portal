@@ -1,5 +1,6 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
+const { getCatalog } = require('./utils/catalog');
 
 // Completes Create/Read/Update/Delete for students — previously there was
 // student-create.js and student-delete.js but no way to fix a typo'd name,
@@ -16,7 +17,7 @@ exports.handler = async (event) => {
   if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
-    const { student_id, roll_number, name, class: klass, dob } = JSON.parse(event.body || '{}');
+    const { student_id, roll_number, name, class: klass, section, dob } = JSON.parse(event.body || '{}');
     if (!student_id || !roll_number || !name || !klass || !dob) {
       return json(400, { error: 'student_id, roll_number, name, class and dob are all required' });
     }
@@ -34,9 +35,12 @@ exports.handler = async (event) => {
       }
     }
 
+    const catalog = await getCatalog();
+    if (section && !catalog.sections.includes(section)) return json(400, { error: 'Unknown section' });
+
     const { error } = await supabase
       .from('students')
-      .update({ roll_number: roll_number.trim(), name, class: klass, dob })
+      .update({ roll_number: roll_number.trim(), name, class: klass, section: section || null, dob })
       .eq('id', student_id);
     if (error) throw error;
 

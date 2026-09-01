@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
+import { getPhotoUrl } from '../lib/api.js';
 
 const ADMIN_ITEMS = [
   { to: '/admin', label: 'Overview', icon: '🏠', end: true },
@@ -48,13 +49,17 @@ export default function ManageTeachers() {
   const [editForm, setEditForm] = useState(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState('');
+  const [catalog, setCatalog] = useState({ classes: CLASSES, subjects: SUBJECTS });
 
   function load() {
     api('/teachers-manage')
       .then((d) => setTeachers(d.teachers))
       .catch((e) => setError(e.message));
   }
-  useEffect(load, []);
+  useEffect(() => {
+    load();
+    api('/admin-catalog').then(d => setCatalog({ classes: d.classes || CLASSES, subjects: d.subjects || SUBJECTS })).catch(() => {});
+  }, []);
 
   async function addTeacher(e) {
     e.preventDefault();
@@ -155,10 +160,10 @@ export default function ManageTeachers() {
           </div>
 
           <label>Assigned classes</label>
-          <MultiSelect options={CLASSES} selected={form.classes} onChange={(v) => setForm((f) => ({ ...f, classes: v }))} />
+          <MultiSelect options={catalog.classes} selected={form.classes} onChange={(v) => setForm((f) => ({ ...f, classes: v }))} />
 
           <label>Assigned subjects</label>
-          <MultiSelect options={SUBJECTS} selected={form.subjects} onChange={(v) => setForm((f) => ({ ...f, subjects: v }))} />
+          <MultiSelect options={catalog.subjects} selected={form.subjects} onChange={(v) => setForm((f) => ({ ...f, subjects: v }))} />
 
           <button className="primary" type="submit" disabled={saving} style={{ marginTop: 14 }}>
             {saving ? 'Saving…' : 'Create teacher account'}
@@ -189,10 +194,10 @@ export default function ManageTeachers() {
               </div>
 
               <label>Assigned classes</label>
-              <MultiSelect options={CLASSES} selected={editForm.classes} onChange={(v) => setEditForm((f) => ({ ...f, classes: v }))} />
+              <MultiSelect options={catalog.classes} selected={editForm.classes} onChange={(v) => setEditForm((f) => ({ ...f, classes: v }))} />
 
               <label>Assigned subjects</label>
-              <MultiSelect options={SUBJECTS} selected={editForm.subjects} onChange={(v) => setEditForm((f) => ({ ...f, subjects: v }))} />
+              <MultiSelect options={catalog.subjects} selected={editForm.subjects} onChange={(v) => setEditForm((f) => ({ ...f, subjects: v }))} />
 
               <label>Reset password (optional)</label>
               <input
@@ -214,10 +219,9 @@ export default function ManageTeachers() {
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{t.name} <span className="meta">@{t.username}</span></div>
+                  <div className="teacher-admin-summary">{t.photo_path ? <img className="teacher-admin-avatar" src={getPhotoUrl(t.photo_path)} alt="" onError={(e) => { e.currentTarget.style.visibility='hidden'; }} /> : <div className="teacher-admin-avatar teacher-admin-avatar-fallback">{(t.name || '?').split(/\s+/).slice(0,2).map(x => x[0]).join('').toUpperCase()}</div>}<div><div style={{ fontWeight: 700 }}>{t.name} <span className="meta">@{t.username}</span></div>
                   <div className="meta">Classes: {t.classes.join(', ') || '—'}</div>
-                  <div className="meta">Subjects: {t.subjects.join(', ') || '—'}</div>
-                </div>
+                  <div className="meta">Subjects: {t.subjects.join(', ') || '—'}</div></div></div></div>
                 <span className={`pill ${t.active ? 'open' : 'closed'}`}>{t.active ? 'active' : 'disabled'}</span>
               </div>
               <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>

@@ -11,20 +11,13 @@ exports.handler = async () => {
     const settings = {};
     (data || []).forEach((row) => { settings[row.key] = row.value; });
     const base = process.env.SUPABASE_URL;
-    const extractPath = (setting) => {
-      if (!setting) return '';
-      if (typeof setting === 'string') return setting;
-      if (typeof setting.path === 'string') return setting.path;
-      if (setting.value && typeof setting.value === 'object' && typeof setting.value.path === 'string') return setting.value.path;
-      return '';
-    };
     const publicUrl = (path) => path ? `${base}/storage/v1/object/public/site-assets/${path}` : null;
     return json(200, {
-      logo_url: publicUrl(extractPath(settings.site_logo_path)),
-      default_avatar_url: publicUrl(extractPath(settings.default_avatar)),
-      hero_1_url: publicUrl(extractPath(settings.site_hero_1)),
-      hero_2_url: publicUrl(extractPath(settings.site_hero_2)),
-      hero_3_url: publicUrl(extractPath(settings.site_hero_3)),
+      logo_url: publicUrl(settings.site_logo_path?.path),
+      default_avatar_url: publicUrl(settings.default_avatar?.path),
+      hero_1_url: publicUrl(settings.site_hero_1?.path),
+      hero_2_url: publicUrl(settings.site_hero_2?.path),
+      hero_3_url: publicUrl(settings.site_hero_3?.path),
       school_name: settings.site_school_name?.value || null,
       school_place: settings.site_school_place?.value || null,
       theme_primary: settings.theme_primary?.value || null,

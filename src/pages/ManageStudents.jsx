@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Papa from 'papaparse';
-import { api, getAuthInfo, uploadStudentPhoto } from '../lib/api.js';
-import StudentAvatar from '../components/StudentAvatar.jsx';
+import { api, getAuthInfo, uploadStudentPhoto, getPhotoUrl } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES } from '../lib/constants.js';
 
@@ -30,14 +29,15 @@ function initials(name) {
 export default function ManageStudents() {
   const auth = getAuthInfo();
   const isAdmin = auth?.role === 'super_admin';
-  const allowedClasses = isAdmin ? CLASSES : (auth?.classes || []);
+  const [catalog, setCatalog] = useState({ classes: CLASSES, sections: ['A','B','C'] });
+  const allowedClasses = isAdmin ? catalog.classes : (auth?.classes || []);
 
   const [students, setStudents] = useState(null);
   const [error, setError] = useState('');
   const [classFilter, setClassFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', dob: '' });
+  const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', section: '', dob: '' });
   const [saving, setSaving] = useState(false);
   const [photoUploadingId, setPhotoUploadingId] = useState(null);
 
@@ -60,6 +60,8 @@ export default function ManageStudents() {
       .then((d) => setStudents(d.students))
       .catch((e) => setError(e.message));
   }
+  useEffect(() => { if (isAdmin) api('/admin-catalog').then(d => setCatalog({ classes: d.classes || CLASSES, sections: d.sections || ['A','B','C'] })).catch(() => {}); }, [isAdmin]);
+  useEffect(() => { if (!form.class && allowedClasses[0]) setForm(f => ({ ...f, class: allowedClasses[0] })); }, [allowedClasses.join('|')]);
   useEffect(load, [classFilter, search]);
 
   async function addStudent(e) {
@@ -68,7 +70,7 @@ export default function ManageStudents() {
     setError('');
     try {
       await api('/student-create', { method: 'POST', body: form });
-      setForm({ roll_number: '', name: '', class: allowedClasses[0] || '', dob: '' });
+      setForm({ roll_number: '', name: '', class: allowedClasses[0] || '', section: '', dob: '' });
       setShowAdd(false);
       load();
     } catch (e) {
@@ -103,7 +105,7 @@ export default function ManageStudents() {
 
   function startEdit(s) {
     setEditingId(s.id);
-    setEditForm({ roll_number: s.roll_number, name: s.name, class: s.class, dob: s.dob });
+    setEditForm({ roll_number: s.roll_number, name: s.name, class: s.class, section: s.section || '', dob: s.dob });
     setEditError('');
   }
   function cancelEdit() {
@@ -139,6 +141,7 @@ export default function ManageStudents() {
           roll_number: r.roll_number,
           name: r.name,
           class: r.class,
+          section: r.section,
           dob: r.dob,
         }));
         setCsvUploading(true);
@@ -157,12 +160,14 @@ export default function ManageStudents() {
   }
 
   function Avatar({ s }) {
+    const [broken, setBroken] = React.useState(false);
+    const photoSrc = s.photo_path && !broken ? getPhotoUrl(s.photo_path) : '/default-student-avatar.svg';
     return (
       <label className="avatar-upload" title="Click to add/change photo">
         {photoUploadingId === s.id ? (
           <span className="avatar-fallback">…</span>
         ) : (
-          <StudentAvatar student={s} className="avatar-img" alt={s.name} />
+          <img src={photoSrc} alt={s.name} className="avatar-img" onError={() => setBroken(true)} />
         )}
         <span className="avatar-upload-caption">{s.photo_path ? 'Change photo' : 'Upload photo'}</span>
         <input
@@ -193,7 +198,7 @@ export default function ManageStudents() {
       {showCsv && (
         <div className="card">
           <p className="meta">
-            CSV needs columns <code>roll_number, name, class, dob</code> (dob as <code>YYYY-MM-DD</code>).
+            CSV needs columns <code>roll_number, name, class, section, dob</code> (dob as <code>YYYY-MM-DD</code>).
             One file can include students from several classes at once — each row's own <code>class</code>{' '}
             column decides where it goes. Existing students (same roll number + class) get updated instead
             of duplicated. Photos aren't part of CSV import — add them per student from the table below.
@@ -242,6 +247,13 @@ export default function ManageStudents() {
                 {allowedClasses.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+            <div style={{ flex: 0.8 }}>
+              <label>Section</label>
+              <select value={form.section} onChange={(e) => setForm((f) => ({ ...f, section: e.target.value }))}>
+                <option value="">No section</option>
+                {catalog.sections.map((section) => <option key={section} value={section}>{section}</option>)}
+              </select>
+            </div>
             <div style={{ flex: 1 }}>
               <label>Date of birth</label>
               <input type="date" value={form.dob} onChange={(e) => setForm((f) => ({ ...f, dob: e.target.value }))} required />
@@ -274,7 +286,7 @@ export default function ManageStudents() {
           </p>
           {editError && <div className="error-box">{editError}</div>}
           <table className="grade-table">
-            <thead><tr><th></th><th>Roll</th><th>Name</th><th>Class</th><th>DOB</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Roll</th><th>Name</th><th>Class</th><th>Section</th><th>DOB</th><th></th></tr></thead>
             <tbody>
               {students.map((s) => (
                 editingId === s.id ? (
@@ -301,6 +313,12 @@ export default function ManageStudents() {
                       </select>
                     </td>
                     <td>
+                      <select value={editForm.section} onChange={(e) => setEditForm((f) => ({ ...f, section: e.target.value }))}>
+                        <option value="">—</option>
+                        {catalog.sections.map((section) => <option key={section} value={section}>{section}</option>)}
+                      </select>
+                    </td>
+                    <td>
                       <input
                         type="date"
                         value={editForm.dob}
@@ -320,6 +338,7 @@ export default function ManageStudents() {
                     <td>{s.roll_number}</td>
                     <td>{s.name}</td>
                     <td>{s.class}</td>
+                    <td>{s.section || '—'}</td>
                     <td>{s.dob}</td>
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button className="secondary small" onClick={() => startEdit(s)}>Edit</button>{' '}

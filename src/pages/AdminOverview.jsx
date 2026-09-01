@@ -14,14 +14,17 @@ const ADMIN_ITEMS = [
 
 export default function AdminOverview() {
   const [stats, setStats] = useState(null);
+  const [catalog, setCatalog] = useState(null);
 
   useEffect(() => {
     Promise.all([
       api('/teachers-manage').catch(() => ({ teachers: [] })),
       api('/students-list').catch(() => ({ students: [] })),
       api('/admin-tests-list').catch(() => ({ tests: [] })),
+      api('/admin-catalog').catch(() => ({ classes: [], subjects: [], sections: [] })),
     ]).then(([t, s, p]) => {
       setStats({ teachers: t.teachers.length, students: s.students.length, papers: p.tests.length, activeTeachers: t.teachers.filter((x) => x.active).length });
+      setCatalog({ classes: c.classes?.length || 0, subjects: c.subjects?.length || 0, sections: c.sections?.length || 0 });
     });
   }, []);
 
@@ -49,6 +52,12 @@ export default function AdminOverview() {
           <div className="stat-label">Papers set</div>
           <Link className="nav-action-button" to="/admin/papers">View</Link>
         </div>
+      </div>
+
+      <div className="stat-grid admin-mini-stat-grid">
+        <div className="card stat-card"><div className="stat-num">{catalog?.classes ?? '—'}</div><div className="stat-label">Configured classes</div></div>
+        <div className="card stat-card"><div className="stat-num">{catalog?.sections ?? '—'}</div><div className="stat-label">Sections</div></div>
+        <div className="card stat-card"><div className="stat-num">{catalog?.subjects ?? '—'}</div><div className="stat-label">Subjects</div></div>
       </div>
 
       <div className="card">

@@ -120,6 +120,7 @@ exports.handler = async (event) => {
 
     return json(200, { submission_id: submission.id, ok: true, flagged_reason: flagged_reason || null });
   } catch (e) {
+    if (e.code === '23505') return json(403, { error: 'You have already submitted this test' });
     return json(500, { error: e.message });
   }
 };
