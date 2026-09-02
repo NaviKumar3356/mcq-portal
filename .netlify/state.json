@@ -17,6 +17,5 @@
 			"postalCode": "333031"
 		},
 		"timestamp": 1788247047696
-	},
-	"dbConnectionString": "postgres://localhost:52568/postgres"
+	}
 }

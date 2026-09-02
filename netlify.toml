@@ -5,7 +5,7 @@
   framework = "vite"
 
 [build]
-  command = "npm install && npm run verify && npm run build"
+  command = "npm run verify && npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
