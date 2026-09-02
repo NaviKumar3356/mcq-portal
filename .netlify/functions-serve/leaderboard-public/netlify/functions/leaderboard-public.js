@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole(event, roles) {
@@ -25719,7 +25720,9 @@ exports.handler = async (event) => {
   try {
     const limit = Math.min(10, Math.max(1, Number(event.queryStringParameters?.limit) || 10));
     const requestedClass = String(event.queryStringParameters?.class || "").trim();
-    const { data: tests, error: tErr } = await supabase.from("tests").select("id, total_marks").eq("results_published", true);
+    let testsQuery = supabase.from("tests").select("id, total_marks").eq("results_published", true);
+    if (requestedClass) testsQuery = testsQuery.eq("class", requestedClass);
+    const { data: tests, error: tErr } = await testsQuery;
     if (tErr) throw tErr;
     if (!tests || tests.length === 0) {
       return json(200, { top: [] });
@@ -25754,7 +25757,6 @@ exports.handler = async (event) => {
       byStudent[s.student_id].count += 1;
     }
     const ranked = Object.values(byStudent).map((s) => ({
-      student_id: s.student_id,
       name: s.name,
       class: s.class,
       photo_path: s.photo_path,
@@ -25771,7 +25773,7 @@ exports.handler = async (event) => {
       const rank = lastScore !== null && s.average_percent_exact === lastScore ? lastRank : i + 1;
       lastScore = s.average_percent_exact;
       lastRank = rank;
-      const { average_percent_exact, ...publicStudent } = s;
+      const { average_percent_exact, student_id, ...publicStudent } = s;
       return { ...publicStudent, rank };
     });
     return json(200, { top, class: requestedClass || null });

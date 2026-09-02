@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25737,10 +25738,14 @@ exports.handler = async (event) => {
     }
     submission.tests = { class: test.class, subject: test.subject, title: test.title };
     const { data: answers, error: aErr } = await supabase.from("answers").select(
-      "id, question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, variant_snapshot, questions(question_text, type, options, correct_option, marks, order_index, language)"
+      "id, question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, variant_snapshot, questions(question_text, type, options, correct_option, marks, order_index, language, variants, reference_answer, resource_path, resource_name, resource_mime)"
     ).eq("submission_id", submissionId).order("questions(order_index)", { ascending: true });
     if (aErr) throw aErr;
     for (const a of answers) {
+      if (a.questions?.resource_path) {
+        const { data } = await supabase.storage.from("question-resources").createSignedUrl(a.questions.resource_path, 3600);
+        a.questions.resource_url = data?.signedUrl || null;
+      }
       if (a.file_path) {
         const { data } = await supabase.storage.from("answer-sheets").createSignedUrl(a.file_path, 3600);
         a.file_url = data?.signedUrl || null;

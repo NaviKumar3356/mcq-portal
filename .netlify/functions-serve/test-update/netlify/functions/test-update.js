@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25735,7 +25736,10 @@ exports.handler = async (event) => {
       return json(403, { error: "You are not assigned to this class/subject" });
     }
     const patch = {};
-    if (status) patch.status = status;
+    if (status) {
+      if (!["draft", "published", "closed"].includes(status)) return json(400, { error: "Invalid test status" });
+      patch.status = status;
+    }
     if (typeof results_published === "boolean") patch.results_published = results_published;
     if (typeof shuffle_questions === "boolean") patch.shuffle_questions = shuffle_questions;
     if (typeof shuffle_options === "boolean") patch.shuffle_options = shuffle_options;

@@ -1,5 +1,5 @@
 [dev]
-  command = "npm run dev -- --host 127.0.0.1"
+  command = "npm run dev"
   targetPort = 5173
   port = 8888
   framework = "vite"

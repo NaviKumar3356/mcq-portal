@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25715,7 +25716,7 @@ var require_auth = __commonJS({
 // netlify/functions/utils/constants.js
 var require_constants4 = __commonJS({
   "netlify/functions/utils/constants.js"(exports2, module2) {
-    var CLASSES2 = [
+    var CLASSES = [
       "I",
       "II",
       "III",
@@ -25729,7 +25730,7 @@ var require_constants4 = __commonJS({
       "XI",
       "XII"
     ];
-    var SUBJECTS2 = [
+    var SUBJECTS = [
       "English",
       "Hindi",
       "Sanskrit",
@@ -25740,14 +25741,35 @@ var require_constants4 = __commonJS({
       "SST",
       "CT & AI"
     ];
-    module2.exports = { CLASSES: CLASSES2, SUBJECTS: SUBJECTS2 };
+    module2.exports = { CLASSES, SUBJECTS };
+  }
+});
+
+// netlify/functions/utils/catalog.js
+var require_catalog = __commonJS({
+  "netlify/functions/utils/catalog.js"(exports2, module2) {
+    var supabase2 = require_db();
+    var { CLASSES, SUBJECTS } = require_constants4();
+    var DEFAULT_SECTIONS = ["A", "B", "C"];
+    async function getCatalog2() {
+      const { data, error } = await supabase2.from("app_settings").select("key,value").in("key", ["school_classes", "school_subjects", "school_sections"]);
+      if (error) return { classes: CLASSES, subjects: SUBJECTS, sections: DEFAULT_SECTIONS };
+      const out = { classes: CLASSES, subjects: SUBJECTS, sections: DEFAULT_SECTIONS };
+      (data || []).forEach((r) => {
+        if (r.key === "school_classes" && Array.isArray(r.value?.items)) out.classes = r.value.items;
+        if (r.key === "school_subjects" && Array.isArray(r.value?.items)) out.subjects = r.value.items;
+        if (r.key === "school_sections" && Array.isArray(r.value?.items)) out.sections = r.value.items;
+      });
+      return out;
+    }
+    module2.exports = { getCatalog: getCatalog2 };
   }
 });
 
 // netlify/functions/test-edit.js
 var supabase = require_db();
 var { requireRole, json } = require_auth();
-var { CLASSES, SUBJECTS } = require_constants4();
+var { getCatalog } = require_catalog();
 function teacherCanAccess(auth, test) {
   if (auth.role !== "teacher") return true;
   return (auth.classes || []).includes(test.class) && (auth.subjects || []).includes(test.subject);
@@ -25784,8 +25806,9 @@ exports.handler = async (event) => {
       if (!test_id || !title || !className || !subject || !Array.isArray(questions) || questions.length === 0) {
         return json(400, { error: "test_id, title, class, subject, and at least one question are required" });
       }
-      if (!CLASSES.includes(className)) return json(400, { error: "Invalid class" });
-      if (!SUBJECTS.includes(subject)) return json(400, { error: "Invalid subject" });
+      const catalog = await getCatalog();
+      if (!catalog.classes.includes(className)) return json(400, { error: "Invalid class" });
+      if (!catalog.subjects.includes(subject)) return json(400, { error: "Invalid subject" });
       for (const q of questions) {
         if (q.type === "practical" && (!Array.isArray(q.variants) || q.variants.length === 0 || !q.variants[0].question_text)) {
           return json(400, { error: "Every practical question needs at least one variant with a problem statement" });
@@ -25824,6 +25847,10 @@ exports.handler = async (event) => {
           patch.language = q.language;
           patch.variants = q.variants;
         }
+        patch.reference_answer = q.reference_answer || null;
+        patch.resource_path = q.resource_path || null;
+        patch.resource_name = q.resource_name || null;
+        patch.resource_mime = q.resource_mime || null;
         const { error } = await supabase.from("questions").update(patch).eq("id", q.id);
         if (error) throw error;
         if (hasSubmissions && before && before.type === "mcq" && before.correct_option !== q.correct_option) {
@@ -25859,7 +25886,11 @@ exports.handler = async (event) => {
           correct_option: q.type === "mcq" ? q.correct_option : null,
           marks: q.marks || 1,
           language: q.type === "practical" ? q.language : null,
-          variants: q.type === "practical" ? q.variants : null
+          variants: q.type === "practical" ? q.variants : null,
+          reference_answer: q.reference_answer || null,
+          resource_path: q.resource_path || null,
+          resource_name: q.resource_name || null,
+          resource_mime: q.resource_mime || null
         }));
         const { error } = await supabase.from("questions").insert(rows);
         if (error) throw error;

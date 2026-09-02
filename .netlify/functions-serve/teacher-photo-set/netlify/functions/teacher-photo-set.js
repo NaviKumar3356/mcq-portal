@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole(event, roles) {

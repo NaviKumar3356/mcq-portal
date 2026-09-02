@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25791,7 +25792,7 @@ exports.handler = async (event) => {
     }
     const catalog = await getCatalog();
     if (section && !catalog.sections.includes(section)) return json(400, { error: "Unknown section" });
-    const { error } = await supabase.from("students").update({ roll_number: roll_number.trim(), name, class: klass, section: section || null, dob }).eq("id", student_id);
+    const { error } = await supabase.from("students").update({ roll_number: roll_number.trim(), name, class: klass, section: section || "A", dob }).eq("id", student_id);
     if (error) throw error;
     return json(200, { ok: true });
   } catch (e) {

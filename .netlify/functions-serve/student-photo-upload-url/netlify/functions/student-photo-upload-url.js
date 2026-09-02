@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25729,7 +25730,8 @@ exports.handler = async (event) => {
         return json(403, { error: "You are not assigned to that class" });
       }
     }
-    const safeExt = (file_ext || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 5) || "jpg";
+    const safeExt = (file_ext || "jpg").replace(/[^a-z0-9]/gi, "").slice(0, 5).toLowerCase() || "jpg";
+    if (!["jpg", "jpeg", "png", "webp"].includes(safeExt)) return json(400, { error: "Only JPG, JPEG, PNG and WebP photos are allowed." });
     const path = `${student_id}-${Date.now()}.${safeExt}`;
     const { data, error } = await supabase.storage.from("student-photos").createSignedUploadUrl(path);
     if (error) throw error;

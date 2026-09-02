@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole2(event, roles) {
@@ -25719,7 +25720,7 @@ exports.handler = async (event) => {
   const auth = requireRole(event, ["teacher", "super_admin"]);
   if (!auth) return json(401, { error: "Not authorized" });
   try {
-    let query = supabase.from("tests").select("*").order("created_at", { ascending: false });
+    let query = supabase.from("tests").select("id,title,subject,class,duration_minutes,start_at,end_at,total_marks,status,results_published,answer_key_set,created_at,created_by,shuffle_questions,shuffle_options,shuffle_group_size").order("created_at", { ascending: false });
     if (auth.role === "teacher") {
       const classes = auth.classes || [];
       const subjects = auth.subjects || [];

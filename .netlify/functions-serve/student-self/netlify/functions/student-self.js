@@ -25697,10 +25697,11 @@ var require_auth = __commonJS({
       return verify(token);
     }
     function json2(statusCode, body) {
+      const safeBody = statusCode >= 500 && (process.env.NODE_ENV === "production" || process.env.CONTEXT === "production") ? { error: "Internal server error" } : body;
       return {
         statusCode,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
+        headers: { "Content-Type": "application/json", "Cache-Control": "private, no-store" },
+        body: JSON.stringify(safeBody)
       };
     }
     function requireRole(event, roles) {
@@ -25712,12 +25713,72 @@ var require_auth = __commonJS({
   }
 });
 
+// netlify/functions/utils/student-session.js
+var require_student_session = __commonJS({
+  "netlify/functions/utils/student-session.js"(exports2, module2) {
+    var crypto2 = require("crypto");
+    var supabase2 = require_db();
+    var IDLE_MINUTES = 15;
+    function newSessionId() {
+      return crypto2.randomUUID();
+    }
+    async function acquireStudentSession(studentId) {
+      const cutoff = new Date(Date.now() - IDLE_MINUTES * 60 * 1e3).toISOString();
+      const { data: existing, error: lookupError } = await supabase2.from("student_active_sessions").select("id, session_id, last_seen_at").eq("student_id", studentId).maybeSingle();
+      if (lookupError) throw lookupError;
+      if (existing && existing.last_seen_at > cutoff) {
+        return { ok: false, reason: "active" };
+      }
+      if (existing) {
+        const { error: deleteError } = await supabase2.from("student_active_sessions").delete().eq("id", existing.id);
+        if (deleteError) throw deleteError;
+      }
+      const sessionId = newSessionId();
+      const { error: insertError } = await supabase2.from("student_active_sessions").insert({ student_id: studentId, session_id: sessionId, last_seen_at: (/* @__PURE__ */ new Date()).toISOString() });
+      if (insertError) {
+        if (insertError.code === "23505") return { ok: false, reason: "active" };
+        throw insertError;
+      }
+      return { ok: true, sessionId };
+    }
+    async function touchStudentSession(studentId, sessionId) {
+      if (!studentId || !sessionId) return false;
+      const cutoff = new Date(Date.now() - IDLE_MINUTES * 60 * 1e3).toISOString();
+      const { data, error } = await supabase2.from("student_active_sessions").update({ last_seen_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("student_id", studentId).eq("session_id", sessionId).gt("last_seen_at", cutoff).select("id").maybeSingle();
+      if (error) throw error;
+      return !!data;
+    }
+    async function releaseStudentSession(studentId, sessionId) {
+      if (!studentId || !sessionId) return;
+      const { error } = await supabase2.from("student_active_sessions").delete().eq("student_id", studentId).eq("session_id", sessionId);
+      if (error) throw error;
+    }
+    module2.exports = { acquireStudentSession, touchStudentSession, releaseStudentSession, IDLE_MINUTES };
+    async function requireStudentSession2(event) {
+      const authHeader = event.headers?.authorization || event.headers?.Authorization;
+      if (!authHeader) return null;
+      const token = authHeader.replace(/^Bearer\s+/i, "");
+      const jwt = require_jsonwebtoken();
+      try {
+        const auth = jwt.verify(token, process.env.JWT_SECRET);
+        if (auth.role !== "student" || !auth.student_id || !auth.session_id) return null;
+        const active = await touchStudentSession(auth.student_id, auth.session_id);
+        return active ? auth : null;
+      } catch {
+        return null;
+      }
+    }
+    module2.exports = { acquireStudentSession, touchStudentSession, releaseStudentSession, requireStudentSession: requireStudentSession2, IDLE_MINUTES };
+  }
+});
+
 // netlify/functions/student-self.js
 var supabase = require_db();
 var { getAuth, json } = require_auth();
+var { requireStudentSession } = require_student_session();
 exports.handler = async (event) => {
-  const auth = getAuth(event);
-  if (!auth || auth.role !== "student") return json(401, { error: "Not logged in" });
+  const auth = await requireStudentSession(event);
+  if (!auth) return json(401, { error: "Your student session has expired or was signed out." });
   try {
     const { data: student, error } = await supabase.from("students").select("id, name, roll_number, class, photo_path").eq("id", auth.student_id).single();
     if (error) throw error;
