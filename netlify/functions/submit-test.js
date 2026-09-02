@@ -1,12 +1,13 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { requireStudentSession } = require('./utils/student-session');
 const { getRosterRank, pickVariant } = require('./utils/practical');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
+  const auth = await requireStudentSession(event);
+  if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
 
   try {
     const {
@@ -25,7 +26,11 @@ exports.handler = async (event) => {
       .maybeSingle();
     if (already) return json(403, { error: 'You have already submitted this test' });
 
-    const { data: test } = await supabase.from('tests').select('class').eq('id', test_id).maybeSingle();
+    const { data: test } = await supabase.from('tests').select('id, class, status, start_at, end_at, duration_minutes').eq('id', test_id).maybeSingle();
+    if (!test) return json(404, { error: 'Test not found' });
+    if (test.status === 'draft') return json(403, { error: 'This test is not published' });
+    const now = new Date();
+    if (test.start_at && now < new Date(test.start_at)) return json(403, { error: 'This test has not opened yet' });
 
     const { data: questions, error: qErr } = await supabase
       .from('questions')
@@ -33,6 +38,22 @@ exports.handler = async (event) => {
       .eq('test_id', test_id);
     if (qErr) throw qErr;
     const qMap = Object.fromEntries(questions.map((q) => [q.id, q]));
+    const invalidQuestionIds = answers.some((a) => !qMap[a.question_id]);
+    const duplicateQuestionIds = new Set(answers.map((a) => a.question_id)).size !== answers.length;
+    if (invalidQuestionIds || duplicateQuestionIds) return json(400, { error: 'The submitted answer set is invalid for this test' });
+
+    const { data: reopen } = await supabase
+      .from('test_reopens')
+      .select('attempt_type, absence_reason_snapshot, reopened_at, reopen_minutes')
+      .eq('test_id', test_id)
+      .eq('student_id', auth.student_id)
+      .maybeSingle();
+    let effectiveEnd = test.end_at ? new Date(test.end_at) : null;
+    if (reopen) {
+      const minutes = Number(reopen.reopen_minutes) > 0 ? Number(reopen.reopen_minutes) : (Number(test.duration_minutes) || 30);
+      effectiveEnd = new Date(new Date(reopen.reopened_at).getTime() + minutes * 60000);
+    }
+    if (effectiveEnd && now > effectiveEnd) return json(403, { error: 'This test has closed' });
 
     // Practical questions need the same roster-rank used at test-detail
     // time so the snapshot we save matches exactly what the student saw.
@@ -47,13 +68,6 @@ exports.handler = async (event) => {
     // switch limit and this submission was auto-submitted — it still
     // gets graded normally, but the teacher sees a warning before
     // publishing results.
-    const { data: reopen } = await supabase
-      .from('test_reopens')
-      .select('attempt_type, absence_reason_snapshot')
-      .eq('test_id', test_id)
-      .eq('student_id', auth.student_id)
-      .maybeSingle();
-
     const { data: submission, error: sErr } = await supabase
       .from('submissions')
       .insert({

@@ -120,7 +120,10 @@ export default function Leaderboard() {
   const auth = getAuthInfo();
   const isStudent = auth?.role === 'student';
   const isAdmin = auth?.role === 'super_admin';
-  const classOptions = isAdmin ? CLASSES : (auth?.classes || []);
+  const [classOptions, setClassOptions] = useState(isAdmin ? CLASSES : (auth?.classes || []));
+  useEffect(() => {
+    if (isAdmin) api('/admin-catalog').then(d => setClassOptions(d.classes || CLASSES)).catch(() => {});
+  }, [isAdmin]);
 
   const [klass, setKlass] = useState(isStudent ? auth?.class : (classOptions[0] || ''));
   const [data, setData] = useState(null);

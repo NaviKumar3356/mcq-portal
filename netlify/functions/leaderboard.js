@@ -1,13 +1,18 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { requireStudentSession } = require('./utils/student-session');
 
 // Ranks students in a class by their average percentage score across every
 // test in that class whose result has been published. Percentage (not raw
 // marks) is what's averaged, so a paper out of 20 and a paper out of 100
 // contribute fairly to the same ranking.
 exports.handler = async (event) => {
-  const auth = getAuth(event);
+  let auth = getAuth(event);
   if (!auth) return json(401, { error: 'Not logged in' });
+  if (auth.role === 'student') {
+    auth = await requireStudentSession(event);
+    if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
+  }
 
   const klass = event.queryStringParameters?.class || auth.class;
   if (!klass) return json(400, { error: 'class is required' });

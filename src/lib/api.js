@@ -10,6 +10,11 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+export async function logoutStudentSession() {
+  try { await api('/student-logout', { method: 'POST' }); } catch {}
+  clearToken();
+}
+
 // Decodes the (unsigned, client-side-readable) payload of the current JWT —
 // role, name, class(es)/subject(s) — so the UI can render instantly on
 // refresh without an extra round trip. The server independently verifies
@@ -27,24 +32,64 @@ export function getAuthInfo() {
   }
 }
 
+const GET_CACHE = new Map();
+const GET_INFLIGHT = new Map();
+const GET_CACHE_TTL = 30000;
+
+export function clearApiCache() {
+  GET_CACHE.clear();
+}
+
 export async function api(path, { method = 'GET', body } = {}) {
-  const headers = { 'Content-Type': 'application/json' };
+  const normalizedMethod = method.toUpperCase();
   const token = getToken();
-  if (token) headers.Authorization = `Bearer ${token}`;
+  const cacheKey = `${normalizedMethod}:${path}:${token || 'public'}`;
 
-  const res = await fetch(`/api${path}`, {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  if (normalizedMethod === 'GET') {
+    const cached = GET_CACHE.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.data;
+    if (GET_INFLIGHT.has(cacheKey)) return GET_INFLIGHT.get(cacheKey);
+  } else {
+    GET_CACHE.clear();
+  }
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-  return data;
+  const request = (async () => {
+    const headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    const res = await fetch(`/api${path}`, {
+      method: normalizedMethod,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
+    if (normalizedMethod === 'GET') GET_CACHE.set(cacheKey, { data, expiresAt: Date.now() + GET_CACHE_TTL });
+    return data;
+  })();
+
+  if (normalizedMethod === 'GET') {
+    GET_INFLIGHT.set(cacheKey, request);
+    try { return await request; }
+    finally { GET_INFLIGHT.delete(cacheKey); }
+  }
+  return request;
 }
 
 // Upload a file directly to Supabase Storage using a signed token from our function.
+export async function uploadQuestionResource({ test_id, question_id, file }) {
+  if (file.size > 20 * 1024 * 1024) throw new Error('Question resource must be 20 MB or smaller.');
+  const { supabase } = await import('./supabaseClient.js');
+  const ext = file.name.split('.').pop();
+  const { path, token } = await api('/question-resource-upload-url', { method: 'POST', body: { test_id, question_id, file_ext: ext } });
+  const { error } = await supabase.storage.from('question-resources').uploadToSignedUrl(path, token, file);
+  if (error) throw error;
+  return path;
+}
+
 export async function uploadAnswerFile({ test_id, question_id, file }) {
+  if (file.size > 20 * 1024 * 1024) throw new Error('Answer file must be 20 MB or smaller.');
   const { supabase } = await import('./supabaseClient.js');
   const ext = file.name.split('.').pop();
   const { path, token } = await api('/upload-url', {
@@ -65,6 +110,7 @@ export async function uploadAnswerFile({ test_id, question_id, file }) {
 // then persists the resulting path onto the student's row. Called by a
 // teacher/admin from Manage Students.
 export async function uploadStudentPhoto({ student_id, file }) {
+  if (file.size > 5 * 1024 * 1024) throw new Error('Profile photo must be 5 MB or smaller.');
   const { supabase } = await import('./supabaseClient.js');
   const ext = file.name.split('.').pop();
   const { path, token } = await api('/student-photo-upload-url', {
@@ -85,6 +131,7 @@ export async function uploadStudentPhoto({ student_id, file }) {
 // Profile page (as opposed to a teacher/admin setting a student's photo
 // for them, above).
 async function uploadOwnPhoto({ uploadUrlPath, setPath, file, extraBody = {} }) {
+  if (file.size > 5 * 1024 * 1024) throw new Error('Profile photo must be 5 MB or smaller.');
   const { supabase } = await import('./supabaseClient.js');
   const ext = file.name.split('.').pop();
   const { path, token } = await api(uploadUrlPath, { method: 'POST', body: { ...extraBody, file_ext: ext } });

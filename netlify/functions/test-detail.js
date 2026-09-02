@@ -1,11 +1,12 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { requireStudentSession } = require('./utils/student-session');
 const { seededShuffle } = require('./utils/shuffle');
 const { getRosterRank, pickVariant } = require('./utils/practical');
 
 exports.handler = async (event) => {
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
+  const auth = await requireStudentSession(event);
+  if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
 
   const testId = event.queryStringParameters?.test_id;
   if (!testId) return json(400, { error: 'test_id is required' });
@@ -17,6 +18,8 @@ exports.handler = async (event) => {
       .eq('id', testId)
       .single();
     if (tErr || !test) return json(404, { error: 'Test not found' });
+
+    if (test.status === 'draft') return json(403, { error: 'This test is not published' });
 
     if (test.class !== auth.class) {
       return json(403, { error: 'This paper is not for your class' });
@@ -75,7 +78,7 @@ exports.handler = async (event) => {
 
     const { data: questions, error: qErr } = await supabase
       .from('questions')
-      .select('id, order_index, type, question_text, options, marks, language, variants')
+      .select('id, order_index, type, question_text, options, marks, language, variants, resource_path, resource_name, resource_mime')
       .eq('test_id', testId)
       .order('order_index', { ascending: true });
     if (qErr) throw qErr;
@@ -133,6 +136,13 @@ exports.handler = async (event) => {
     // consistent shape whether or not shuffling is on. "index" is the
     // ORIGINAL option position — that's what gets submitted back, so
     // grading (which compares against correct_option) needs no changes.
+    for (const q of withVariants) {
+      if (q.resource_path) {
+        const { data } = await supabase.storage.from('question-resources').createSignedUrl(q.resource_path, 3600);
+        q.resource_url = data?.signedUrl || null;
+      }
+    }
+
     const finalQuestions = withVariants.map((q) => {
       if (q.type !== 'mcq' || !Array.isArray(q.options)) return q;
       const alreadyShaped = q.options.length > 0 && typeof q.options[0] === 'object';

@@ -338,6 +338,14 @@ export default function TakeTest() {
                 </div>
               )}
 
+              {q.resource_url && (
+                <div className="question-resource-student">
+                  <div className="meta">📎 QUESTION RESOURCE</div>
+                  {q.resource_mime?.startsWith('image/') ? <img src={q.resource_url} alt={q.resource_name || 'Question reference'} className="question-reference-image" /> : null}
+                  <a className="secondary small nav-action-button" href={q.resource_url} target="_blank" rel="noreferrer">⬇ {q.resource_name || 'Open / download resource'}</a>
+                </div>
+              )}
+
               {q.type === 'mcq' && (
                 <div>
                   {(q.options || []).map((opt) => (
@@ -365,7 +373,7 @@ export default function TakeTest() {
                 <div>
                   <input
                     type="file"
-                    accept="image/*,.pdf"
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.psd,.xcf"
                     onChange={(e) => e.target.files[0] && handleFile(q.id, e.target.files[0])}
                   />
                   {uploadingFor === q.id && <p className="meta">Uploading…</p>}
@@ -388,6 +396,12 @@ export default function TakeTest() {
                     value={answers[q.id]?.written_text ?? (q.starter_code || '')}
                     onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
                   />
+                  {q.language === 'html' && (
+                    <div className="html-live-preview">
+                      <div className="meta">LIVE HTML PREVIEW</div>
+                      <iframe title={`HTML preview for question ${idx + 1}`} sandbox="allow-scripts" srcDoc={answers[q.id]?.written_text || q.starter_code || ''} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>

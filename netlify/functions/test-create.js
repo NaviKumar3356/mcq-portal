@@ -1,6 +1,6 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
-const { CLASSES, SUBJECTS } = require('./utils/constants');
+const { getCatalog } = require('./utils/catalog');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
@@ -18,8 +18,9 @@ exports.handler = async (event) => {
     if (!title || !className || !subject || !Array.isArray(questions) || questions.length === 0) {
       return json(400, { error: 'title, class, subject, and at least one question are required' });
     }
-    if (!CLASSES.includes(className)) return json(400, { error: 'Invalid class' });
-    if (!SUBJECTS.includes(subject)) return json(400, { error: 'Invalid subject' });
+    const catalog = await getCatalog();
+    if (!catalog.classes.includes(className)) return json(400, { error: 'Invalid class' });
+    if (!catalog.subjects.includes(subject)) return json(400, { error: 'Invalid subject' });
 
     if (auth.role === 'teacher') {
       if (!(auth.classes || []).includes(className) || !(auth.subjects || []).includes(subject)) {
@@ -69,6 +70,10 @@ exports.handler = async (event) => {
       marks: q.marks || 1,
       language: q.type === 'practical' ? q.language : null,
       variants: q.type === 'practical' ? q.variants : null,
+      reference_answer: q.reference_answer || null,
+      resource_path: q.resource_path || null,
+      resource_name: q.resource_name || null,
+      resource_mime: q.resource_mime || null,
     }));
 
     const { error: qErr } = await supabase.from('questions').insert(qRows);

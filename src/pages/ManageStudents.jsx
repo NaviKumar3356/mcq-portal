@@ -37,7 +37,7 @@ export default function ManageStudents() {
   const [classFilter, setClassFilter] = useState('');
   const [search, setSearch] = useState('');
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', section: '', dob: '' });
+  const [form, setForm] = useState({ roll_number: '', name: '', class: allowedClasses[0] || '', section: 'A', dob: '' });
   const [saving, setSaving] = useState(false);
   const [photoUploadingId, setPhotoUploadingId] = useState(null);
 
@@ -60,7 +60,13 @@ export default function ManageStudents() {
       .then((d) => setStudents(d.students))
       .catch((e) => setError(e.message));
   }
-  useEffect(() => { if (isAdmin) api('/admin-catalog').then(d => setCatalog({ classes: d.classes || CLASSES, sections: d.sections || ['A','B','C'] })).catch(() => {}); }, [isAdmin]);
+  useEffect(() => {
+    if (isAdmin) {
+      api('/admin-catalog').then(d => setCatalog({ classes: d.classes || CLASSES, sections: d.sections || ['A','B','C'] })).catch(() => {});
+    } else {
+      api('/public-catalog').then(d => setCatalog(c => ({ ...c, sections: d.sections || c.sections }))).catch(() => {});
+    }
+  }, [isAdmin]);
   useEffect(() => { if (!form.class && allowedClasses[0]) setForm(f => ({ ...f, class: allowedClasses[0] })); }, [allowedClasses.join('|')]);
   useEffect(load, [classFilter, search]);
 
@@ -70,7 +76,7 @@ export default function ManageStudents() {
     setError('');
     try {
       await api('/student-create', { method: 'POST', body: form });
-      setForm({ roll_number: '', name: '', class: allowedClasses[0] || '', section: '', dob: '' });
+      setForm({ roll_number: '', name: '', class: allowedClasses[0] || '', section: 'A', dob: '' });
       setShowAdd(false);
       load();
     } catch (e) {
@@ -105,7 +111,7 @@ export default function ManageStudents() {
 
   function startEdit(s) {
     setEditingId(s.id);
-    setEditForm({ roll_number: s.roll_number, name: s.name, class: s.class, section: s.section || '', dob: s.dob });
+    setEditForm({ roll_number: s.roll_number, name: s.name, class: s.class, section: s.section || 'A', dob: s.dob });
     setEditError('');
   }
   function cancelEdit() {

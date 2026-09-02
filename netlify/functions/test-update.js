@@ -21,7 +21,10 @@ exports.handler = async (event) => {
     }
 
     const patch = {};
-    if (status) patch.status = status; // 'draft' | 'published' | 'closed'
+    if (status) {
+      if (!['draft','published','closed'].includes(status)) return json(400, { error: 'Invalid test status' });
+      patch.status = status;
+    }
     if (typeof results_published === 'boolean') patch.results_published = results_published;
     if (typeof shuffle_questions === 'boolean') patch.shuffle_questions = shuffle_questions;
     if (typeof shuffle_options === 'boolean') patch.shuffle_options = shuffle_options;

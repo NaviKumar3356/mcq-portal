@@ -6,7 +6,7 @@ exports.handler = async (event) => {
   if (!auth) return json(401, { error: 'Not authorized' });
 
   try {
-    let query = supabase.from('tests').select('*').order('created_at', { ascending: false });
+    let query = supabase.from('tests').select('id,title,subject,class,duration_minutes,start_at,end_at,total_marks,status,results_published,answer_key_set,created_at,created_by,shuffle_questions,shuffle_options,shuffle_group_size').order('created_at', { ascending: false });
 
     if (auth.role === 'teacher') {
       const classes = auth.classes || [];

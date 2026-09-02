@@ -1,6 +1,6 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
-import { getToken, clearToken, getAuthInfo } from './lib/api.js';
+import { getToken, clearToken, getAuthInfo, api, logoutStudentSession } from './lib/api.js';
 import SchoolLogo from './components/SchoolLogo.jsx';
 import { SCHOOL_SHORT } from './lib/constants.js';
 import { ADMIN_LOGIN_PATH } from './lib/routes.js';
@@ -46,6 +46,29 @@ function Protected({ roles, children }) {
   return children;
 }
 
+function StudentSessionHeartbeat() {
+  const nav = useNavigate();
+  useEffect(() => {
+    const auth = getAuthInfo();
+    if (!auth || auth.role !== 'student' || !auth.session_id) return;
+    let stopped = false;
+    const beat = async () => {
+      try {
+        await api('/student-session-heartbeat', { method: 'POST' });
+      } catch (e) {
+        if (!stopped && /session|signed out|logged in/i.test(e.message || '')) {
+          clearToken();
+          nav('/student/login', { replace: true, state: { sessionExpired: true } });
+        }
+      }
+    };
+    beat();
+    const id = window.setInterval(beat, 2 * 60 * 1000);
+    return () => { stopped = true; window.clearInterval(id); };
+  }, [nav]);
+  return null;
+}
+
 function StudentTopbar() {
   const nav = useNavigate();
   const loc = useLocation();
@@ -58,7 +81,7 @@ function StudentTopbar() {
       </span>
       <span>
         <span className="who">Student panel &nbsp;</span>
-        <button className="topbar-logout-button" onClick={() => { clearToken(); nav('/student/login'); }} aria-label="Log out of student portal">↪ Log out</button>
+        <button className="topbar-logout-button" onClick={async () => { await logoutStudentSession(); nav('/student/login'); }} aria-label="Log out of student portal">↪ Log out</button>
       </span>
     </div>
   );
@@ -105,6 +128,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <SiteTheme />
+      <StudentSessionHeartbeat />
       <StudentTopbar />
       <AppErrorBoundary>
         <Suspense fallback={<PageLoading />}>

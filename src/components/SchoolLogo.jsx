@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { api } from '../lib/api.js';
 
 let cachedLogo = null;
 let loading = null;
@@ -6,8 +7,7 @@ let loading = null;
 async function loadLogo() {
   if (cachedLogo) return cachedLogo;
   if (!loading) {
-    loading = fetch('/api/site-settings')
-      .then((r) => r.ok ? r.json() : {})
+    loading = api('/site-settings')
       .then((d) => {
         cachedLogo = d.logo_url || '/logo.jpg';
         return cachedLogo;

@@ -55,6 +55,7 @@ export default function AdminSettings() {
   const [catalog, setCatalog] = useState({ classes: [], subjects: [], sections: [] });
   const [catalogDraft, setCatalogDraft] = useState({ classes: '', subjects: '', sections: '' });
   const [catalogSaving, setCatalogSaving] = useState(false);
+  const [catalogNew, setCatalogNew] = useState({ classes: '', subjects: '', sections: '' });
 
   async function load() {
     setError('');
@@ -122,6 +123,24 @@ export default function AdminSettings() {
     finally { setSaving(false); }
   }
 
+
+  function catalogItems(key) {
+    return catalogDraft[key].split(/\n|,/).map(v => v.trim()).filter(Boolean);
+  }
+
+  function addCatalogItem(key) {
+    const value = catalogNew[key].trim();
+    if (!value) return;
+    const items = catalogItems(key);
+    if (items.some(v => v.toLowerCase() === value.toLowerCase())) return;
+    setCatalogDraft(d => ({ ...d, [key]: [...items, value].join('\n') }));
+    setCatalogNew(n => ({ ...n, [key]: '' }));
+  }
+
+  function removeCatalogItem(key, value) {
+    const items = catalogItems(key).filter(v => v !== value);
+    setCatalogDraft(d => ({ ...d, [key]: items.join('\n') }));
+  }
 
   async function saveCatalog() {
     setCatalogSaving(true); setError(''); setSuccess('');
@@ -232,24 +251,55 @@ export default function AdminSettings() {
 
 
       <div className="card admin-catalog-card">
-        <div className="card-section-title">🗂️ School academic catalogue</div>
-        <p className="meta">Manage the options used across student records, teacher assignments and paper creation. Put one item per line; existing records are not deleted when an option is removed from this list.</p>
-        <div className="admin-catalog-grid">
-          {[
-            ['classes','Classes','I\nII\nIII\nIV'],
-            ['subjects','Subjects','Mathematics\nEnglish\nScience'],
-            ['sections','Sections','A\nB\nC'],
-          ].map(([key,label,placeholder]) => (
-            <div className="admin-catalog-editor" key={key}>
-              <label>{label}</label>
-              <textarea rows={7} value={catalogDraft[key]} placeholder={placeholder} onChange={e => setCatalogDraft(d => ({ ...d, [key]: e.target.value }))} />
-              <small>{(catalogDraft[key].split(/\n|,/).map(v => v.trim()).filter(Boolean)).length} configured</small>
-            </div>
-          ))}
+        <div className="admin-section-heading">
+          <div>
+            <span className="section-kicker">ACADEMIC SETUP</span>
+            <h3>Classes, subjects & sections</h3>
+            <p className="meta">Use the simple Add / Remove controls below. You do not need to type a list or know the database format.</p>
+          </div>
+          <span className="admin-config-badge">Configuration</span>
         </div>
+
+        <div className="catalog-help-strip">
+          <span className="catalog-help-icon">✓</span>
+          <div><strong>How to add a new option</strong><span>Type the name in the box and click Add. It will become available in student records, teacher assignments and paper creation after you save.</span></div>
+        </div>
+
+        <div className="admin-catalog-grid">
+          {[['classes','Classes','e.g. XIII'],['subjects','Subjects','e.g. Artificial Intelligence'],['sections','Sections','e.g. D']].map(([key,label,placeholder]) => {
+            const items = catalogItems(key);
+            return (
+              <div className="admin-catalog-editor" key={key}>
+                <div className="catalog-editor-head">
+                  <div><h4>{label}</h4><span>{items.length} configured</span></div>
+                </div>
+                <div className="catalog-add-row">
+                  <input
+                    value={catalogNew[key]}
+                    placeholder={placeholder}
+                    aria-label={`New ${label.slice(0,-1)}`}
+                    onChange={e => setCatalogNew(n => ({ ...n, [key]: e.target.value }))}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addCatalogItem(key); } }}
+                  />
+                  <button type="button" className="secondary" onClick={() => addCatalogItem(key)}>+ Add</button>
+                </div>
+                <div className="catalog-chip-list">
+                  {items.map(item => (
+                    <span className="catalog-chip" key={item}>
+                      <span>{item}</span>
+                      <button type="button" aria-label={`Remove ${item}`} onClick={() => removeCatalogItem(key, item)}>×</button>
+                    </span>
+                  ))}
+                  {items.length === 0 && <span className="catalog-empty">No options configured yet.</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="admin-catalog-actions">
           <button className="primary" type="button" onClick={saveCatalog} disabled={catalogSaving}>{catalogSaving ? 'Saving catalogue…' : 'Save academic catalogue'}</button>
-          <span className="meta">Sections are assigned to students; classes and subjects are also used for teacher permissions.</span>
+          <span className="meta">Removing an option only removes it from future selections; existing student/test records are not deleted.</span>
         </div>
       </div>
 

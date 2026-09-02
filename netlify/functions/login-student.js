@@ -1,5 +1,6 @@
 const supabase = require('./utils/db');
 const { sign, json } = require('./utils/auth');
+const { acquireStudentSession } = require('./utils/student-session');
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
@@ -22,8 +23,14 @@ exports.handler = async (event) => {
     if (error) throw error;
     if (!student) return json(401, { error: 'Class, roll number or date of birth is incorrect' });
 
+    const session = await acquireStudentSession(student.id);
+    if (!session.ok) {
+      return json(409, { error: 'This student account is already signed in on another device or browser. Log out there first, or wait 15 minutes for the inactive session to expire.' });
+    }
+
     const token = sign({
       role: 'student',
+      session_id: session.sessionId,
       student_id: student.id,
       name: student.name,
       class: student.class,

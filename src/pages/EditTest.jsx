@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api, getAuthInfo } from '../lib/api.js';
+import { api, getAuthInfo, uploadQuestionResource } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
 import { parseQuestionsDocx } from '../lib/parseQuestionsDocx.js';
+import ScheduleRangePicker from '../components/ScheduleRangePicker.jsx';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -26,6 +27,10 @@ function blankQuestion(type = 'mcq') {
     marks: 1,
     language: type === 'practical' ? 'python' : undefined,
     variants: type === 'practical' ? [{ question_text: '', starter_code: '' }] : undefined,
+    reference_answer: '',
+    resource_path: null,
+    resource_name: '',
+    resource_mime: '',
   };
 }
 
@@ -36,6 +41,12 @@ export default function EditTest() {
   const isAdmin = auth?.role === 'super_admin';
   const classOptions = isAdmin ? CLASSES : (auth?.classes || []);
   const subjectOptions = isAdmin ? SUBJECTS : (auth?.subjects || []);
+  const [catalog, setCatalog] = useState({ classes: classOptions, subjects: subjectOptions });
+  useEffect(() => {
+    if (isAdmin) api('/admin-catalog').then(d => setCatalog({ classes: d.classes || classOptions, subjects: d.subjects || subjectOptions })).catch(() => {});
+  }, [isAdmin]);
+  const activeClassOptions = catalog.classes;
+  const activeSubjectOptions = catalog.subjects;
 
   const [loaded, setLoaded] = useState(false);
   const [submissionsCount, setSubmissionsCount] = useState(0);
@@ -93,6 +104,10 @@ export default function EditTest() {
         ...q,
         marks: q.marks,
         variants: q.type === 'practical' ? (q.variants && q.variants.length > 0 ? q.variants : [{ question_text: '', starter_code: '' }]) : q.variants,
+        reference_answer: q.reference_answer || '',
+        resource_path: q.resource_path || null,
+        resource_name: q.resource_name || '',
+        resource_mime: q.resource_mime || '',
       })));
       setSubmissionsCount(d.submissions_count);
       setLoaded(true);
@@ -198,38 +213,20 @@ export default function EditTest() {
           <label>Title</label>
           <input value={title} onChange={(e) => setTitle(e.target.value)} required />
 
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label>Subject</label>
-              <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
-                {(subjectOptions.includes(subject) ? subjectOptions : [subject, ...subjectOptions]).map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
+          <div className="create-schedule-card">
+            <div className="create-section-heading">
+              <div className="create-section-icon">🗓️</div>
+              <div>
+                <div className="card-section-title">Assessment schedule</div>
+                <p className="meta">Update the opening and closing window for this paper.</p>
+              </div>
             </div>
-            <div style={{ flex: 1 }}>
-              <label>Class</label>
-              <select value={klass} onChange={(e) => setKlass(e.target.value)} required>
-                {(classOptions.includes(klass) ? classOptions : [klass, ...classOptions]).map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div style={{ flex: 1 }}>
-              <label>Duration (minutes)</label>
-              <input type="text" inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} />
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
-              <label>Opens at (optional)</label>
-              <input type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <label>Closes at (optional)</label>
-              <input type="datetime-local" value={endAt} onChange={(e) => setEndAt(e.target.value)} />
-            </div>
+            <ScheduleRangePicker
+              startValue={startAt}
+              endValue={endAt}
+              onStartChange={setStartAt}
+              onEndChange={setEndAt}
+            />
           </div>
 
           <div className="shuffle-box">
@@ -329,6 +326,13 @@ export default function EditTest() {
               </>
             )}
 
+            <div className="question-resource-box">
+              <label>📎 Reference file / image (optional)</label>
+              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onChange={async (e) => { const file=e.target.files[0]; if(!file || !q.id) return; try { const path=await uploadQuestionResource({test_id:testId,question_id:q.id,file}); updateQ(i,{resource_path:path,resource_name:file.name,resource_mime:file.type}); } catch(err){ setError(`Could not upload resource: ${err.message}`); } }} />
+              {q.resource_name && <div className="meta">✓ {q.resource_name} — students can view/download this resource.</div>}
+              <small className="meta">Reference image, Word/Excel template, photo-editing source, or task file.</small>
+            </div>
+
             <div style={{ flex: 1, maxWidth: 140 }}>
               <label>Marks</label>
               <input type="text" inputMode="numeric" value={q.marks} onChange={(e) => updateQ(i, { marks: e.target.value })} />
@@ -372,6 +376,10 @@ export default function EditTest() {
                   <option value="python">Python</option>
                   <option value="html">HTML</option>
                 </select>
+                <label>Correct / reference answer (teacher only)</label>
+                <textarea className="code-editor" spellCheck={false} value={q.reference_answer || ''} onChange={(e) => updateQ(i, { reference_answer: e.target.value })} placeholder={q.language === 'html' ? '<!-- Correct HTML code -->' : '# Correct Python code'} />
+                <p className="meta">Model answer is hidden from students and can be applied to all students during grading.
+                </p>
                 <p className="meta">
                   Each variant below is a different problem. Every student gets exactly one, spread
                   round-robin across the class roster by roll number.

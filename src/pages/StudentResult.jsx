@@ -7,6 +7,7 @@ export default function StudentResult() {
   const { testId } = useParams();
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [exportError, setExportError] = useState('');
   const [exporting, setExporting] = useState('');
   const [reviewOpen, setReviewOpen] = useState(false);
   const [student, setStudent] = useState(null);
@@ -32,6 +33,7 @@ export default function StudentResult() {
   async function downloadImage() {
     if (!cardRef.current) return;
     setExporting('jpg');
+    setExportError('');
     try {
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(cardRef.current, { backgroundColor: '#ffffff', scale: 2 });
@@ -40,7 +42,7 @@ export default function StudentResult() {
       link.href = canvas.toDataURL('image/jpeg', 0.95);
       link.click();
     } catch (e) {
-      setError('Could not generate the image: ' + e.message);
+      setExportError('Could not generate the image: ' + e.message);
     } finally {
       setExporting('');
     }
@@ -49,6 +51,7 @@ export default function StudentResult() {
   async function downloadPDF() {
     if (!result) return;
     setExporting('pdf');
+    setExportError('');
     try {
       const { jsPDF } = await import('jspdf');
       const { drawReportCardHeader, drawSummaryCard, drawPerformanceRow, drawMCQReviewBlock, drawWatermark, addFooter } = await import('../lib/reportExport.js');
@@ -123,11 +126,33 @@ export default function StudentResult() {
           });
         } else {
           const qText = q.question_text || a.variant_snapshot?.question_text || `Question ${i + 1}`;
-          const lines = doc.splitTextToSize(`${i + 1}. ${qText}`, 145);
+          const isPractical = q.type === 'practical';
           const answer = a.written_text || '';
-          const answerLines = answer ? doc.splitTextToSize(`Student answer: ${answer}`, 175) : ['Student answer: Not submitted'];
-          const rowH = Math.max(18, lines.length * 4.2 + answerLines.length * 3.8 + 10);
-          if (y + rowH > pageH - 20) {
+          const teacherRemark = String(a.teacher_remark || '').trim();
+
+          // Practical/manual answers need a report-card friendly code layout.
+          // Keep code in Courier, preserve line breaks, and print the teacher's
+          // feedback/correct code instead of hiding it inside a single paragraph.
+          const wrapCode = (value, width = 92) => {
+            const sourceLines = String(value || '').replace(/\r\n/g, '\n').split('\n');
+            const out = [];
+            sourceLines.forEach((line) => {
+              const wrapped = doc.splitTextToSize(line || ' ', width);
+              out.push(...(wrapped.length ? wrapped : [' ']));
+            });
+            return out;
+          };
+          const questionLines = doc.splitTextToSize(`${i + 1}. ${qText}`, 175);
+          const answerLines = isPractical
+            ? wrapCode(answer || 'No code submitted')
+            : doc.splitTextToSize(`Student answer: ${answer || 'Not submitted'}`, 175);
+          const remarkLines = teacherRemark
+            ? (isPractical ? wrapCode(teacherRemark) : doc.splitTextToSize(teacherRemark, 175))
+            : [];
+          const lineHeight = isPractical ? 3.35 : 3.8;
+          const estimated = 20 + questionLines.length * 4.2 + answerLines.length * lineHeight + (teacherRemark ? 14 + remarkLines.length * lineHeight : 0);
+
+          if (y + Math.min(estimated, 50) > pageH - 20 || (estimated > pageH - 38 && y > 25)) {
             addFooter(doc);
             doc.addPage();
             await drawWatermark(doc);
@@ -138,23 +163,63 @@ export default function StudentResult() {
             doc.text('Question-wise review — continued', 16, y);
             y += 8;
           }
+
+          // If a very long answer/remark cannot fit on one page, split it into
+          // readable pages rather than allowing text to overlap the footer.
+          const drawSection = async (label, linesToDraw, codeLike = false) => {
+            if (!linesToDraw.length) return;
+            const lh = codeLike ? 3.35 : 3.8;
+            const sectionHeight = 8 + linesToDraw.length * lh;
+            if (y + sectionHeight > pageH - 18) {
+              addFooter(doc);
+              doc.addPage();
+              await drawWatermark(doc);
+              y = 20;
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(12);
+              doc.setTextColor(125, 28, 45);
+              doc.text('Question-wise review — continued', 16, y);
+              y += 8;
+            }
+            const boxY = y;
+            doc.setFillColor(codeLike ? 247 : 250, codeLike ? 248 : 247, codeLike ? 252 : 239);
+            doc.roundedRect(16, boxY, pageW - 32, sectionHeight, 2.5, 2.5, 'F');
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(7.2);
+            doc.setTextColor(103, 108, 116);
+            doc.text(label.toUpperCase(), 20, boxY + 5);
+            doc.setFont(codeLike ? 'courier' : 'helvetica', codeLike ? 'normal' : 'normal');
+            doc.setFontSize(codeLike ? 6.8 : 7.8);
+            doc.setTextColor(28, 42, 65);
+            linesToDraw.forEach((line, idx) => doc.text(String(line), 20, boxY + 10 + idx * lh));
+            y = boxY + sectionHeight + 4;
+          };
+
+          const cardTop = y;
+          const headerH = 9 + questionLines.length * 4.2;
+          const minCardH = 18;
           doc.setFillColor(250, 247, 239);
-          doc.roundedRect(14, y, pageW - 28, rowH, 3, 3, 'F');
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(...MAROON);
-          doc.text(`QUESTION ${i + 1}`, 19, y + 6);
-          doc.text(`${a.marks_awarded ?? '—'} / ${q.marks ?? '—'} marks`, pageW - 19, y + 6, { align: 'right' });
-          doc.setFont('helvetica', 'bold'); doc.setFontSize(8.8); doc.setTextColor(...INK);
-          doc.text(lines, 19, y + 12);
-          doc.setFont('helvetica', 'normal'); doc.setFontSize(7.8); doc.setTextColor(...MUTED);
-          doc.text(answerLines, 19, y + 12 + lines.length * 4.2 + 3);
-          y += rowH + 5;
+          doc.roundedRect(14, cardTop, pageW - 28, minCardH, 3, 3, 'F');
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(125, 28, 45);
+          doc.text(`QUESTION ${i + 1}`, 19, cardTop + 6);
+          doc.text(`${a.marks_awarded ?? '—'} / ${q.marks ?? '—'} marks`, pageW - 19, cardTop + 6, { align: 'right' });
+          y = cardTop + 11;
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(8.8); doc.setTextColor(28, 42, 65);
+          doc.text(questionLines, 19, y);
+          y += questionLines.length * 4.2 + 4;
+
+          await drawSection(isPractical ? 'Student submitted code' : 'Student answer', answerLines, isPractical);
+          if (teacherRemark) {
+            await drawSection(isPractical ? "Teacher's remark / correct code" : "Teacher's remark", remarkLines, isPractical);
+          }
+          y += 2;
         }
       }
 
       addFooter(doc);
       doc.save(`${fileBase}.pdf`);
     } catch (e) {
-      setError('Could not generate the PDF: ' + e.message);
+      setExportError('Could not generate the PDF: ' + e.message);
     } finally {
       setExporting('');
     }
@@ -302,7 +367,7 @@ export default function StudentResult() {
                       </div>
                     )}
 
-                    {a.teacher_remark && <div className="result-teacher-remark">💬 <strong>Teacher's remark:</strong> {a.teacher_remark}</div>}
+                    {a.teacher_remark && <div className="result-teacher-remark"><div>💬 <strong>Teacher's remark:</strong></div>{isPractical ? <pre className="result-teacher-code">{a.teacher_remark}</pre> : <div className="result-teacher-text">{a.teacher_remark}</div>}</div>}
                   </article>
                 );
               })}
@@ -310,6 +375,8 @@ export default function StudentResult() {
           )}
         </div>
       </div>
+
+      {exportError && <div className="error-box" role="alert">{exportError}</div>}
 
       <div className="export-bar result-export-bar">
         <span className="meta">Save this result:</span>

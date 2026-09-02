@@ -32,7 +32,7 @@ exports.handler = async (event) => {
       const name = String(raw.name || '').trim();
       const klass = String(raw.class || '').trim();
       const dob = String(raw.dob || '').trim();
-      const section = String(raw.section || '').trim();
+      const section = String(raw.section || 'A').trim();
       const srnoRaw = String(raw.srno ?? '').trim();
       const rowNum = i + 1;
 
@@ -66,7 +66,7 @@ exports.handler = async (event) => {
             roll_number,
             name,
             class: klass,
-            section: section || null,
+            section: section || 'A',
             dob,
             added_by: auth.role === 'teacher' ? auth.teacher_id : null,
           },

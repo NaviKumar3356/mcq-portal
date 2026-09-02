@@ -205,3 +205,23 @@ table.grade-table td, table.grade-table th { border-bottom: 1px solid #ece6d8; }
    ============================================================ */
 form .card > div[style*="display: flex"] > div { min-width: 0; }
 .multiselect { margin-top: 4px; }
+
+
+/* ============================================================
+   V19.2+ FINAL VISUAL CONSISTENCY PASS
+   ============================================================ */
+.admin-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.admin-stat-card { min-height: 126px; }
+.admin-stat-body { padding-right: 72px; }
+.admin-dash-hero .nav-action-button { white-space: nowrap; }
+.admin-settings-page .branding-asset-card { overflow: hidden; }
+.admin-settings-page .branding-asset-preview { display: grid; place-items: center; overflow: hidden; }
+.admin-settings-page .branding-asset-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.create-schedule-card {
+  margin-top: 16px; padding: 20px; border: 1px solid #e5dacb; border-radius: 18px;
+  background: linear-gradient(145deg,#fffdf9,#f8f4ec);
+  box-shadow: 0 5px 16px rgba(55,38,22,.035);
+}
+.create-schedule-card .create-section-heading { margin-bottom: 16px; }
+@media (max-width: 1050px) { .admin-stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+@media (max-width: 560px) { .admin-stat-grid { grid-template-columns: 1fr; } .create-schedule-card { padding: 16px; } }

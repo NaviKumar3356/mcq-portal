@@ -1,28 +1,6 @@
-[build]
-  command = "npm install && npm run verify && npm run build"
-  publish = "dist"
-  functions = "netlify/functions"
+# Frontend (safe to expose in the browser — used only to complete signed file uploads)
+VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-[functions]
-  node_bundler = "esbuild"
-
-# API routes go to serverless functions
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
-
-# Everything else is a client-side React route (SPA fallback)
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Content-Type-Options = "nosniff"
-    X-Frame-Options = "SAMEORIGIN"
-    Referrer-Policy = "strict-origin-when-cross-origin"
-    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+# Private admin login path. Do not link this on public pages.
+VITE_ADMIN_LOGIN_PATH=/school-admin-console-7f3c/login

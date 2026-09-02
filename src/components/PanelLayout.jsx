@@ -30,8 +30,12 @@ export default function PanelLayout({ items, children }) {
   const navItems = hasProfileLink ? items : [...items, profileLink];
 
   return (
-    <div className="panel-shell">
-      <aside className="sidebar">
+    <div className={`panel-shell panel-shell-${auth?.role === 'super_admin' ? 'admin' : 'teacher'}`}>
+      <div className="mobile-panel-header">
+        <div className="mobile-panel-brand"><SchoolLogo size={34} /><div><strong>{SCHOOL_SHORT}</strong><span>{auth?.role === 'super_admin' ? 'Administration' : 'Teacher portal'}</span></div></div>
+        <button className="mobile-panel-menu" type="button" onClick={() => document.querySelector('.sidebar')?.classList.toggle('mobile-open')} aria-label="Open navigation">☰</button>
+      </div>
+      <aside className="sidebar" onClick={(e) => { if (e.target.closest('.sidebar-link')) e.currentTarget.classList.remove('mobile-open'); }}>
         <div className="sidebar-brand">
           <SchoolLogo size={42} />
           <span>{SCHOOL_SHORT}</span>

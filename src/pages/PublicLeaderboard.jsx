@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME, SCHOOL_PLACE, CLASSES } from '../lib/constants.js';
@@ -36,7 +36,8 @@ export default function PublicLeaderboard() {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
-  const classOptions = useMemo(() => Array.from(new Set(CLASSES || [])).filter(Boolean), []);
+  const [classOptions, setClassOptions] = useState(() => Array.from(new Set(CLASSES || [])).filter(Boolean));
+  useEffect(() => { api('/public-catalog').then(d => { if (Array.isArray(d.classes)) setClassOptions(d.classes); }).catch(() => {}); }, []);
 
   async function load() {
     setError('');

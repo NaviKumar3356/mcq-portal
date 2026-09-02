@@ -1,5 +1,6 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { requireStudentSession } = require('./utils/student-session');
 
 // A STUDENT setting their own photo (different from
 // student-photo-upload-url.js, which is a teacher/admin setting a photo
@@ -7,8 +8,8 @@ const { getAuth, json } = require('./utils/auth');
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
+  const auth = await requireStudentSession(event);
+  if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
 
   try {
     const { file_ext } = JSON.parse(event.body || '{}');

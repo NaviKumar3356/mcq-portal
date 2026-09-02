@@ -26,6 +26,7 @@ export default function TeacherDashboard() {
   const [classFilter, setClassFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [search, setSearch] = useState('');
+  const [catalog, setCatalog] = useState({ classes: isAdmin ? CLASSES : (auth?.classes || []), subjects: isAdmin ? SUBJECTS : (auth?.subjects || []) });
 
   function load() {
     api('/admin-tests-list')
@@ -33,6 +34,10 @@ export default function TeacherDashboard() {
       .catch((e) => setError(e.message));
   }
   useEffect(load, []);
+  useEffect(() => {
+    const endpoint = isAdmin ? '/admin-catalog' : '/public-catalog';
+    api(endpoint).then(d => setCatalog({ classes: isAdmin ? (d.classes || CLASSES) : (auth?.classes || []), subjects: isAdmin ? (d.subjects || SUBJECTS) : (auth?.subjects || []) })).catch(() => {});
+  }, [isAdmin]);
 
   async function updateTest(id, patch) {
     try {
@@ -74,11 +79,11 @@ export default function TeacherDashboard() {
         <input type="text" placeholder="Search by title…" value={search} onChange={(e) => setSearch(e.target.value)} />
         <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)}>
           <option value="">All classes</option>
-          {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {catalog.classes.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)}>
           <option value="">All subjects</option>
-          {SUBJECTS.map((s) => <option key={s} value={s}>{s}</option>)}
+          {catalog.subjects.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
 

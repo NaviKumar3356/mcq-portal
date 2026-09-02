@@ -24,10 +24,13 @@ function getAuth(event) {
 }
 
 function json(statusCode, body) {
+  const safeBody = statusCode >= 500 && (process.env.NODE_ENV === 'production' || process.env.CONTEXT === 'production')
+    ? { error: 'Internal server error' }
+    : body;
   return {
     statusCode,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' },
+    body: JSON.stringify(safeBody),
   };
 }
 

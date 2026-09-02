@@ -40,7 +40,7 @@ exports.handler = async (event) => {
 
     const { error } = await supabase
       .from('students')
-      .update({ roll_number: roll_number.trim(), name, class: klass, section: section || null, dob })
+      .update({ roll_number: roll_number.trim(), name, class: klass, section: section || 'A', dob })
       .eq('id', student_id);
     if (error) throw error;
 

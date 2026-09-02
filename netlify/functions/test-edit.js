@@ -1,6 +1,6 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
-const { CLASSES, SUBJECTS } = require('./utils/constants');
+const { getCatalog } = require('./utils/catalog');
 
 function teacherCanAccess(auth, test) {
   if (auth.role !== 'teacher') return true;
@@ -45,8 +45,9 @@ exports.handler = async (event) => {
       if (!test_id || !title || !className || !subject || !Array.isArray(questions) || questions.length === 0) {
         return json(400, { error: 'test_id, title, class, subject, and at least one question are required' });
       }
-      if (!CLASSES.includes(className)) return json(400, { error: 'Invalid class' });
-      if (!SUBJECTS.includes(subject)) return json(400, { error: 'Invalid subject' });
+      const catalog = await getCatalog();
+      if (!catalog.classes.includes(className)) return json(400, { error: 'Invalid class' });
+      if (!catalog.subjects.includes(subject)) return json(400, { error: 'Invalid subject' });
 
       for (const q of questions) {
         if (q.type === 'practical' && (!Array.isArray(q.variants) || q.variants.length === 0 || !q.variants[0].question_text)) {
@@ -97,6 +98,10 @@ exports.handler = async (event) => {
           patch.language = q.language;
           patch.variants = q.variants;
         }
+        patch.reference_answer = q.reference_answer || null;
+        patch.resource_path = q.resource_path || null;
+        patch.resource_name = q.resource_name || null;
+        patch.resource_mime = q.resource_mime || null;
         const { error } = await supabase.from('questions').update(patch).eq('id', q.id);
         if (error) throw error;
 
@@ -142,6 +147,10 @@ exports.handler = async (event) => {
           marks: q.marks || 1,
           language: q.type === 'practical' ? q.language : null,
           variants: q.type === 'practical' ? q.variants : null,
+          reference_answer: q.reference_answer || null,
+          resource_path: q.resource_path || null,
+          resource_name: q.resource_name || null,
+          resource_mime: q.resource_mime || null,
         }));
         const { error } = await supabase.from('questions').insert(rows);
         if (error) throw error;

@@ -1,13 +1,14 @@
 const supabase = require('./utils/db');
 const { getAuth, json } = require('./utils/auth');
+const { requireStudentSession } = require('./utils/student-session');
 
 // Once a result is published, a student can now review their FULL paper —
 // their answer next to the correct one for every MCQ, and their own
 // submitted text/file/code for written/upload/practical questions — so
 // they can actually learn from mistakes before the next test.
 exports.handler = async (event) => {
-  const auth = getAuth(event);
-  if (!auth || auth.role !== 'student') return json(401, { error: 'Not logged in' });
+  const auth = await requireStudentSession(event);
+  if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
 
   const testId = event.queryStringParameters?.test_id;
   if (!testId) return json(400, { error: 'test_id is required' });

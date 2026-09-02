@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { api, getAuthInfo } from '../lib/api.js';
+import { api, getAuthInfo, uploadQuestionResource } from '../lib/api.js';
 import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
 import { parseQuestionsDocx } from '../lib/parseQuestionsDocx.js';
+import ScheduleRangePicker from '../components/ScheduleRangePicker.jsx';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -26,6 +27,10 @@ function blankQuestion(type = 'mcq') {
     marks: 1,
     language: type === 'practical' ? 'python' : undefined,
     variants: type === 'practical' ? [{ question_text: '', starter_code: '' }] : undefined,
+    reference_answer: '',
+    resource_path: null,
+    resource_name: '',
+    resource_mime: '',
   };
 }
 
@@ -36,9 +41,18 @@ export default function CreateTest() {
   const classOptions = isAdmin ? CLASSES : (auth?.classes || []);
   const subjectOptions = isAdmin ? SUBJECTS : (auth?.subjects || []);
 
+  const [catalog, setCatalog] = useState({ classes: classOptions, subjects: subjectOptions });
+  useEffect(() => { api('/admin-catalog').then(d => setCatalog({ classes: d.classes || classOptions, subjects: d.subjects || subjectOptions })).catch(() => {}); }, []);
+  const activeClassOptions = catalog.classes;
+  const activeSubjectOptions = catalog.subjects;
+
   const [title, setTitle] = useState('');
   const [subject, setSubject] = useState(subjectOptions[0] || '');
   const [klass, setKlass] = useState(classOptions[0] || '');
+  useEffect(() => {
+    if (activeClassOptions.length && !activeClassOptions.includes(klass)) setKlass(activeClassOptions[0]);
+    if (activeSubjectOptions.length && !activeSubjectOptions.includes(subject)) setSubject(activeSubjectOptions[0]);
+  }, [activeClassOptions, activeSubjectOptions, klass, subject]);
   const [duration, setDuration] = useState(30);
   const [startAt, setStartAt] = useState('');
   const [endAt, setEndAt] = useState('');
@@ -127,7 +141,7 @@ export default function CreateTest() {
     }
     setSaving(true);
     try {
-      await api('/test-create', {
+      const created = await api('/test-create', {
         method: 'POST',
         body: {
           title,
@@ -137,12 +151,23 @@ export default function CreateTest() {
           start_at: startAt ? new Date(startAt).toISOString() : null,
           end_at: endAt ? new Date(endAt).toISOString() : null,
           status: 'draft',
-          questions,
+          questions: questions.map(({ _resourceFile, ...q }) => q),
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           shuffle_group_size: Number(shuffleGroupSize) || 1,
         },
       });
+      // Upload any teacher-provided resources after the test gets its real ID.
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        if (q._resourceFile) {
+          const path = await uploadQuestionResource({ test_id: created.test_id, question_id: q.id || `new-${i}`, file: q._resourceFile });
+          q.resource_path = path; q.resource_name = q._resourceFile.name; q.resource_mime = q._resourceFile.type;
+        }
+      }
+      if (questions.some(q => q._resourceFile)) {
+        await api('/test-edit', { method: 'POST', body: { test_id: created.test_id, title, subject, class: klass, duration_minutes: Number(duration), start_at: startAt ? new Date(startAt).toISOString() : null, end_at: endAt ? new Date(endAt).toISOString() : null, questions: questions.map(({_resourceFile, ...q}, i) => ({...q, order_index:i})), shuffle_questions: shuffleQuestions, shuffle_options: shuffleOptions, shuffle_group_size: Number(shuffleGroupSize)||1 } });
+      }
       nav(isAdmin ? '/admin/papers' : '/teacher');
     } catch (err) {
       setError(err.message);
@@ -207,13 +232,13 @@ export default function CreateTest() {
             <div style={{ flex: 1 }}>
               <label>📚 Subject</label>
               <select value={subject} onChange={(e) => setSubject(e.target.value)} required>
-                {subjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+                {activeSubjectOptions.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>
               <label>🏫 Class</label>
               <select value={klass} onChange={(e) => setKlass(e.target.value)} required>
-                {classOptions.map((c) => <option key={c} value={c}>{c}</option>)}
+                {activeClassOptions.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>
@@ -222,29 +247,20 @@ export default function CreateTest() {
             </div>
           </div>
 
-          <div className="create-schedule-grid">
-            <div className="create-schedule-field open">
-              <div className="create-schedule-label-row">
-                <label htmlFor="paper-opens">Opens at <span>(optional)</span></label>
-                <span className="create-schedule-chip">🟢 Start</span>
+          <div className="create-schedule-card">
+            <div className="create-section-heading">
+              <div className="create-section-icon">🗓️</div>
+              <div>
+                <div className="card-section-title">Assessment schedule</div>
+                <p className="meta">Choose when students may begin and when new attempts stop.</p>
               </div>
-              <div className="create-datetime-wrap">
-                <span className="create-input-icon">🕐</span>
-                <input id="paper-opens" className="create-datetime-input" type="datetime-local" value={startAt} onChange={(e) => setStartAt(e.target.value)} />
-              </div>
-              <span className="create-field-hint">Students can start from this time. Leave blank to allow immediate access.</span>
             </div>
-            <div className="create-schedule-field close">
-              <div className="create-schedule-label-row">
-                <label htmlFor="paper-closes">Closes at <span>(optional)</span></label>
-                <span className="create-schedule-chip">🔒 End</span>
-              </div>
-              <div className="create-datetime-wrap">
-                <span className="create-input-icon">📅</span>
-                <input id="paper-closes" className="create-datetime-input" type="datetime-local" min={startAt || undefined} value={endAt} onChange={(e) => setEndAt(e.target.value)} />
-              </div>
-              <span className="create-field-hint">Students cannot start a new attempt after this time. Server time controls enforcement.</span>
-            </div>
+            <ScheduleRangePicker
+              startValue={startAt}
+              endValue={endAt}
+              onStartChange={setStartAt}
+              onEndChange={setEndAt}
+            />
           </div>
 
           <div className="shuffle-box create-section-card">
@@ -346,6 +362,13 @@ export default function CreateTest() {
               </>
             )}
 
+            <div className="question-resource-box">
+              <label>📎 Reference file / image (optional)</label>
+              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onChange={(e) => { const file=e.target.files[0]; if(file) updateQ(i,{_resourceFile:file,resource_name:file.name,resource_mime:file.type}); }} />
+              {q.resource_name && <div className="meta">✓ {q.resource_name} — students can view/download this resource.</div>}
+              <small className="meta">Use this for a reference image, Word/Excel template, photo-editing source, or task file.</small>
+            </div>
+
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end' }}>
               <div style={{ flex: 1, maxWidth: 140 }}>
                 <label>Marks</label>
@@ -392,6 +415,9 @@ export default function CreateTest() {
                   <option value="python">Python</option>
                   <option value="html">HTML</option>
                 </select>
+                <label>Correct / reference answer (teacher only)</label>
+                <textarea className="code-editor" spellCheck={false} value={q.reference_answer || ''} onChange={(e) => updateQ(i, { reference_answer: e.target.value })} placeholder={q.language === 'html' ? '<!-- Correct HTML code -->' : '# Correct Python code'} />
+                <p className="meta">This is never shown to students. During grading it can be applied to every student's remark in one click.</p>
                 <p className="meta">
                   Each variant below is a different problem. Every student gets exactly one, spread
                   round-robin across the class roster by roll number — add enough variants and no two

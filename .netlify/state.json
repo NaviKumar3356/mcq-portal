@@ -1,0 +1,22 @@
+{
+	"siteId": "95f2dfb2-a500-42d3-8631-3e27c53310c1",
+	"geolocation": {
+		"data": {
+			"city": "Pilāni",
+			"country": {
+				"code": "IN",
+				"name": "India"
+			},
+			"subdivision": {
+				"code": "RJ",
+				"name": "Rajasthan"
+			},
+			"timezone": "Asia/Kolkata",
+			"latitude": 28.3635,
+			"longitude": 75.5958,
+			"postalCode": "333031"
+		},
+		"timestamp": 1788247047696
+	},
+	"dbConnectionString": "postgres://localhost:52568/postgres"
+}

@@ -1,0 +1,1 @@
+module.exports = require('./netlify/functions/student-photo-upload-url.js')

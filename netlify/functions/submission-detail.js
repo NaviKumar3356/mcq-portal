@@ -41,13 +41,17 @@ exports.handler = async (event) => {
       .from('answers')
       .select(
         'id, question_id, mcq_selected, written_text, file_path, marks_awarded, teacher_remark, variant_snapshot, ' +
-        'questions(question_text, type, options, correct_option, marks, order_index, language)'
+        'questions(question_text, type, options, correct_option, marks, order_index, language, variants, reference_answer, resource_path, resource_name, resource_mime)'
       )
       .eq('submission_id', submissionId)
       .order('questions(order_index)', { ascending: true });
     if (aErr) throw aErr;
 
     for (const a of answers) {
+      if (a.questions?.resource_path) {
+        const { data } = await supabase.storage.from('question-resources').createSignedUrl(a.questions.resource_path, 3600);
+        a.questions.resource_url = data?.signedUrl || null;
+      }
       if (a.file_path) {
         const { data } = await supabase.storage.from('answer-sheets').createSignedUrl(a.file_path, 3600);
         a.file_url = data?.signedUrl || null;

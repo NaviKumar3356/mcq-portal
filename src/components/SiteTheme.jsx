@@ -1,10 +1,10 @@
 import { useEffect } from 'react';
+import { api } from '../lib/api.js';
 
 export default function SiteTheme() {
   useEffect(() => {
     let active = true;
-    fetch('/api/site-settings')
-      .then((r) => r.ok ? r.json() : {})
+    api('/site-settings')
       .then((s) => {
         if (!active) return;
         if (s.theme_primary) document.documentElement.style.setProperty('--ink', s.theme_primary);

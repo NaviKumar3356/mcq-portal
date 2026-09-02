@@ -1,16 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { api, setToken } from '../lib/api.js';
 import SchoolLogo from '../components/SchoolLogo.jsx';
-import { SCHOOL_NAME, CLASSES } from '../lib/constants.js';
+import { SCHOOL_NAME } from '../lib/constants.js';
 
 export default function StudentLogin() {
   const [klass, setKlass] = useState('');
+  const [classes, setClasses] = useState([]);
   const [roll, setRoll] = useState('');
   const [dob, setDob] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const nav = useNavigate();
+
+  useEffect(() => {
+    api('/public-catalog').then(d => setClasses(d.classes || [])).catch(() => {});
+  }, []);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -42,7 +47,7 @@ export default function StudentLogin() {
         <label htmlFor="klass">Class</label>
         <select id="klass" value={klass} onChange={(e) => setKlass(e.target.value)} required>
           <option value="" disabled>Select your class</option>
-          {CLASSES.map((c) => <option key={c} value={c}>{c}</option>)}
+          {classes.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
 
         <label htmlFor="roll">Roll number</label>

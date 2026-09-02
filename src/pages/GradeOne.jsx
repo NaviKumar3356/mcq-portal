@@ -29,6 +29,11 @@ export default function GradeOne() {
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+  const [bulkQuestionId, setBulkQuestionId] = useState('');
+  const [bulkText, setBulkText] = useState('');
+  const [bulkOverwrite, setBulkOverwrite] = useState(false);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkMessage, setBulkMessage] = useState('');
 
   useEffect(() => {
     api(`/submission-detail?submission_id=${submissionId}`).then((d) => {
@@ -65,6 +70,17 @@ export default function GradeOne() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function applyBulkFeedback() {
+    if (!bulkQuestionId || !bulkText.trim()) return setBulkMessage('Select a manual question and enter the correct/reference answer.');
+    if (!window.confirm(`${bulkOverwrite ? 'Replace existing remarks' : 'Fill only blank remarks'} for this question for every student in this paper? Marks will not be changed.`)) return;
+    setBulkSaving(true); setBulkMessage('');
+    try {
+      const d = await api('/bulk-manual-feedback', { method: 'POST', body: { submission_id: submissionId, test_id: data.submission.test_id, question_id: bulkQuestionId, teacher_remark: bulkText.trim(), overwrite: bulkOverwrite } });
+      setBulkMessage(`✓ Applied to ${d.updated} student review${d.updated === 1 ? '' : 's'}. Marks were left unchanged.`);
+    } catch (e) { setBulkMessage(`Could not apply feedback: ${e.message}`); }
+    finally { setBulkSaving(false); }
   }
 
   function answerStatus(a) {
@@ -144,6 +160,23 @@ export default function GradeOne() {
         </div>
       </div>
 
+      {manual > 0 && (
+        <section className="bulk-feedback-panel card">
+          <div className="eyebrow">ONE-CLICK MANUAL FEEDBACK</div>
+          <h3 style={{ margin: '4px 0 6px' }}>Give the correct answer to all students</h3>
+          <p className="meta">Enter the model code/answer once. It will be added to every student's teacher review for the selected manual question. Student marks are never changed.</p>
+          <div className="bulk-feedback-grid">
+            <select value={bulkQuestionId} onChange={(e) => { const id=e.target.value; setBulkQuestionId(id); const a=answers.find(x=>x.question_id===id); setBulkText(a?.questions?.reference_answer || ''); setBulkMessage(''); }}>
+              <option value="">Select manual question…</option>
+              {answers.filter(a => answerStatus(a) === 'manual').map((a, idx) => <option key={a.question_id} value={a.question_id}>Question {answers.indexOf(a)+1} — {a.questions?.type === 'practical' ? (a.questions?.language || 'code').toUpperCase() : a.questions?.type}</option>)}
+            </select>
+            <label className="bulk-overwrite"><input type="checkbox" checked={bulkOverwrite} onChange={(e)=>setBulkOverwrite(e.target.checked)} /> Replace existing remarks too</label>
+          </div>
+          <textarea className="code-editor bulk-feedback-editor" spellCheck={false} value={bulkText} onChange={(e)=>setBulkText(e.target.value)} placeholder="Paste the correct HTML/Python code or model answer here…" />
+          <div className="bulk-feedback-actions"><button className="primary" onClick={applyBulkFeedback} disabled={bulkSaving}>{bulkSaving ? 'Applying…' : '✓ Apply to all student reviews'}</button>{bulkMessage && <span className="meta">{bulkMessage}</span>}</div>
+        </section>
+      )}
+
       {visibleAnswers.map((a) => {
         const i = answers.indexOf(a);
         const q = a.questions;
@@ -191,8 +224,16 @@ export default function GradeOne() {
               <div style={{ marginTop: 12 }}>
                 <div className="meta">PRACTICAL TASK</div>
                 <div className="card" style={{ background: 'var(--paper)', margin: '7px 0 12px', whiteSpace: 'pre-wrap' }}>{a.variant_snapshot?.question_text || q.question_text}</div>
+                {q.resource_url && <a className="secondary small nav-action-button" href={q.resource_url} target="_blank" rel="noreferrer">📎 Open question resource</a>}
                 <div className="meta">STUDENT SUBMITTED CODE</div>
-                <pre className="code-block" style={{ marginTop: 7 }}>{a.written_text || 'No code submitted'}</pre>
+                <pre className="code-block" style={{ marginTop: 7, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{a.written_text || 'No code submitted'}</pre>
+                {q.reference_answer && (
+                  <details className="reference-answer-box">
+                    <summary>View teacher model answer</summary>
+                    <pre className="code-block reference-code">{q.reference_answer}</pre>
+                    <button type="button" className="secondary small" onClick={() => { setBulkQuestionId(a.question_id); setBulkText(q.reference_answer); setBulkMessage(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Use this answer for all students</button>
+                  </details>
+                )}
               </div>
             )}
 

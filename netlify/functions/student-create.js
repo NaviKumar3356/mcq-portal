@@ -26,7 +26,7 @@ exports.handler = async (event) => {
       roll_number: roll_number.trim(),
       name,
       class: klass,
-      section: section || null,
+      section: section || 'A',
       dob,
       added_by: auth.role === 'teacher' ? auth.teacher_id : null,
     });

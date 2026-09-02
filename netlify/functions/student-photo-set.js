@@ -15,6 +15,7 @@ exports.handler = async (event) => {
   try {
     const { student_id, photo_path } = JSON.parse(event.body || '{}');
     if (!student_id || !photo_path) return json(400, { error: 'student_id and photo_path are required' });
+    if (!String(photo_path).startsWith(`${student_id}-`)) return json(400, { error: 'Invalid student photo path' });
 
     if (auth.role === 'teacher') {
       const { data: student } = await supabase.from('students').select('class').eq('id', student_id).maybeSingle();
