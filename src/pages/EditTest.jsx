@@ -210,8 +210,19 @@ export default function EditTest() {
       <form onSubmit={onSubmit}>
         <div className="card">
           <div className="card-section-title">📝 Paper details</div>
-          <label>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} required />
+          <div className="create-title-field edit-paper-title-field">
+            <label htmlFor="edit-paper-title">Paper name</label>
+            <input
+              id="edit-paper-title"
+              className="create-title-input edit-paper-title-input"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+              placeholder="e.g. Periodic Test 1"
+              autoComplete="off"
+            />
+            <span className="create-field-hint">Use a clear name students and teachers will recognise in results and reports.</span>
+          </div>
 
           <div className="create-schedule-card">
             <div className="create-section-heading">
@@ -275,7 +286,7 @@ export default function EditTest() {
             <p className="meta">
               Imported questions are added below — review each one, especially any marked ⚠, before saving.
             </p>
-            <input type="file" accept=".docx" onChange={handleDocxImport} disabled={importing} />
+            <label className="file-dropzone compact-file-drop"><span className="file-drop-icon">📄</span><span><strong>Choose Word file</strong><small>DOCX · click to browse</small></span><input type="file" className="visually-hidden-file" accept=".docx" onChange={handleDocxImport} disabled={importing} /></label>
             {importing && <p className="meta">Reading file…</p>}
             {importReport && (
               <div style={{ marginTop: 10 }}>
@@ -328,7 +339,36 @@ export default function EditTest() {
 
             <div className="question-resource-box">
               <label>📎 Reference file / image (optional)</label>
-              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onChange={async (e) => { const file=e.target.files[0]; if(!file || !q.id) return; try { const path=await uploadQuestionResource({test_id:testId,question_id:q.id,file}); updateQ(i,{resource_path:path,resource_name:file.name,resource_mime:file.type}); } catch(err){ setError(`Could not upload resource: ${err.message}`); } }} />
+              <label className="file-dropzone">
+                <span className="file-drop-icon">📎</span>
+                <span>
+                  <strong>Choose reference file</strong>
+                  <small>Image · PDF · Word · Excel · PPT · ZIP · up to 20 MB</small>
+                </span>
+                <input
+                  type="file"
+                  className="visually-hidden-file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !q.id) return;
+                    try {
+                      const path = await uploadQuestionResource({
+                        test_id: testId,
+                        question_id: q.id,
+                        file,
+                      });
+                      updateQ(i, {
+                        resource_path: path,
+                        resource_name: file.name,
+                        resource_mime: file.type,
+                      });
+                    } catch (err) {
+                      setError(`Could not upload resource: ${err.message}`);
+                    }
+                  }}
+                />
+              </label>
               {q.resource_name && <div className="meta">✓ {q.resource_name} — students can view/download this resource.</div>}
               <small className="meta">Reference image, Word/Excel template, photo-editing source, or task file.</small>
             </div>

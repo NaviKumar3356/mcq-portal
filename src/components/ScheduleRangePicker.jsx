@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // ---------------------------------------------------------------------
 // Local datetime-local <-> Date helpers. We keep the public value format
@@ -64,12 +65,31 @@ function formatDuration(ms) {
 }
 
 // One calendar+time popover for a single field (open or close).
-function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass }) {
+function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass, anchorRect }) {
   const initial = value || minDate || new Date();
   const [viewDate, setViewDate] = useState(startOfMonth(initial));
   const [hour, setHour] = useState(value ? value.getHours() : 9);
   const [minute, setMinute] = useState(value ? value.getMinutes() - (value.getMinutes() % 5) : 0);
   const popRef = useRef(null);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+
+  useEffect(() => {
+    function updatePosition() {
+      if (!anchorRect) return;
+      const width = Math.min(360, window.innerWidth - 24);
+      let left = anchorRect.left;
+      if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+      left = Math.max(12, left);
+      const estimatedHeight = 470;
+      const below = anchorRect.bottom + 8;
+      const top = below + estimatedHeight <= window.innerHeight - 12 ? below : Math.max(12, anchorRect.top - estimatedHeight - 8);
+      setPosition({ top, left });
+    }
+    updatePosition();
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+    return () => { window.removeEventListener('resize', updatePosition); window.removeEventListener('scroll', updatePosition, true); };
+  }, [anchorRect]);
 
   useEffect(() => {
     function onDocClick(e) {
@@ -110,7 +130,7 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
   const hours12 = Array.from({ length: 24 }, (_, h) => h);
 
   return (
-    <div className={`schedpick-popover ${accentClass}`} ref={popRef} role="dialog" aria-label={`${label} date and time`}>
+    <div className={`schedpick-popover ${accentClass}`} ref={popRef} role="dialog" aria-label={`${label} date and time`} style={{ position: 'fixed', top: position.top, left: position.left, width: 'min(360px, calc(100vw - 24px))' }}>
       <div className="schedpick-cal-head">
         <button type="button" className="schedpick-nav" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} aria-label="Previous month">‹</button>
         <div className="schedpick-cal-title">{MONTH_NAMES[viewDate.getMonth()]} {viewDate.getFullYear()}</div>
@@ -178,6 +198,13 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
 
 function ScheduleField({ label, chip, hint, value, onChange, minDate, accentClass, placeholder }) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef(null);
+  const [anchorRect, setAnchorRect] = useState(null);
+
+  function toggleOpen() {
+    if (!open && triggerRef.current) setAnchorRect(triggerRef.current.getBoundingClientRect());
+    setOpen((v) => !v);
+  }
   const display = formatDisplay(value);
 
   return (
@@ -186,7 +213,7 @@ function ScheduleField({ label, chip, hint, value, onChange, minDate, accentClas
         <label>{label}</label>
         <span className="schedpick-chip">{chip}</span>
       </div>
-      <button type="button" className={`schedpick-trigger ${open ? 'is-open' : ''} ${value ? 'has-value' : ''}`} onClick={() => setOpen((v) => !v)}>
+      <button type="button" ref={triggerRef} className={`schedpick-trigger ${open ? 'is-open' : ''} ${value ? 'has-value' : ''}`} onClick={toggleOpen}>
         <span className="schedpick-trigger-icon">📅</span>
         {display ? (
           <span className="schedpick-trigger-value">
@@ -198,7 +225,7 @@ function ScheduleField({ label, chip, hint, value, onChange, minDate, accentClas
         )}
         <span className="schedpick-trigger-caret">▾</span>
       </button>
-      {open && (
+      {open && typeof document !== 'undefined' && createPortal(
         <CalendarPopover
           value={value}
           minDate={minDate}
@@ -206,7 +233,9 @@ function ScheduleField({ label, chip, hint, value, onChange, minDate, accentClas
           accentClass={accentClass}
           onChange={onChange}
           onClose={() => setOpen(false)}
-        />
+          anchorRect={anchorRect}
+        />,
+        document.body
       )}
       <span className="schedpick-hint">{hint}</span>
     </div>

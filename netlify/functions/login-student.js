@@ -23,7 +23,13 @@ exports.handler = async (event) => {
     if (error) throw error;
     if (!student) return json(401, { error: 'Class, roll number or date of birth is incorrect' });
 
-    const session = await acquireStudentSession(student.id);
+    let session;
+    try {
+      session = await acquireStudentSession(student.id);
+    } catch (sessionError) {
+      console.error('Student session lock error:', sessionError);
+      return json(503, { error: 'Student session protection is not available. Please ask the administrator to run schema_v15_migration.sql and schema_v16_migration.sql in Supabase.' });
+    }
     if (!session.ok) {
       return json(409, { error: 'This student account is already signed in on another device or browser. Log out there first, or wait 15 minutes for the inactive session to expire.' });
     }

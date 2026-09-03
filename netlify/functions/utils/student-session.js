@@ -12,7 +12,18 @@ function newSessionId() {
 
 async function acquireStudentSession(studentId) {
   const cutoff = new Date(Date.now() - IDLE_MINUTES * 60 * 1000).toISOString();
+  const sessionId = newSessionId();
 
+  // Prefer the database-side atomic operation. This closes the race window
+  // where two serverless login requests arrive at almost exactly the same time.
+  const { data: acquired, error: rpcError } = await supabase.rpc('acquire_student_session', {
+    p_student_id: studentId,
+    p_session_id: sessionId,
+    p_cutoff: cutoff,
+  });
+  if (!rpcError) return { ok: acquired === true, sessionId: acquired === true ? sessionId : null, reason: acquired === true ? null : 'active' };
+
+  // Backward-compatible fallback for databases that have V15 but not V16 yet.
   const { data: existing, error: lookupError } = await supabase
     .from('student_active_sessions')
     .select('id, session_id, last_seen_at')
@@ -20,30 +31,20 @@ async function acquireStudentSession(studentId) {
     .maybeSingle();
   if (lookupError) throw lookupError;
 
-  if (existing && existing.last_seen_at > cutoff) {
-    return { ok: false, reason: 'active' };
-  }
+  if (existing && existing.last_seen_at > cutoff) return { ok: false, reason: 'active' };
 
   if (existing) {
-    const { error: deleteError } = await supabase
-      .from('student_active_sessions')
-      .delete()
-      .eq('id', existing.id);
+    const { error: deleteError } = await supabase.from('student_active_sessions').delete().eq('id', existing.id);
     if (deleteError) throw deleteError;
   }
 
-  const sessionId = newSessionId();
   const { error: insertError } = await supabase
     .from('student_active_sessions')
     .insert({ student_id: studentId, session_id: sessionId, last_seen_at: new Date().toISOString() });
-
   if (insertError) {
-    // Unique(student_id) makes two simultaneous login requests deterministic:
-    // only one request can acquire the lock.
     if (insertError.code === '23505') return { ok: false, reason: 'active' };
     throw insertError;
   }
-
   return { ok: true, sessionId };
 }
 

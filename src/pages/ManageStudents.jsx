@@ -209,7 +209,7 @@ export default function ManageStudents() {
             column decides where it goes. Existing students (same roll number + class) get updated instead
             of duplicated. Photos aren't part of CSV import — add them per student from the table below.
           </p>
-          <input ref={fileInputRef} type="file" accept=".csv" onChange={onCsvSelected} />
+          <label className="file-dropzone compact-file-drop"><span className="file-drop-icon">📊</span><span><strong>Choose student CSV</strong><small>CSV · one student per row · click to browse</small></span><input ref={fileInputRef} className="visually-hidden-file" type="file" accept=".csv" onChange={onCsvSelected} /></label>
           {csvUploading && <p className="meta">Uploading…</p>}
 
           {csvReport && (

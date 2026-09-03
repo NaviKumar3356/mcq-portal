@@ -246,3 +246,56 @@ table.grade-table thead th { top:0; }
   .sidebar { display:none; }
   .sidebar.mobile-open { display:flex; }
 }
+
+
+/* ============================================================
+   V20 — COMPLETE FORM / FILE UPLOAD POLISH
+   ============================================================ */
+.admin-form-card { background:linear-gradient(145deg,#fff,#fbfaf7); }
+.admin-form-card > label, .admin-field-block > label { margin-top:18px; }
+.admin-form-grid { display:grid; gap:16px; }
+.admin-form-grid-2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.admin-form-grid-3 { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.admin-field { min-width:0; }
+.admin-field label, .admin-field-block > label { font-weight:800; color:var(--ink); }
+.admin-field input, .admin-field select, .admin-field textarea,
+.admin-field-block > input[type="text"], .admin-field-block > input[type="password"] {
+  min-height:48px; border-radius:12px; background:#fff; box-shadow:inset 0 1px 2px rgba(18,35,63,.025);
+}
+.admin-field input:hover, .admin-field select:hover, .admin-field textarea:hover,
+.admin-field-block > input[type="text"]:hover, .admin-field-block > input[type="password"]:hover { border-color:#c9c0b1; }
+.admin-field input:focus, .admin-field select:focus, .admin-field textarea:focus,
+.admin-field-block > input[type="text"]:focus, .admin-field-block > input[type="password"]:focus {
+  border-color:var(--accent-2); box-shadow:0 0 0 4px rgba(234,181,74,.13),0 3px 12px rgba(18,35,63,.06);
+}
+.admin-form-actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:1px solid var(--v19-border); }
+.admin-submit-button { margin-top:18px; min-width:190px; }
+.admin-edit-form { padding:4px 0 2px; }
+
+/* Every file picker gets a deliberate dropzone treatment instead of a native grey box. */
+input[type="file"] { width:100%; font:inherit; color:var(--ink-soft); }
+input[type="file"]::file-selector-button {
+  border:1px solid #d6cdbd; border-radius:10px; padding:9px 13px; margin-right:10px;
+  background:linear-gradient(180deg,#fff,#f7f3eb); color:var(--ink); font-weight:800; cursor:pointer;
+}
+input[type="file"]::file-selector-button:hover { border-color:var(--accent-2); background:#fff9eb; }
+.file-dropzone {
+  display:flex; align-items:center; gap:12px; width:100%; min-height:72px; margin-top:8px;
+  padding:12px 14px; border:1.5px dashed #cfc5b5; border-radius:15px;
+  background:linear-gradient(145deg,#fffdf9,#f8f5ee); cursor:pointer; transition:.15s ease;
+}
+.file-dropzone:hover { border-color:var(--accent-2); background:#fffaf0; box-shadow:0 5px 16px rgba(18,35,63,.06); }
+.file-dropzone:focus-within { border-color:var(--accent-2); box-shadow:0 0 0 4px rgba(234,181,74,.12); }
+.file-dropzone > span:not(.file-drop-icon) { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.file-dropzone strong { font-size:.84rem; color:var(--ink); }
+.file-dropzone small { font-size:.7rem; color:var(--muted); line-height:1.4; }
+.file-drop-icon { width:38px; height:38px; display:grid; place-items:center; flex:0 0 auto; border-radius:11px; background:#f4ead4; font-size:1.05rem; }
+.visually-hidden-file { position:absolute !important; width:1px !important; height:1px !important; padding:0 !important; margin:-1px !important; overflow:hidden !important; clip:rect(0,0,0,0) !important; white-space:nowrap !important; border:0 !important; }
+.compact-file-drop { min-height:58px; }
+.question-resource-box { padding:15px; border:1px solid var(--v19-border); border-radius:15px; background:#fbfaf6; }
+.question-resource-box > label { margin-top:0; }
+
+@media (max-width:800px) {
+  .admin-form-grid-3, .admin-form-grid-2 { grid-template-columns:1fr; }
+  .admin-submit-button { width:100%; }
+}

@@ -313,7 +313,7 @@ export default function CreateTest() {
           <p className="meta">
             Imported questions are added below — review each one, especially any marked ⚠, before saving.
           </p>
-          <input type="file" accept=".docx" onChange={handleDocxImport} disabled={importing} />
+          <label className="file-dropzone compact-file-drop"><span className="file-drop-icon">📄</span><span><strong>Choose Word file</strong><small>DOCX · click to browse</small></span><input type="file" className="visually-hidden-file" accept=".docx" onChange={handleDocxImport} disabled={importing} /></label>
           {importing && <p className="meta">Reading file…</p>}
           {importReport && (
             <div style={{ marginTop: 10 }}>
@@ -364,7 +364,28 @@ export default function CreateTest() {
 
             <div className="question-resource-box">
               <label>📎 Reference file / image (optional)</label>
-              <input type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip" onChange={(e) => { const file=e.target.files[0]; if(file) updateQ(i,{_resourceFile:file,resource_name:file.name,resource_mime:file.type}); }} />
+              <label className="file-dropzone">
+                <span className="file-drop-icon">📎</span>
+                <span>
+                  <strong>Choose reference file</strong>
+                  <small>Image · PDF · Word · Excel · PPT · ZIP · up to 20 MB</small>
+                </span>
+                <input
+                  type="file"
+                  className="visually-hidden-file"
+                  accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      updateQ(i, {
+                        _resourceFile: file,
+                        resource_name: file.name,
+                        resource_mime: file.type,
+                      });
+                    }
+                  }}
+                />
+              </label>
               {q.resource_name && <div className="meta">✓ {q.resource_name} — students can view/download this resource.</div>}
               <small className="meta">Use this for a reference image, Word/Excel template, photo-editing source, or task file.</small>
             </div>

@@ -143,29 +143,29 @@ export default function ManageTeachers() {
       </div>
 
       {showAdd && (
-        <form className="card" onSubmit={addTeacher}>
-          <div style={{ display: 'flex', gap: 12 }}>
-            <div style={{ flex: 1 }}>
+        <form className="card admin-form-card teacher-form-card" onSubmit={addTeacher}>
+          <div className="admin-form-grid admin-form-grid-3">
+            <div className="admin-field">
               <label>Full name</label>
               <input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
             </div>
-            <div style={{ flex: 1 }}>
+            <div className="admin-field">
               <label>Username</label>
               <input value={form.username} onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))} required />
             </div>
-            <div style={{ flex: 1 }}>
+            <div className="admin-field">
               <label>Password</label>
               <input type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} required />
             </div>
           </div>
 
-          <label>Assigned classes</label>
+          <div className="admin-field-block"><label>Assigned classes</label>
           <MultiSelect options={catalog.classes} selected={form.classes} onChange={(v) => setForm((f) => ({ ...f, classes: v }))} />
 
-          <label>Assigned subjects</label>
+          </div><div className="admin-field-block"><label>Assigned subjects</label>
           <MultiSelect options={catalog.subjects} selected={form.subjects} onChange={(v) => setForm((f) => ({ ...f, subjects: v }))} />
 
-          <button className="primary" type="submit" disabled={saving} style={{ marginTop: 14 }}>
+          </div><button className="primary admin-submit-button" type="submit" disabled={saving}>
             {saving ? 'Saving…' : 'Create teacher account'}
           </button>
         </form>
@@ -178,37 +178,37 @@ export default function ManageTeachers() {
       {teachers && teachers.map((t) => (
         <div className="card" key={t.id}>
           {editingId === t.id ? (
-            <div>
+            <div className="admin-edit-form">
               <div className="card-section-title">✏️ Edit teacher</div>
               {editError && <div className="error-box">{editError}</div>}
 
-              <div style={{ display: 'flex', gap: 12 }}>
-                <div style={{ flex: 1 }}>
+              <div className="admin-form-grid admin-form-grid-2">
+                <div className="admin-field">
                   <label>Full name</label>
                   <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} required />
                 </div>
-                <div style={{ flex: 1 }}>
+                <div className="admin-field">
                   <label>Username</label>
                   <input value={editForm.username} onChange={(e) => setEditForm((f) => ({ ...f, username: e.target.value }))} required />
                 </div>
               </div>
 
-              <label>Assigned classes</label>
+              <div className="admin-field-block"><label>Assigned classes</label>
               <MultiSelect options={catalog.classes} selected={editForm.classes} onChange={(v) => setEditForm((f) => ({ ...f, classes: v }))} />
 
-              <label>Assigned subjects</label>
+              </div><div className="admin-field-block"><label>Assigned subjects</label>
               <MultiSelect options={catalog.subjects} selected={editForm.subjects} onChange={(v) => setEditForm((f) => ({ ...f, subjects: v }))} />
 
-              <label>Reset password (optional)</label>
+              </div><div className="admin-field-block"><label>Reset password (optional)</label>
               <input
                 type="password"
                 placeholder="Leave blank to keep their current password"
                 value={editForm.password}
                 onChange={(e) => setEditForm((f) => ({ ...f, password: e.target.value }))}
               />
-              <p className="meta">Only fill this in if the teacher needs a new password — e.g. they forgot theirs.</p>
+              <p className="meta">Only fill this in if the teacher needs a new password — e.g. they forgot theirs.</p></div>
 
-              <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <div className="admin-form-actions">
                 <button className="primary" onClick={() => saveEdit(t)} disabled={editSaving}>
                   {editSaving ? 'Saving…' : 'Save changes'}
                 </button>

@@ -281,3 +281,10 @@
   .schedpick-connector-line { width: 16px; height: 1.5px; }
   .schedpick-popover { left: 50%; transform: translateX(-50%); width: min(340px, 90vw); }
 }
+
+/* V20: render the calendar above surrounding cards/sections. The component
+   portals to document.body and uses fixed positioning, so expanding a
+   lower section (such as anti-cheating/shuffle settings) cannot clip it. */
+.schedpick-popover { z-index: 9999; max-height: min(76vh, 560px); overflow:auto; }
+.schedpick-popover::-webkit-scrollbar { width: 7px; }
+.schedpick-popover::-webkit-scrollbar-thumb { background:#d8cfbf; border-radius:999px; }
