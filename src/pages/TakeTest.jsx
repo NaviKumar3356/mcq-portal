@@ -288,6 +288,12 @@ export default function TakeTest() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeUpNotice]);
 
+  function markResourceDownloadOpen() {
+    fileDialogOpenRef.current = true;
+    window.clearTimeout(fileDialogTimerRef.current);
+    fileDialogTimerRef.current = window.setTimeout(() => { fileDialogOpenRef.current = false; }, 30000);
+  }
+
   function setAnswer(qId, patch) {
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], ...patch } }));
   }
@@ -356,7 +362,7 @@ export default function TakeTest() {
                 <div className="question-resource-student">
                   <div className="meta">📎 QUESTION RESOURCE</div>
                   {q.resource_mime?.startsWith('image/') ? <img src={q.resource_url} alt={q.resource_name || 'Question reference'} className="question-reference-image" /> : null}
-                  <a className="secondary small nav-action-button" href={q.resource_url} target="_blank" rel="noreferrer">⬇ {q.resource_name || 'Open / download resource'}</a>
+                  <a className="secondary small nav-action-button" href={q.resource_url} download={q.resource_name || undefined} target="_blank" rel="noreferrer" onClick={markResourceDownloadOpen}>⬇ {q.resource_name || 'Open / download resource'}</a>
                 </div>
               )}
 

@@ -1,6 +1,6 @@
 const supabase = require('./utils/db');
 const { requireRole, json } = require('./utils/auth');
-const ALLOWED_EXTENSIONS = new Set(['jpg','jpeg','png','webp','gif','pdf','doc','docx','xls','xlsx','ppt','pptx','zip']);
+const ALLOWED_EXTENSIONS = new Set(['jpg','jpeg','png','webp','gif','pdf','doc','docx','xls','xlsx','ppt','pptx','xcf','psd','sb3','zip']);
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });

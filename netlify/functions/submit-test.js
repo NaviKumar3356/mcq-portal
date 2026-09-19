@@ -99,7 +99,7 @@ exports.handler = async (event) => {
         hasUngraded = true; // needs manual grading
         const variant = pickVariant(q.variants, rank ?? 0);
         variant_snapshot = variant
-          ? { language: q.language, question_text: variant.question_text, starter_code: variant.starter_code }
+          ? { language: q.language, question_text: variant.question_text, starter_code: variant.starter_code, resource_path: variant.resource_path || null, resource_name: variant.resource_name || null, resource_mime: variant.resource_mime || null }
           : null;
       } else {
         hasUngraded = true; // written / upload need manual grading

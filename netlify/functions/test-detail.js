@@ -129,6 +129,9 @@ exports.handler = async (event) => {
         ...rest,
         question_text: variant?.question_text || q.question_text || '',
         starter_code: variant?.starter_code || '',
+        resource_path: variant?.resource_path || q.resource_path || null,
+        resource_name: variant?.resource_name || q.resource_name || null,
+        resource_mime: variant?.resource_mime || q.resource_mime || null,
       };
     });
 

@@ -32,6 +32,7 @@ function blankQuestion(type = 'mcq') {
     resource_path: null,
     resource_name: '',
     resource_mime: '',
+    _taskFiles: [],
   };
 }
 
@@ -122,6 +123,21 @@ export default function CreateTest() {
       qs.map((q, idx) => (idx === i ? { ...q, variants: q.variants.filter((_, xi) => xi !== vi) } : q))
     );
   }
+  function handlePracticalTaskFiles(i, files) {
+    const list = Array.from(files || []);
+    setQuestions((qs) => qs.map((q, idx) => {
+      if (idx !== i) return q;
+      const variants = list.map((file) => ({
+        question_text: q.question_text || `Complete the assigned ${q.language || 'practical'} task.`,
+        starter_code: '',
+        resource_path: null,
+        resource_name: file.name,
+        resource_mime: file.type || '',
+      }));
+      return { ...q, _taskFiles: list, variants: variants.length ? variants : q.variants };
+    }));
+  }
+
   function addQuestion(type) {
     setQuestions((qs) => [...qs, blankQuestion(type)]);
   }
@@ -137,7 +153,7 @@ export default function CreateTest() {
     if (startAt && endAt && new Date(istValueToUtcIso(endAt)) <= new Date(istValueToUtcIso(startAt))) return setError('The closing time must be later than the opening time.');
     for (const q of questions) {
       if (q.type === 'practical' && (!q.variants || q.variants.length === 0 || !q.variants[0].question_text)) {
-        return setError('Every practical question needs at least one variant with a problem statement.');
+        return setError('Every practical question needs a task statement or at least one uploaded task file.');
       }
     }
     setSaving(true);
@@ -152,22 +168,42 @@ export default function CreateTest() {
           start_at: startAt ? istValueToUtcIso(startAt) : null,
           end_at: endAt ? istValueToUtcIso(endAt) : null,
           status: 'draft',
-          questions: questions.map(({ _resourceFile, ...q }) => q),
+          questions: questions.map(({ _resourceFile, _taskFiles, ...q }) => ({
+            ...q,
+            variants: q.type === 'practical' && Array.isArray(_taskFiles) && _taskFiles.length
+              ? _taskFiles.map((file) => ({ question_text: q.question_text || `Complete the assigned ${q.language || 'practical'} task.`, starter_code: '', resource_name: file.name, resource_mime: file.type || '', resource_path: null }))
+              : q.variants,
+          })),
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           shuffle_group_size: Number(shuffleGroupSize) || 1,
         },
       });
-      // Upload any teacher-provided resources after the test gets its real ID.
-      for (let i = 0; i < questions.length; i++) {
-        const q = questions[i];
-        if (q._resourceFile) {
-          const path = await uploadQuestionResource({ test_id: created.test_id, question_id: q.id || `new-${i}`, file: q._resourceFile });
-          q.resource_path = path; q.resource_name = q._resourceFile.name; q.resource_mime = q._resourceFile.type;
+      // Upload teacher-provided practical task files after the test gets its real ID.
+      // Each selected file becomes one deterministic practical variant.
+      const needsResourceUpdate = questions.some(q => q._resourceFile || (q.type === 'practical' && q._taskFiles?.length));
+      if (needsResourceUpdate) {
+        const saved = await api(`/test-edit?test_id=${created.test_id}`);
+        const savedQuestions = saved.questions || [];
+        const finalQuestions = questions.map(({ _resourceFile, _taskFiles, ...q }, i) => {
+          const serverQ = savedQuestions[i];
+          const taskFiles = q.type === 'practical' ? (_taskFiles || []) : [];
+          if (taskFiles.length && serverQ) {
+            return { ...q, id: serverQ.id, order_index: i, variants: q.variants.map((v, vi) => ({ ...v, resource_path: null, resource_name: taskFiles[vi]?.name || v.resource_name || '', resource_mime: taskFiles[vi]?.type || v.resource_mime || '' })) };
+          }
+          return { ...q, id: serverQ?.id || q.id, order_index: i };
+        });
+        for (let i = 0; i < questions.length; i++) {
+          const q = questions[i];
+          const taskFiles = q.type === 'practical' ? (q._taskFiles || []) : [];
+          if (taskFiles.length && savedQuestions[i]) {
+            for (let vi = 0; vi < taskFiles.length; vi++) {
+              const path = await uploadQuestionResource({ test_id: created.test_id, question_id: `${savedQuestions[i].id}-variant-${vi + 1}`, file: taskFiles[vi] });
+              finalQuestions[i].variants[vi].resource_path = path;
+            }
+          }
         }
-      }
-      if (questions.some(q => q._resourceFile)) {
-        await api('/test-edit', { method: 'POST', body: { test_id: created.test_id, title, subject, class: klass, duration_minutes: Number(duration), start_at: startAt ? istValueToUtcIso(startAt) : null, end_at: endAt ? istValueToUtcIso(endAt) : null, questions: questions.map(({_resourceFile, ...q}, i) => ({...q, order_index:i})), shuffle_questions: shuffleQuestions, shuffle_options: shuffleOptions, shuffle_group_size: Number(shuffleGroupSize)||1 } });
+        await api('/test-edit', { method: 'POST', body: { test_id: created.test_id, title, subject, class: klass, duration_minutes: Number(duration), start_at: startAt ? istValueToUtcIso(startAt) : null, end_at: endAt ? istValueToUtcIso(endAt) : null, questions: finalQuestions, shuffle_questions: shuffleQuestions, shuffle_options: shuffleOptions, shuffle_group_size: Number(shuffleGroupSize)||1 } });
       }
       nav(isAdmin ? '/admin/papers' : '/teacher');
     } catch (err) {
@@ -453,6 +489,26 @@ export default function CreateTest() {
                   </>
                 ) : (
                   <p className="meta">Students will upload the completed {({word:'MS Word', excel:'MS Excel', powerpoint:'PowerPoint', gimp:'GIMP', canva:'Canva', scratch:'Scratch', other:'practical'})[q.language] || 'practical'} file. Add a reference/template file above if needed.</p>
+                )}
+                {['word','excel','powerpoint','gimp','canva','scratch','other'].includes(q.language) && (
+                  <div className="card practical-task-files" style={{ background: 'var(--paper)', marginBottom: 12 }}>
+                    <label>Upload multiple student task files</label>
+                    <input
+                      type="file"
+                      multiple
+                      accept=".doc,.docx,.xls,.xlsx,.ppt,.pptx,.xcf,.psd,.pdf,.png,.jpg,.jpeg,.sb3,.zip"
+                      onChange={(e) => { handlePracticalTaskFiles(i, e.target.files); e.target.value = ''; }}
+                    />
+                    <p className="meta">Select all task files in one go. Each file becomes one practical variant and is assigned deterministically by student roll number. Students receive only their assigned file.</p>
+                    {q._taskFiles?.length > 0 && (
+                      <div className="notice-strip" style={{ display: 'block', marginTop: 8 }}>
+                        <strong>{q._taskFiles.length} task file(s) selected:</strong> {q._taskFiles.map(f => f.name).join(', ')}
+                      </div>
+                    )}
+                    {q._taskFiles?.length > 0 && (
+                      <p className="meta">Assignment rule: Task 1 → roster student 1, Task 2 → student 2, and so on, repeating after the last file. The assignment is deterministic, so refresh/re-login does not reshuffle it.</p>
+                    )}
+                  </div>
                 )}
                 <p className="meta">
                   Each variant below is a different problem. Every student gets exactly one, spread

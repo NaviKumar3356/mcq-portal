@@ -4081,3 +4081,7 @@ html[data-corner-style="classic"] .card, html[data-corner-style="classic"] .admi
   .grade-submission-card { grid-template-columns: 1fr; }
   .grade-submission-actions { justify-content: flex-start; }
 }
+
+/* Multi-file practical task assignment */
+.practical-task-files input[type="file"] { max-width: 100%; }
+.practical-task-files .notice-strip { overflow-wrap: anywhere; word-break: break-word; }
