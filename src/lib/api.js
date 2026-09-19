@@ -1,13 +1,46 @@
 const TOKEN_KEY = 'test_portal_token';
+const STUDENT_TOKEN_KEY = 'test_portal_student_token';
+
+// Student logins intentionally live in sessionStorage so closing the browser
+// or tab removes the browser-side login. Teacher/admin sessions continue to
+// use localStorage so their existing persistent-login behaviour is unchanged.
+function tokenRole(token) {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload?.role || null;
+  } catch {
+    return null;
+  }
+}
 
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  const studentToken = sessionStorage.getItem(STUDENT_TOKEN_KEY);
+  if (studentToken) return studentToken;
+
+  // Remove any legacy student token saved by older portal versions. This
+  // prevents an old localStorage token from keeping a student signed in after
+  // the new browser-close login rule is deployed.
+  const legacy = localStorage.getItem(TOKEN_KEY);
+  if (legacy && tokenRole(legacy) === 'student') {
+    localStorage.removeItem(TOKEN_KEY);
+    return null;
+  }
+  return legacy;
 }
+
 export function setToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+  if (tokenRole(token) === 'student') {
+    sessionStorage.setItem(STUDENT_TOKEN_KEY, token);
+    localStorage.removeItem(TOKEN_KEY);
+  } else {
+    localStorage.setItem(TOKEN_KEY, token);
+    sessionStorage.removeItem(STUDENT_TOKEN_KEY);
+  }
 }
+
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  sessionStorage.removeItem(STUDENT_TOKEN_KEY);
 }
 
 export async function logoutStudentSession() {
