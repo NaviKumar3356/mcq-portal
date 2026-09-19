@@ -176,7 +176,7 @@ export function parsePracticalBlock(block, label, language) {
   if (answerIdx === -1) {
     warnings.push(`${label}: no "Answer:" line detected. Practical questions are graded manually, so this is just a heads-up — nothing to fix.`);
   } else if (answerText.trim()) {
-    warnings.push(`${label}: reference answer found — "${answerText.trim()}". This is NOT stored or shown to students (practical answers are always graded manually); note it down yourself if you'll need it while grading.`);
+    warnings.push(`${label}: reference answer found — "${answerText.trim()}". It will be stored as a teacher-only model answer and never shown to students.`);
   }
 
   const question = {
@@ -185,6 +185,7 @@ export function parsePracticalBlock(block, label, language) {
     marks,
     language,
     variants: [{ question_text, starter_code }],
+    reference_answer: answerText.trim(),
   };
 
   return { question, warnings };

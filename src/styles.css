@@ -4056,3 +4056,28 @@ html[data-corner-style="classic"] .card, html[data-corner-style="classic"] .admi
   :where(input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="range"]):not([type="color"])),
   :where(select), :where(textarea) { min-height: 48px; }
 }
+
+
+/* V20 — prevent long student names/IDs and code from colliding in review/results. */
+.grade-review-student { min-width: 0; flex: 1 1 420px; }
+.grade-review-student > div:last-child { min-width: 0; overflow-wrap: anywhere; word-break: break-word; }
+.grade-review-student h1 { overflow-wrap: anywhere; word-break: break-word; line-height: 1.12; }
+.grade-review-student .meta { overflow-wrap: anywhere; word-break: break-word; line-height: 1.45; }
+.grade-submission-card > div:first-child { min-width: 0; }
+.grade-submission-name, .grade-submission-meta { overflow-wrap: anywhere; word-break: break-word; }
+.grade-submission-actions { min-width: 0; }
+.student-code-block { font-weight: 700; line-height: 1.55; overflow-wrap: anywhere; }
+.reference-code { font-weight: 500; }
+
+/* Long names/roll numbers should never overlap avatars or action controls. */
+.student-dashboard-header .test-header-brand { min-width: 0; flex: 1 1 auto; }
+.student-dashboard-header .test-header-brand > div:last-child { min-width: 0; overflow-wrap: anywhere; }
+.student-dashboard-header h2 { overflow-wrap: anywhere; word-break: break-word; }
+.student-dashboard-header .meta { overflow-wrap: anywhere; }
+
+@media (max-width: 760px) {
+  .grade-review-hero { flex-direction: column; }
+  .grade-review-summary { min-width: 0; width: 100%; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grade-submission-card { grid-template-columns: 1fr; }
+  .grade-submission-actions { justify-content: flex-start; }
+}

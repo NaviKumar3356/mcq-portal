@@ -2,7 +2,7 @@ const supabase = require('./utils/db');
 const { json } = require('./utils/auth');
 const { requireStudentSession } = require('./utils/student-session');
 
-const ALLOWED_EXTENSIONS = new Set(['jpg','jpeg','png','webp','gif','pdf','doc','docx','xls','xlsx','ppt','pptx','zip']);
+const ALLOWED_EXTENSIONS = new Set(['jpg','jpeg','png','webp','gif','pdf','doc','docx','xls','xlsx','ppt','pptx','zip','txt','psd','xcf','sb3','mp4','webm']);
 
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });

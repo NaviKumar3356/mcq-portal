@@ -80,7 +80,7 @@ function formatMs(ms) {
 // since different OS/browser combos surface tab/app switches differently —
 // a short de-dupe window stops the same switch being counted twice when
 // both fire together.
-function useTabProctor(active, onMaxExceeded) {
+function useTabProctor(active, onMaxExceeded, suppressRef) {
   const [switchCount, setSwitchCount] = useState(0);
   const [warningOpen, setWarningOpen] = useState(false);
   const [tabHidden, setTabHidden] = useState(false);
@@ -95,7 +95,7 @@ function useTabProctor(active, onMaxExceeded) {
     if (!active) return;
 
     function flag(type) {
-      if (exceededRef.current) return;
+      if (exceededRef.current || suppressRef?.current) return;
       const now = Date.now();
       if (now - lastFlagAt.current < 500) return; // de-dupe simultaneous events
       lastFlagAt.current = now;
@@ -133,7 +133,7 @@ function useTabProctor(active, onMaxExceeded) {
       window.removeEventListener('blur', onBlur);
       window.removeEventListener('focus', onFocus);
     };
-  }, [active]);
+  }, [active, suppressRef]);
 
   return {
     switchCount,
@@ -172,6 +172,10 @@ export default function TakeTest() {
   const [timeUpNotice, setTimeUpNotice] = useState(false);
   const [cheatLocked, setCheatLocked] = useState(false);
   const submittedRef = useRef(false);
+  // Native file pickers legitimately move focus away from the test window.
+  // Suppress the anti-cheat blur/visibility counter while the picker is open.
+  const fileDialogOpenRef = useRef(false);
+  const fileDialogTimerRef = useRef(null);
 
   useEffect(() => {
     api(`/test-detail?test_id=${testId}`)
@@ -251,7 +255,7 @@ export default function TakeTest() {
     handleSubmitRef.current?.(true, 'tab_switching', { count, log });
   }, []);
 
-  const proctor = useTabProctor(!!test && !submittedRef.current, onMaxSwitchesExceeded);
+  const proctor = useTabProctor(!!test && !submittedRef.current, onMaxSwitchesExceeded, fileDialogOpenRef);
 
   // test.end_at is always the EFFECTIVE deadline for this student — for a
   // normal attempt that's the paper's own end_at, but for a reopened
@@ -288,7 +292,17 @@ export default function TakeTest() {
     setAnswers((prev) => ({ ...prev, [qId]: { ...prev[qId], ...patch } }));
   }
 
+  function markFilePickerOpen() {
+    fileDialogOpenRef.current = true;
+    window.clearTimeout(fileDialogTimerRef.current);
+    // Some browsers do not fire a reliable event when the native picker is
+    // cancelled. Release the suppression automatically after a safe window.
+    fileDialogTimerRef.current = window.setTimeout(() => { fileDialogOpenRef.current = false; }, 60000);
+  }
+
   async function handleFile(qId, file) {
+    fileDialogOpenRef.current = false;
+    window.clearTimeout(fileDialogTimerRef.current);
     setUploadingFor(qId);
     try {
       const path = await uploadAnswerFile({ test_id: testId, question_id: qId, file });
@@ -373,8 +387,9 @@ export default function TakeTest() {
                 <div>
                   <input
                     type="file"
-                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.psd,.xcf"
-                    onChange={(e) => e.target.files[0] && handleFile(q.id, e.target.files[0])}
+                    accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.psd,.xcf,.sb3,.mp4,.webm"
+                    onClick={markFilePickerOpen}
+                    onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFile(q.id, file); else { fileDialogOpenRef.current = false; window.clearTimeout(fileDialogTimerRef.current); } }}
                   />
                   {uploadingFor === q.id && <p className="meta">Uploading…</p>}
                   {answers[q.id]?.file_name && <p className="meta">✓ Uploaded: {answers[q.id].file_name}</p>}
@@ -385,21 +400,36 @@ export default function TakeTest() {
                 <div>
                   <div style={{ fontWeight: 600, marginBottom: 6 }}>{idx + 1}. Practical question</div>
                   <span className="type-badge practical" style={{ marginBottom: 8, display: 'inline-block' }}>
-                    💻 {q.language === 'python' ? 'Python' : 'HTML'}
+                    💻 {({html:'HTML / CSS', python:'Python', sql:'SQL', word:'MS Word', excel:'MS Excel', powerpoint:'MS PowerPoint', gimp:'GIMP', canva:'Canva', scratch:'Scratch', other:'File practical'})[q.language] || 'Practical'}
                   </span>
                   <div className="card" style={{ background: 'var(--paper)', marginBottom: 10, whiteSpace: 'pre-wrap' }}>
                     {q.question_text}
                   </div>
-                  <textarea
-                    className="code-editor"
-                    spellCheck={false}
-                    value={answers[q.id]?.written_text ?? (q.starter_code || '')}
-                    onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
-                  />
-                  {q.language === 'html' && (
-                    <div className="html-live-preview">
-                      <div className="meta">LIVE HTML PREVIEW</div>
-                      <iframe title={`HTML preview for question ${idx + 1}`} sandbox="allow-scripts" srcDoc={answers[q.id]?.written_text || q.starter_code || ''} />
+                  {['html','python','sql'].includes(q.language || 'html') ? (
+                    <>
+                      <textarea
+                        className="code-editor"
+                        spellCheck={false}
+                        value={answers[q.id]?.written_text ?? (q.starter_code || '')}
+                        onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
+                      />
+                      {q.language === 'html' && (
+                        <div className="html-live-preview">
+                          <div className="meta">LIVE HTML PREVIEW</div>
+                          <iframe title={`HTML preview for question ${idx + 1}`} sandbox="allow-scripts" srcDoc={answers[q.id]?.written_text || q.starter_code || ''} />
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <div>
+                      <input
+                        type="file"
+                        accept={q.language === 'word' ? '.doc,.docx' : q.language === 'excel' ? '.xls,.xlsx,.csv' : q.language === 'powerpoint' ? '.ppt,.pptx' : q.language === 'gimp' ? '.xcf,.png,.jpg,.jpeg' : q.language === 'canva' ? '.pdf,.png,.jpg,.jpeg' : q.language === 'scratch' ? '.sb3' : 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.zip,.sb3,.xcf'}
+                        onClick={markFilePickerOpen}
+                        onChange={(e) => { const file = e.target.files?.[0]; if (file) handleFile(q.id, file); else { fileDialogOpenRef.current = false; window.clearTimeout(fileDialogTimerRef.current); } }}
+                      />
+                      {uploadingFor === q.id && <p className="meta">Uploading…</p>}
+                      {answers[q.id]?.file_name && <p className="meta">✓ Uploaded: {answers[q.id].file_name}</p>}
                     </div>
                   )}
                 </div>

@@ -363,7 +363,7 @@ export default function StudentResult() {
                         <span className="type-badge practical" style={{ marginBottom: 8, display: 'inline-block' }}>💻 {practicalLang === 'python' ? 'Python' : practicalLang === 'javascript' ? 'JavaScript' : 'HTML'}</span>
                         <div className="result-answer-box result-problem-box"><div className="result-answer-label">Problem statement</div>{practicalPrompt || <em>Problem statement unavailable</em>}</div>
                         <div className="result-answer-label">Your submitted code</div>
-                        <pre className="code-block">{a.written_text || 'No code submitted'}</pre>
+                        <pre className="code-block student-code-block">{a.written_text || 'No code submitted'}</pre>
                       </div>
                     )}
 

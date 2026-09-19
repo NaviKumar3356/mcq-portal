@@ -5,6 +5,7 @@ import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
 import { parseQuestionsDocx } from '../lib/parseQuestionsDocx.js';
 import ScheduleRangePicker from '../components/ScheduleRangePicker.jsx';
+import { istValueToUtcIso, utcIsoToIstValue } from '../lib/ist.js';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -133,7 +134,7 @@ export default function CreateTest() {
     setError('');
     if (questions.length === 0) return setError('Add at least one question.');
     if (!klass || !subject) return setError('Choose a class and subject.');
-    if (startAt && endAt && new Date(endAt) <= new Date(startAt)) return setError('The closing time must be later than the opening time.');
+    if (startAt && endAt && new Date(istValueToUtcIso(endAt)) <= new Date(istValueToUtcIso(startAt))) return setError('The closing time must be later than the opening time.');
     for (const q of questions) {
       if (q.type === 'practical' && (!q.variants || q.variants.length === 0 || !q.variants[0].question_text)) {
         return setError('Every practical question needs at least one variant with a problem statement.');
@@ -148,8 +149,8 @@ export default function CreateTest() {
           subject,
           class: klass,
           duration_minutes: Number(duration),
-          start_at: startAt ? new Date(startAt).toISOString() : null,
-          end_at: endAt ? new Date(endAt).toISOString() : null,
+          start_at: startAt ? istValueToUtcIso(startAt) : null,
+          end_at: endAt ? istValueToUtcIso(endAt) : null,
           status: 'draft',
           questions: questions.map(({ _resourceFile, ...q }) => q),
           shuffle_questions: shuffleQuestions,
@@ -166,7 +167,7 @@ export default function CreateTest() {
         }
       }
       if (questions.some(q => q._resourceFile)) {
-        await api('/test-edit', { method: 'POST', body: { test_id: created.test_id, title, subject, class: klass, duration_minutes: Number(duration), start_at: startAt ? new Date(startAt).toISOString() : null, end_at: endAt ? new Date(endAt).toISOString() : null, questions: questions.map(({_resourceFile, ...q}, i) => ({...q, order_index:i})), shuffle_questions: shuffleQuestions, shuffle_options: shuffleOptions, shuffle_group_size: Number(shuffleGroupSize)||1 } });
+        await api('/test-edit', { method: 'POST', body: { test_id: created.test_id, title, subject, class: klass, duration_minutes: Number(duration), start_at: startAt ? istValueToUtcIso(startAt) : null, end_at: endAt ? istValueToUtcIso(endAt) : null, questions: questions.map(({_resourceFile, ...q}, i) => ({...q, order_index:i})), shuffle_questions: shuffleQuestions, shuffle_options: shuffleOptions, shuffle_group_size: Number(shuffleGroupSize)||1 } });
       }
       nav(isAdmin ? '/admin/papers' : '/teacher');
     } catch (err) {
@@ -431,14 +432,28 @@ export default function CreateTest() {
 
             {q.type === 'practical' && (
               <div>
-                <label>Language</label>
-                <select value={q.language} onChange={(e) => updateQ(i, { language: e.target.value })}>
+                <label>Practical type</label>
+                <select value={q.language || 'html'} onChange={(e) => updateQ(i, { language: e.target.value })}>
+                  <option value="html">HTML / CSS</option>
                   <option value="python">Python</option>
-                  <option value="html">HTML</option>
+                  <option value="sql">SQL</option>
+                  <option value="word">MS Word</option>
+                  <option value="excel">MS Excel</option>
+                  <option value="powerpoint">MS PowerPoint</option>
+                  <option value="gimp">GIMP</option>
+                  <option value="canva">Canva</option>
+                  <option value="scratch">Scratch</option>
+                  <option value="other">Other file-based practical</option>
                 </select>
-                <label>Correct / reference answer (teacher only)</label>
-                <textarea className="code-editor" spellCheck={false} value={q.reference_answer || ''} onChange={(e) => updateQ(i, { reference_answer: e.target.value })} placeholder={q.language === 'html' ? '<!-- Correct HTML code -->' : '# Correct Python code'} />
-                <p className="meta">This is never shown to students. During grading it can be applied to every student's remark in one click.</p>
+                {['html','python','sql'].includes(q.language || 'html') ? (
+                  <>
+                    <label>Correct / reference answer (teacher only)</label>
+                    <textarea className="code-editor" spellCheck={false} value={q.reference_answer || ''} onChange={(e) => updateQ(i, { reference_answer: e.target.value })} placeholder={q.language === 'html' ? '<!-- Correct HTML/CSS code -->' : q.language === 'python' ? '# Correct Python code' : '-- Correct SQL query'} />
+                    <p className="meta">This is never shown to students. It is the teacher model answer; HTML can also use assisted auto-grading.</p>
+                  </>
+                ) : (
+                  <p className="meta">Students will upload the completed {({word:'MS Word', excel:'MS Excel', powerpoint:'PowerPoint', gimp:'GIMP', canva:'Canva', scratch:'Scratch', other:'practical'})[q.language] || 'practical'} file. Add a reference/template file above if needed.</p>
+                )}
                 <p className="meta">
                   Each variant below is a different problem. Every student gets exactly one, spread
                   round-robin across the class roster by roll number — add enough variants and no two

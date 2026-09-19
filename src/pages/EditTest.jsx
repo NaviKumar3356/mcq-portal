@@ -5,6 +5,7 @@ import PanelLayout from '../components/PanelLayout.jsx';
 import { CLASSES, SUBJECTS } from '../lib/constants.js';
 import { parseQuestionsDocx } from '../lib/parseQuestionsDocx.js';
 import ScheduleRangePicker from '../components/ScheduleRangePicker.jsx';
+import { istValueToUtcIso, utcIsoToIstValue } from '../lib/ist.js';
 
 const TEACHER_ITEMS = [
   { to: '/teacher', label: 'Papers', icon: '📄', end: true },
@@ -95,8 +96,8 @@ export default function EditTest() {
       setSubject(d.test.subject);
       setKlass(d.test.class);
       setDuration(d.test.duration_minutes);
-      setStartAt(d.test.start_at ? d.test.start_at.slice(0, 16) : '');
-      setEndAt(d.test.end_at ? d.test.end_at.slice(0, 16) : '');
+      setStartAt(d.test.start_at ? utcIsoToIstValue(d.test.start_at) : '');
+      setEndAt(d.test.end_at ? utcIsoToIstValue(d.test.end_at) : '');
       setShuffleQuestions(d.test.shuffle_questions);
       setShuffleOptions(d.test.shuffle_options);
       setShuffleGroupSize(d.test.shuffle_group_size);
@@ -173,8 +174,8 @@ export default function EditTest() {
           subject,
           class: klass,
           duration_minutes: Number(duration),
-          start_at: startAt ? new Date(startAt).toISOString() : null,
-          end_at: endAt ? new Date(endAt).toISOString() : null,
+          start_at: startAt ? istValueToUtcIso(startAt) : null,
+          end_at: endAt ? istValueToUtcIso(endAt) : null,
           shuffle_questions: shuffleQuestions,
           shuffle_options: shuffleOptions,
           shuffle_group_size: Number(shuffleGroupSize) || 1,
@@ -411,10 +412,18 @@ export default function EditTest() {
 
             {q.type === 'practical' && (
               <div>
-                <label>Language</label>
-                <select value={q.language} onChange={(e) => updateQ(i, { language: e.target.value })} disabled={locked && !!q.id}>
+                <label>Practical type</label>
+                <select value={q.language || 'html'} onChange={(e) => updateQ(i, { language: e.target.value })} disabled={locked && !!q.id}>
+                  <option value="html">HTML / CSS</option>
                   <option value="python">Python</option>
-                  <option value="html">HTML</option>
+                  <option value="sql">SQL</option>
+                  <option value="word">MS Word</option>
+                  <option value="excel">MS Excel</option>
+                  <option value="powerpoint">MS PowerPoint</option>
+                  <option value="gimp">GIMP</option>
+                  <option value="canva">Canva</option>
+                  <option value="scratch">Scratch</option>
+                  <option value="other">Other file-based practical</option>
                 </select>
                 <label>Correct / reference answer (teacher only)</label>
                 <textarea className="code-editor" spellCheck={false} value={q.reference_answer || ''} onChange={(e) => updateQ(i, { reference_answer: e.target.value })} placeholder={q.language === 'html' ? '<!-- Correct HTML code -->' : '# Correct Python code'} />

@@ -66,6 +66,28 @@ function StudentSessionHeartbeat() {
     const id = window.setInterval(beat, 2 * 60 * 1000);
     return () => { stopped = true; window.clearInterval(id); };
   }, [nav]);
+
+  // A normal browser close should release the server-side session immediately.
+  // A sudden power cut cannot fire pagehide, so the database's 15-minute idle
+  // timeout remains the recovery safety net and lets an interrupted test resume
+  // from its local draft after power is restored.
+  useEffect(() => {
+    const auth = getAuthInfo();
+    if (!auth || auth.role !== 'student' || !auth.session_id) return undefined;
+    const release = () => {
+      const token = getToken();
+      if (!token) return;
+      try {
+        fetch('/api/student-logout', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          keepalive: true,
+        }).catch(() => {});
+      } catch {}
+    };
+    window.addEventListener('pagehide', release);
+    return () => window.removeEventListener('pagehide', release);
+  }, []);
   return null;
 }
 

@@ -11,10 +11,22 @@ export default function StudentDashboard() {
   const [photoPath, setPhotoPath] = useState(null);
 
   useEffect(() => {
-    api('/tests-list')
-      .then((d) => setTests(d.tests))
-      .catch((e) => setError(e.message));
-    api('/student-self').then((d) => setPhotoPath(d.student?.photo_path || null)).catch(() => {});
+    let stopped = false;
+    const loadTests = async () => {
+      try {
+        const d = await api('/tests-list');
+        if (!stopped) setTests(d.tests);
+        if (!stopped) setError('');
+      } catch (e) {
+        if (!stopped) setError(e.message);
+      }
+    };
+    loadTests();
+    // Keep the dashboard status live so a paper changes from Upcoming -> Open
+    // at the scheduled IST start without the student having to refresh.
+    const id = window.setInterval(loadTests, 10000);
+    api('/student-self').then((d) => { if (!stopped) setPhotoPath(d.student?.photo_path || null); }).catch(() => {});
+    return () => { stopped = true; window.clearInterval(id); };
   }, []);
 
   return (

@@ -34,6 +34,7 @@ export default function GradeOne() {
   const [bulkOverwrite, setBulkOverwrite] = useState(false);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkMessage, setBulkMessage] = useState('');
+  const [autoGradeId, setAutoGradeId] = useState(null);
 
   useEffect(() => {
     api(`/submission-detail?submission_id=${submissionId}`).then((d) => {
@@ -81,6 +82,22 @@ export default function GradeOne() {
       setBulkMessage(`✓ Applied to ${d.updated} student review${d.updated === 1 ? '' : 's'}. Marks were left unchanged.`);
     } catch (e) { setBulkMessage(`Could not apply feedback: ${e.message}`); }
     finally { setBulkSaving(false); }
+  }
+
+
+  async function autoGradeHtml(questionId) {
+    if (!data?.submission?.test_id || !questionId) return;
+    if (!window.confirm('Run assisted HTML grading for every student answer to this question? The result is based on the teacher model answer and can still be reviewed/overridden.')) return;
+    setAutoGradeId(questionId); setError('');
+    try {
+      const d = await api('/auto-grade-question', { method: 'POST', body: { test_id: data.submission.test_id, question_id: questionId, overwrite_remarks: false } });
+      setBulkMessage(`✓ Assisted HTML grading applied to ${d.updated} student answer${d.updated === 1 ? '' : 's'}. Review the marks before final publication.`);
+      const refreshed = await api(`/submission-detail?submission_id=${submissionId}`);
+      setData(refreshed);
+      setMarks(Object.fromEntries(refreshed.answers.map((a) => [a.id, a.marks_awarded ?? ''])));
+      setRemarks(Object.fromEntries(refreshed.answers.map((a) => [a.id, a.teacher_remark ?? ''])));
+    } catch (e) { setError(e.message); }
+    finally { setAutoGradeId(null); }
   }
 
   function answerStatus(a) {
@@ -226,12 +243,15 @@ export default function GradeOne() {
                 <div className="card" style={{ background: 'var(--paper)', margin: '7px 0 12px', whiteSpace: 'pre-wrap' }}>{a.variant_snapshot?.question_text || q.question_text}</div>
                 {q.resource_url && <a className="secondary small nav-action-button" href={q.resource_url} target="_blank" rel="noreferrer">📎 Open question resource</a>}
                 <div className="meta">STUDENT SUBMITTED CODE</div>
-                <pre className="code-block" style={{ marginTop: 7, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{a.written_text || 'No code submitted'}</pre>
+                <pre className="code-block student-code-block" style={{ marginTop: 7, whiteSpace: 'pre-wrap', overflowX: 'auto' }}>{a.written_text || 'No code submitted'}</pre>
                 {q.reference_answer && (
                   <details className="reference-answer-box">
                     <summary>View teacher model answer</summary>
                     <pre className="code-block reference-code">{q.reference_answer}</pre>
-                    <button type="button" className="secondary small" onClick={() => { setBulkQuestionId(a.question_id); setBulkText(q.reference_answer); setBulkMessage(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Use this answer for all students</button>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+                      <button type="button" className="secondary small" onClick={() => { setBulkQuestionId(a.question_id); setBulkText(q.reference_answer); setBulkMessage(''); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>Use this answer for all students</button>
+                      {String(q.language || '').toLowerCase() === 'html' && <button type="button" className="primary small" disabled={autoGradeId === a.question_id} onClick={() => autoGradeHtml(a.question_id)}>{autoGradeId === a.question_id ? 'Auto-grading…' : '⚙ Assisted auto-grade all'}</button>}
+                    </div>
                   </details>
                 )}
               </div>

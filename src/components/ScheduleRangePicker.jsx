@@ -1,42 +1,32 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { istDateFromValue, istValueFromDate, nowIstValue } from '../lib/ist.js';
 
 // ---------------------------------------------------------------------
-// Local datetime-local <-> Date helpers. We keep the public value format
+// IST wall-clock <-> Date helpers. We keep the public value format
 // identical to the native <input type="datetime-local"> string
 // ("YYYY-MM-DDTHH:mm") so this drops in wherever startAt/endAt were used
 // before, with zero changes to submit/parse logic elsewhere.
 // ---------------------------------------------------------------------
 function pad(n) { return String(n).padStart(2, '0'); }
 
-function toLocalValue(date) {
-  if (!date) return '';
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
+function toLocalValue(date) { return istValueFromDate(date); }
 
-function fromLocalValue(value) {
-  if (!value) return null;
-  const [datePart, timePart] = value.split('T');
-  if (!datePart) return null;
-  const [y, m, d] = datePart.split('-').map(Number);
-  const [hh = 0, mm = 0] = (timePart || '').split(':').map(Number);
-  const dt = new Date(y, (m || 1) - 1, d || 1, hh, mm, 0, 0);
-  return Number.isNaN(dt.getTime()) ? null : dt;
-}
+function fromLocalValue(value) { return istDateFromValue(value); }
 
 function sameDay(a, b) {
-  return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  return a && b && a.getUTCFullYear() === b.getUTCFullYear() && a.getUTCMonth() === b.getUTCMonth() && a.getUTCDate() === b.getUTCDate();
 }
 
-function startOfMonth(date) { return new Date(date.getFullYear(), date.getMonth(), 1); }
+function startOfMonth(date) { return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1)); }
 
 function buildMonthGrid(viewDate) {
   const first = startOfMonth(viewDate);
-  const startWeekday = first.getDay(); // 0 = Sun
-  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  const startWeekday = first.getUTCDay(); // 0 = Sun
+  const daysInMonth = new Date(Date.UTC(viewDate.getUTCFullYear(), viewDate.getUTCMonth() + 1, 0)).getUTCDate();
   const cells = [];
   for (let i = 0; i < startWeekday; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(viewDate.getFullYear(), viewDate.getMonth(), d));
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(Date.UTC(viewDate.getUTCFullYear(), viewDate.getUTCMonth(), d)));
   while (cells.length % 7 !== 0) cells.push(null);
   return cells;
 }
@@ -46,8 +36,8 @@ const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 function formatDisplay(date) {
   if (!date) return null;
-  const datePart = date.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-  const timePart = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const datePart = new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+  const timePart = new Intl.DateTimeFormat('en-IN', { timeZone: 'UTC', hour: 'numeric', minute: '2-digit' }).format(date);
   return { datePart, timePart };
 }
 
@@ -66,10 +56,10 @@ function formatDuration(ms) {
 
 // One calendar+time popover for a single field (open or close).
 function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass, anchorRect }) {
-  const initial = value || minDate || new Date();
+  const initial = value || minDate || istDateFromValue(nowIstValue());
   const [viewDate, setViewDate] = useState(startOfMonth(initial));
-  const [hour, setHour] = useState(value ? value.getHours() : 9);
-  const [minute, setMinute] = useState(value ? value.getMinutes() - (value.getMinutes() % 5) : 0);
+  const [hour, setHour] = useState(value ? value.getUTCHours() : 9);
+  const [minute, setMinute] = useState(value ? value.getUTCMinutes() - (value.getUTCMinutes() % 5) : 0);
   const popRef = useRef(null);
   const [position, setPosition] = useState({ top: 0, left: 0 });
 
@@ -105,12 +95,12 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
   }, [onClose]);
 
   const cells = useMemo(() => buildMonthGrid(viewDate), [viewDate]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const today = istDateFromValue(nowIstValue());
+  today.setUTCHours(0, 0, 0, 0);
 
   function pickDay(day) {
     if (!day) return;
-    const next = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hour, minute, 0, 0);
+    const next = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), hour, minute, 0, 0));
     onChange(next);
   }
 
@@ -118,12 +108,12 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
     setHour(nextHour);
     setMinute(nextMinute);
     const base = value || initial;
-    onChange(new Date(base.getFullYear(), base.getMonth(), base.getDate(), nextHour, nextMinute, 0, 0));
+    onChange(new Date(Date.UTC(base.getUTCFullYear(), base.getUTCMonth(), base.getUTCDate(), nextHour, nextMinute, 0, 0)));
   }
 
   function isDisabled(day) {
     if (!day || !minDate) return false;
-    const d = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59);
+    const d = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate(), 23, 59, 59));
     return d < minDate;
   }
 
@@ -132,9 +122,9 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
   return (
     <div className={`schedpick-popover ${accentClass}`} ref={popRef} role="dialog" aria-label={`${label} date and time`} style={{ position: 'fixed', top: position.top, left: position.left, width: 'min(360px, calc(100vw - 24px))' }}>
       <div className="schedpick-cal-head">
-        <button type="button" className="schedpick-nav" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))} aria-label="Previous month">‹</button>
-        <div className="schedpick-cal-title">{MONTH_NAMES[viewDate.getMonth()]} {viewDate.getFullYear()}</div>
-        <button type="button" className="schedpick-nav" onClick={() => setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))} aria-label="Next month">›</button>
+        <button type="button" className="schedpick-nav" onClick={() => setViewDate(new Date(Date.UTC(viewDate.getUTCFullYear(), viewDate.getUTCMonth() - 1, 1)))} aria-label="Previous month">‹</button>
+        <div className="schedpick-cal-title">{MONTH_NAMES[viewDate.getUTCMonth()]} {viewDate.getUTCFullYear()}</div>
+        <button type="button" className="schedpick-nav" onClick={() => setViewDate(new Date(Date.UTC(viewDate.getUTCFullYear(), viewDate.getUTCMonth() + 1, 1)))} aria-label="Next month">›</button>
       </div>
 
       <div className="schedpick-weekdays">
@@ -155,14 +145,14 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
               className={`schedpick-cell ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}`}
               onClick={() => pickDay(day)}
             >
-              {day.getDate()}
+              {day.getUTCDate()}
             </button>
           );
         })}
       </div>
 
       <div className="schedpick-time-row">
-        <span className="schedpick-time-label">🕐 Time</span>
+        <span className="schedpick-time-label">🕐 Time (IST)</span>
         <select value={hour} onChange={(e) => applyTime(Number(e.target.value), minute)} aria-label="Hour">
           {hours12.map((h) => (
             <option key={h} value={h}>{h === 0 ? '12 AM' : h < 12 ? `${h} AM` : h === 12 ? '12 PM' : `${h - 12} PM`}</option>
@@ -177,12 +167,12 @@ function CalendarPopover({ value, onChange, onClose, minDate, label, accentClass
 
       <div className="schedpick-quick-row">
         {[
-          ['Now', () => new Date()],
-          ['+1 hour', () => new Date(Date.now() + 3600000)],
-          ['Tomorrow 9 AM', () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d; }],
-          ['+7 days', () => new Date(Date.now() + 7 * 86400000)],
+          ['Now', () => istDateFromValue(nowIstValue())],
+          ['+1 hour', () => new Date(istDateFromValue(nowIstValue()).getTime() + 3600000)],
+          ['Tomorrow 9 AM', () => { const d = istDateFromValue(nowIstValue()); d.setUTCDate(d.getUTCDate() + 1); d.setUTCHours(9, 0, 0, 0); return d; }],
+          ['+7 days', () => new Date(istDateFromValue(nowIstValue()).getTime() + 7 * 86400000)],
         ].map(([label2, fn]) => (
-          <button type="button" key={label2} className="schedpick-quick-chip" onClick={() => { const d = fn(); setViewDate(startOfMonth(d)); setHour(d.getHours()); setMinute(d.getMinutes()); onChange(d); }}>
+          <button type="button" key={label2} className="schedpick-quick-chip" onClick={() => { const d = fn(); setViewDate(startOfMonth(d)); setHour(d.getUTCHours()); setMinute(d.getUTCMinutes()); onChange(d); }}>
             {label2}
           </button>
         ))}
@@ -242,7 +232,7 @@ function ScheduleField({ label, chip, hint, value, onChange, minDate, accentClas
   );
 }
 
-// Public component. Props mirror the two datetime-local inputs it replaces:
+// Public component. Props mirror the two datetime-local inputs it replaces; values are always interpreted as IST:
 // startValue/endValue are "YYYY-MM-DDTHH:mm" strings (or ''), and
 // onStartChange/onEndChange receive the same string format back.
 export default function ScheduleRangePicker({ startValue, endValue, onStartChange, onEndChange }) {
