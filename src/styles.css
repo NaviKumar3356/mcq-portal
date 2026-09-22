@@ -4090,3 +4090,21 @@ html[data-corner-style="classic"] .card, html[data-corner-style="classic"] .admi
 /* Multi-file practical task assignment */
 .practical-task-files input[type="file"] { max-width: 100%; }
 .practical-task-files .notice-strip { overflow-wrap: anywhere; word-break: break-word; }
+
+/* Python in-browser practical runner */
+.python-runner { margin-top: 12px; }
+.python-editor-label, .python-output-title { font-weight: 700; margin-bottom: 6px; }
+.python-code-editor { min-height: 240px; width: 100%; font-family: Consolas, Monaco, monospace; }
+.python-runner-controls { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; margin-top: 10px; }
+.python-runner-controls label { display: block; }
+.python-runner-controls label > span { display: block; font-size: .82rem; font-weight: 600; margin-bottom: 5px; }
+.python-input { width: 100%; min-height: 72px; resize: vertical; font-family: Consolas, Monaco, monospace; }
+.python-run-button { min-width: 135px; }
+.python-output-wrap { margin-top: 12px; }
+.python-output { min-height: 90px; max-height: 280px; overflow: auto; margin: 0; padding: 12px; border-radius: 8px; background: #111827; color: #f9fafb; white-space: pre-wrap; font-family: Consolas, Monaco, monospace; font-size: .9rem; }
+.python-run-error { margin-top: 8px; padding: 9px 11px; border-radius: 7px; background: #fff1f2; color: #9f1239; border: 1px solid #fecdd3; font-size: .88rem; }
+.python-runner-note { margin-top: 7px; }
+@media (max-width: 700px) {
+  .python-runner-controls { grid-template-columns: 1fr; }
+  .python-run-button { width: 100%; }
+}

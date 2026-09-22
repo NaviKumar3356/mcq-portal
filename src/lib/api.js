@@ -69,6 +69,10 @@ const GET_CACHE = new Map();
 const GET_INFLIGHT = new Map();
 const GET_CACHE_TTL = 30000;
 
+// These endpoints contain security/timing-sensitive state and must never be
+// served from the browser's in-memory GET cache.
+const NO_GET_CACHE = new Set(['/test-detail', '/tests-list', '/server-time', '/student-self']);
+
 export function clearApiCache() {
   GET_CACHE.clear();
 }
@@ -78,7 +82,9 @@ export async function api(path, { method = 'GET', body } = {}) {
   const token = getToken();
   const cacheKey = `${normalizedMethod}:${path}:${token || 'public'}`;
 
-  if (normalizedMethod === 'GET') {
+  const cacheableGet = normalizedMethod === 'GET' && !NO_GET_CACHE.has(path.split('?')[0]);
+
+  if (cacheableGet) {
     const cached = GET_CACHE.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) return cached.data;
     if (GET_INFLIGHT.has(cacheKey)) return GET_INFLIGHT.get(cacheKey);
@@ -98,11 +104,11 @@ export async function api(path, { method = 'GET', body } = {}) {
 
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Request failed (${res.status})`);
-    if (normalizedMethod === 'GET') GET_CACHE.set(cacheKey, { data, expiresAt: Date.now() + GET_CACHE_TTL });
+    if (cacheableGet) GET_CACHE.set(cacheKey, { data, expiresAt: Date.now() + GET_CACHE_TTL });
     return data;
   })();
 
-  if (normalizedMethod === 'GET') {
+  if (cacheableGet) {
     GET_INFLIGHT.set(cacheKey, request);
     try { return await request; }
     finally { GET_INFLIGHT.delete(cacheKey); }

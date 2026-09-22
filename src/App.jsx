@@ -64,7 +64,7 @@ function StudentSessionHeartbeat() {
       }
     };
     beat();
-    const id = window.setInterval(beat, 30 * 1000);
+    const id = window.setInterval(beat, 60 * 1000);
     return () => { stopped = true; window.clearInterval(id); };
   }, [nav]);
 

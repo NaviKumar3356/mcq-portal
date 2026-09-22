@@ -12,12 +12,15 @@ exports.handler = async (event) => {
   if (!testId) return json(400, { error: 'test_id is required' });
 
   try {
-    const { data: test, error: tErr } = await supabase
-      .from('tests')
-      .select('*')
-      .eq('id', testId)
-      .single();
-    if (tErr || !test) return json(404, { error: 'Test not found' });
+    // These reads are independent. Run them together so a cold Netlify
+    // function pays one round-trip window instead of three.
+    const [testResult, reopenResult, existingResult] = await Promise.all([
+      supabase.from('tests').select('*').eq('id', testId).single(),
+      supabase.from('test_reopens').select('id, reopened_at, reopen_minutes').eq('test_id', testId).eq('student_id', auth.student_id).maybeSingle(),
+      supabase.from('submissions').select('id').eq('test_id', testId).eq('student_id', auth.student_id).maybeSingle(),
+    ]);
+    const test = testResult.data;
+    if (testResult.error || !test) return json(404, { error: 'Test not found' });
 
     if (test.status === 'draft') return json(403, { error: 'This test is not published' });
 
@@ -32,12 +35,7 @@ exports.handler = async (event) => {
 
     // A specific student may have been granted a one-time pass back in,
     // even though the paper's overall window is closed for everyone else.
-    const { data: reopen } = await supabase
-      .from('test_reopens')
-      .select('id, reopened_at, reopen_minutes')
-      .eq('test_id', testId)
-      .eq('student_id', auth.student_id)
-      .maybeSingle();
+    const reopen = reopenResult.data;
 
     // --- Reopen window fix -------------------------------------------
     // Previously the countdown always compared "now" against the paper's
@@ -74,12 +72,7 @@ exports.handler = async (event) => {
       return json(403, { error: 'Your reopened attempt window has expired. Ask your teacher to reopen it again.' });
     }
 
-    const { data: existing } = await supabase
-      .from('submissions')
-      .select('id')
-      .eq('test_id', testId)
-      .eq('student_id', auth.student_id)
-      .maybeSingle();
+    const existing = existingResult.data;
     if (existing) return json(403, { error: 'You have already submitted this test' });
 
     const { data: questions, error: qErr } = await supabase

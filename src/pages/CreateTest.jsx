@@ -79,9 +79,19 @@ export default function CreateTest() {
       // returns questions in the right shape for either type.
       const { questions: parsed, warnings } = parseQuestionsDocx(rawText);
       if (parsed.length > 0) {
-        setQuestions((qs) => [...qs, ...parsed]);
+        setQuestions((qs) => {
+          const onlyBlankStarter = qs.length === 1 && qs[0].type === 'mcq' && !qs[0].question_text && (qs[0].options || []).every((x) => !x);
+          return onlyBlankStarter ? parsed : [...qs, ...parsed];
+        });
+        // Make a clean first-pass setup from the document name. The teacher can
+        // still change these fields before saving/publishing the test.
+        const baseName = file.name.replace(/\.docx$/i, '').replace(/[_-]+/g, ' ').trim();
+        if (!title && baseName) setTitle(baseName);
+        if (/grade\s*9|class\s*9/i.test(file.name) && activeClassOptions.includes('9')) setKlass('9');
+        if (/python/i.test(rawText) && activeSubjectOptions.includes('Computer Science')) setSubject('Computer Science');
       }
-      setImportReport({ ok: parsed.length, warnings });
+      const totalMarks = parsed.reduce((sum, q) => sum + Number(q.marks || 0), 0);
+      setImportReport({ ok: parsed.length, totalMarks, warnings });
     } catch (err) {
       setImportReport({ ok: 0, warnings: [`Couldn't read that file: ${err.message}`] });
     } finally {
@@ -357,7 +367,7 @@ export default function CreateTest() {
             <div style={{ marginTop: 10 }}>
               {importReport.ok > 0 && (
                 <p style={{ fontWeight: 600, color: 'var(--accent-dark)' }}>
-                  ✅ Imported {importReport.ok} question{importReport.ok === 1 ? '' : 's'}.
+                  ✅ Imported {importReport.ok} question{importReport.ok === 1 ? '' : 's'} · {importReport.totalMarks || 0} marks. The test is now built automatically from the Word paper; review it and click Create Test to save the draft.
                 </p>
               )}
               {importReport.warnings.length > 0 && (
