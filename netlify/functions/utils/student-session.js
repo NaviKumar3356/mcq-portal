@@ -2,9 +2,9 @@ const crypto = require('crypto');
 const supabase = require('./db');
 
 // A student account may have only one active browser/device session.
-// The lock expires after inactivity so a forgotten browser cannot lock an
+// The lock expires after inactivity so a forgotten or closed browser cannot lock an
 // account forever. The frontend sends a heartbeat while the student is active.
-const IDLE_MINUTES = 15;
+const IDLE_MINUTES = 3;
 
 function newSessionId() {
   return crypto.randomUUID();

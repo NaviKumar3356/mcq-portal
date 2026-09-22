@@ -30,12 +30,12 @@ exports.handler = async (event) => {
       return json(409, { error: 'This student already has a submitted attempt. Use Merge only for a separately-created make-up paper.' });
     }
 
-    let reopen_minutes = null;
-    if (minutes !== undefined && minutes !== null && minutes !== '') {
-      const n = Number(minutes);
-      if (!Number.isFinite(n) || n <= 0) return json(400, { error: 'minutes must be a positive number' });
-      reopen_minutes = Math.round(n);
+    if (minutes === undefined || minutes === null || minutes === '') {
+      return json(400, { error: 'Enter the exact number of minutes to give this student for the make-up attempt.' });
     }
+    const n = Number(minutes);
+    if (!Number.isFinite(n) || n <= 0) return json(400, { error: 'Minutes must be a positive number' });
+    const reopen_minutes = Math.round(n);
 
     const absenceReason = existing?.status === 'absent' ? (existing.absence_reason || null) : null;
     if (existing?.status === 'absent') {

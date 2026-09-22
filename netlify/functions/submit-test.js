@@ -50,8 +50,13 @@ exports.handler = async (event) => {
       .maybeSingle();
     let effectiveEnd = test.end_at ? new Date(test.end_at) : null;
     if (reopen) {
-      const minutes = Number(reopen.reopen_minutes) > 0 ? Number(reopen.reopen_minutes) : (Number(test.duration_minutes) || 30);
+      const minutes = Number(reopen.reopen_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        return json(409, { error: 'This reattempt does not have a valid assigned duration. Ask the teacher or administrator to assign it again.' });
+      }
       effectiveEnd = new Date(new Date(reopen.reopened_at).getTime() + minutes * 60000);
+    } else if (!effectiveEnd && test.start_at) {
+      effectiveEnd = new Date(new Date(test.start_at).getTime() + (Number(test.duration_minutes) || 30) * 60000);
     }
     if (effectiveEnd && now > effectiveEnd) return json(403, { error: 'This test has closed' });
 

@@ -7,7 +7,28 @@ import { SCHOOL_NAME } from '../lib/constants.js';
 // How many times a student can switch tabs / lose window focus before the
 // test is auto-submitted and flagged for the teacher. Change this one
 // number to make the policy stricter or looser.
-const MAX_TAB_SWITCHES = 3;
+const MAX_TAB_SWITCHES = 0;
+// Tab switching is enabled for MCQ and code-based practical tests (HTML,
+// Python, SQL). It is disabled for file-based practicals because students
+// must open Word/Excel/Canva/etc. outside the portal, work on the task, and
+// return to upload the completed file.
+const TAB_SWITCH_PROCTORING_ENABLED = true;
+
+function isFileBasedPractical(q) {
+  if (q?.type === 'upload') return true;
+  if (q?.type !== 'practical') return false;
+  return !['html', 'python', 'sql'].includes((q.language || '').toLowerCase());
+}
+
+function shouldEnableTabProctoring(questionList) {
+  if (!Array.isArray(questionList) || questionList.length === 0) return false;
+  // If the paper contains any file-work question, allow tab/app switching
+  // for the whole attempt so students can complete and upload the task.
+  if (questionList.some(isFileBasedPractical)) return false;
+  // Otherwise protect MCQ and code-based practical papers.
+  return questionList.some((q) => q?.type === 'mcq' ||
+    (q?.type === 'practical' && ['html', 'python', 'sql'].includes((q.language || '').toLowerCase())));
+}
 
 // Measures the offset between this device's clock and the server's clock
 // ONCE, on load, so the countdown can't be tricked by changing the
@@ -255,7 +276,8 @@ export default function TakeTest() {
     handleSubmitRef.current?.(true, 'tab_switching', { count, log });
   }, []);
 
-  const proctor = useTabProctor(!!test && !submittedRef.current, onMaxSwitchesExceeded, fileDialogOpenRef);
+  const tabSwitchProtectionActive = TAB_SWITCH_PROCTORING_ENABLED && !!test && shouldEnableTabProctoring(questions) && !submittedRef.current;
+  const proctor = useTabProctor(tabSwitchProtectionActive, onMaxSwitchesExceeded, fileDialogOpenRef);
 
   // test.end_at is always the EFFECTIVE deadline for this student — for a
   // normal attempt that's the paper's own end_at, but for a reopened
@@ -323,7 +345,7 @@ export default function TakeTest() {
   if (error && !test) return <div className="container"><div className="error-box">{error}</div></div>;
   if (!test) return <div className="container center-note">Loading test…</div>;
 
-  const blurred = proctor.tabHidden || proctor.warningOpen;
+  const blurred = false;
 
   return (
     <div className="container">
@@ -341,7 +363,9 @@ export default function TakeTest() {
             {test.reopened && <span className="pill open" style={{ marginBottom: 6, display: 'inline-block' }}>Reopened attempt</span>}
             {test.end_at && <div className="timer">⏱ {clockReady ? formatMs(remaining) : 'Syncing…'}</div>}
             <div className="meta" style={{ marginTop: 6 }}>
-              🛡 Tab switches: {proctor.switchCount} / {MAX_TAB_SWITCHES}
+              {tabSwitchProtectionActive
+                ? '🛡️ Tab switching protection enabled for this test'
+                : '📎 File work enabled · tab switching allowed for this test'}
             </div>
           </div>
         </div>
@@ -362,7 +386,7 @@ export default function TakeTest() {
                 <div className="question-resource-student">
                   <div className="meta">📎 QUESTION RESOURCE</div>
                   {q.resource_mime?.startsWith('image/') ? <img src={q.resource_url} alt={q.resource_name || 'Question reference'} className="question-reference-image" /> : null}
-                  <a className="secondary small nav-action-button" href={q.resource_url} download={q.resource_name || undefined} target="_blank" rel="noreferrer" onClick={markResourceDownloadOpen}>⬇ {q.resource_name || 'Open / download resource'}</a>
+                  <a className="secondary small nav-action-button" href={q.resource_url} download={q.resource_name || undefined} onClick={markResourceDownloadOpen}>⬇ {q.resource_name || 'Open / download resource'}</a>
                 </div>
               )}
 
@@ -454,7 +478,7 @@ export default function TakeTest() {
       </div>
 
       {/* Anti-cheating: tab/window switch warning — blocks interaction until acknowledged */}
-      {proctor.warningOpen && !cheatLocked && (
+      {TAB_SWITCH_PROCTORING_ENABLED && proctor.warningOpen && !cheatLocked && (
         <div className="proctor-overlay">
           <div className="card proctor-card">
             <div className="proctor-count">Warning {proctor.switchCount} / {MAX_TAB_SWITCHES}</div>
@@ -477,7 +501,7 @@ export default function TakeTest() {
       )}
 
       {/* Anti-cheating: switch limit exceeded — test is being auto-submitted, no way back in */}
-      {cheatLocked && (
+      {TAB_SWITCH_PROCTORING_ENABLED && cheatLocked && (
         <div className="proctor-overlay">
           <div className="card proctor-card proctor-card-locked">
             <h3>🚫 Test submitted</h3>

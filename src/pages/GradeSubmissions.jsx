@@ -35,8 +35,7 @@ export default function GradeSubmissions() {
   const [flagFilter, setFlagFilter] = useState('all');
   const [absenceReasons, setAbsenceReasons] = useState({});
   const [attendanceMigrationRequired, setAttendanceMigrationRequired] = useState(false);
-  // Optional custom reopen duration (minutes) keyed by student id. Empty
-  // string / unset means "use the paper's normal duration_minutes".
+  // Exact teacher/admin-assigned reattempt duration (minutes), keyed by student id.
   const [reopenMinutes, setReopenMinutes] = useState({});
   const [makeUpMinutes, setMakeUpMinutes] = useState({});
   const [makeUpReason, setMakeUpReason] = useState({});
@@ -148,6 +147,7 @@ export default function GradeSubmissions() {
   async function assignMakeUp(studentId, name) {
     const minutes = makeUpMinutes[studentId];
     const reason = makeUpReason[studentId] || '';
+    if (!minutes) { setError(`Enter the exact make-up time in minutes for ${name}.`); return; }
     if (!window.confirm(`Assign the same paper as a make-up attempt to ${name}? Their current absent/not-submitted status will be cleared.`)) return;
     try {
       await api('/makeup-assign', {
@@ -174,15 +174,16 @@ export default function GradeSubmissions() {
 
   async function reopenFor(studentId, name) {
     const customMinutes = reopenMinutes[studentId];
-    const usingCustom = customMinutes !== undefined && customMinutes !== '';
-    const confirmMsg = usingCustom
-      ? `Reopen this test for ${name} with a ${customMinutes}-minute window starting now? Any existing submission of theirs will be cleared — no one else is affected.`
-      : `Reopen this test for ${name}? They'll get the paper's normal ${testMeta.duration_minutes || 30}-minute duration starting now. Any existing submission of theirs will be cleared — no one else is affected.`;
+    if (!customMinutes) {
+      setError(`Enter the exact reattempt time in minutes for ${name}.`);
+      return;
+    }
+    const confirmMsg = `Reopen this test for ${name} with exactly ${customMinutes} minutes starting now? Any existing submission of theirs will be cleared — no one else is affected.`;
     if (!window.confirm(confirmMsg)) return;
     try {
       await api('/submission-reopen', {
         method: 'POST',
-        body: { test_id: testId, student_id: studentId, minutes: usingCustom ? customMinutes : undefined },
+        body: { test_id: testId, student_id: studentId, minutes: customMinutes },
       });
       setReopenMinutes((m) => ({ ...m, [studentId]: '' }));
       load();
@@ -197,8 +198,9 @@ export default function GradeSubmissions() {
         <input
           type="text"
           inputMode="numeric"
-          placeholder={`${testMeta.duration_minutes || 30} min`}
-          title="Custom minutes for this reopened attempt (leave blank for the paper's normal duration)"
+          placeholder="Time (min)"
+          required
+          title="Enter the exact number of minutes for this reattempt"
           value={reopenMinutes[studentId] ?? ''}
           onChange={(e) => setReopenMinutes((m) => ({ ...m, [studentId]: e.target.value.replace(/[^0-9]/g, '') }))}
           style={{ width: 64, padding: '6px 8px', fontSize: '0.78rem' }}
@@ -214,11 +216,11 @@ export default function GradeSubmissions() {
         <div className="makeup-label">🔄 Assign make-up attempt</div>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <input
-            type="text" inputMode="numeric" placeholder={`${testMeta.duration_minutes || 30} min`}
+            type="text" inputMode="numeric" placeholder="Time (min)"
             value={makeUpMinutes[studentId] ?? ''}
             onChange={(e) => setMakeUpMinutes((m) => ({ ...m, [studentId]: e.target.value.replace(/[^0-9]/g, '') }))}
             style={{ width: 70, padding: '6px 8px', fontSize: '0.78rem' }}
-            title="Optional make-up duration"
+            title="Enter the exact number of minutes for this make-up attempt"
           />
           <input
             type="text" placeholder="Reason / note (optional)"

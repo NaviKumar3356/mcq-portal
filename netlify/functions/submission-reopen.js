@@ -11,11 +11,9 @@ function teacherCanAccessTest(auth, test) {
 // one-time pass back in even if the paper's overall closing time has
 // already passed. No other student is affected.
 //
-// Body: { test_id, student_id, minutes? }
-// `minutes` is optional — if given, that student's reopened attempt gets
-// exactly that many minutes (counted from right now), instead of the
-// paper's normal duration_minutes. Handy for "just give them 10 minutes
-// to finish the last two questions" instead of a full fresh attempt.
+// Body: { test_id, student_id, minutes }
+// `minutes` is required — teacher/admin explicitly decides how much time
+// the reopened student gets, counted from the moment of reopening.
 exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
 
@@ -30,14 +28,14 @@ exports.handler = async (event) => {
     if (!test) return json(404, { error: 'Test not found' });
     if (!teacherCanAccessTest(auth, test)) return json(403, { error: 'You are not assigned to this class/subject' });
 
-    let reopen_minutes = null;
-    if (minutes !== undefined && minutes !== null && minutes !== '') {
-      const n = Number(minutes);
-      if (!Number.isFinite(n) || n <= 0) {
-        return json(400, { error: 'minutes must be a positive number, or omitted to use the paper\'s normal duration' });
-      }
-      reopen_minutes = Math.round(n);
+    if (minutes === undefined || minutes === null || minutes === '') {
+      return json(400, { error: 'Enter the exact number of minutes to give this student for the reattempt.' });
     }
+    const n = Number(minutes);
+    if (!Number.isFinite(n) || n <= 0) {
+      return json(400, { error: 'Minutes must be a positive number.' });
+    }
+    const reopen_minutes = Math.round(n);
 
     // Clear any existing submission so the student gets a genuinely fresh attempt.
     const { data: existing } = await supabase

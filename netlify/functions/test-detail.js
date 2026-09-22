@@ -49,16 +49,22 @@ exports.handler = async (event) => {
     // just a stale deadline.
     //
     // Fix: a reopened student gets a FRESH window starting from the
-    // moment they were reopened, using either a custom duration the
-    // teacher set for that reopen (reopen_minutes) or the paper's normal
-    // duration_minutes as a fallback.
+    // moment they were reopened, using the exact duration the teacher/admin
+    // assigned in reopen_minutes.
     let effectiveEndAt = test.end_at;
     if (reopen) {
-      const minutes = Number(reopen.reopen_minutes) > 0
-        ? Number(reopen.reopen_minutes)
-        : (Number(test.duration_minutes) || 30);
+      const minutes = Number(reopen.reopen_minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        return json(409, { error: 'This reattempt does not have a valid duration. Ask the teacher or administrator to assign the time again.' });
+      }
       const freshEndMs = new Date(reopen.reopened_at).getTime() + minutes * 60000;
       effectiveEndAt = new Date(freshEndMs).toISOString();
+    } else if (!effectiveEndAt && test.start_at) {
+      // If the paper has a fixed common start but no explicit end_at, derive
+      // the common deadline from start_at + duration. It must never become
+      // start_at + duration from the student's login time.
+      const derivedEndMs = new Date(test.start_at).getTime() + (Number(test.duration_minutes) || 30) * 60000;
+      effectiveEndAt = new Date(derivedEndMs).toISOString();
     }
 
     if (!reopen && test.end_at && now > new Date(test.end_at)) {
