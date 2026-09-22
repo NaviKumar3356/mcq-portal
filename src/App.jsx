@@ -29,6 +29,7 @@ const ManageStudents = lazy(() => import('./pages/ManageStudents.jsx'));
 
 const AdminLogin = lazy(() => import('./pages/AdminLogin.jsx'));
 const AdminOverview = lazy(() => import('./pages/AdminOverview.jsx'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics.jsx'));
 const ManageTeachers = lazy(() => import('./pages/ManageTeachers.jsx'));
 
 const Leaderboard = lazy(() => import('./pages/Leaderboard.jsx'));
@@ -167,6 +168,7 @@ export default function App() {
           {/* Super Admin */}
           <Route path={ADMIN_LOGIN_PATH} element={<AdminLogin />} />
           <Route path="/admin" element={<Protected roles={['super_admin']}><AdminOverview /></Protected>} />
+          <Route path="/admin/analytics" element={<Protected roles={['super_admin']}><AdminAnalytics /></Protected>} />
           <Route path="/admin/teachers" element={<Protected roles={['super_admin']}><ManageTeachers /></Protected>} />
           <Route path="/admin/students" element={<Protected roles={['super_admin']}><ManageStudents /></Protected>} />
           <Route path="/admin/papers" element={<Protected roles={['super_admin']}><TeacherDashboard /></Protected>} />

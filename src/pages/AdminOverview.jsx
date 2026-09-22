@@ -8,6 +8,7 @@ const ADMIN_ITEMS = [
   { to: '/admin/teachers', label: 'Teachers', icon: '🖊️' },
   { to: '/admin/students', label: 'Students', icon: '🎓' },
   { to: '/admin/papers', label: 'All papers', icon: '📄' },
+  { to: '/admin/analytics', label: 'Analytics', icon: '📊' },
   { to: '/admin/leaderboard', label: 'Leaderboard', icon: '🏆' },
   { to: '/admin/settings', label: 'School & branding', icon: '🎨' },
 ];
@@ -73,6 +74,7 @@ export default function AdminOverview() {
             <Link className="nav-action-button" to="/admin/teachers">Teachers</Link>
             <Link className="nav-action-button" to="/admin/students">Students</Link>
             <Link className="nav-action-button" to="/admin/papers">Papers</Link>
+            <Link className="nav-action-button" to="/admin/analytics">Analytics</Link>
             <Link className="nav-action-button" to="/admin/leaderboard">Leaderboard</Link>
           </div>
           <p className="meta">Role permissions remain enforced on the server; this dashboard only provides navigation.</p>

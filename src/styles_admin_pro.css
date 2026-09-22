@@ -225,3 +225,14 @@ form .card > div[style*="display: flex"] > div { min-width: 0; }
 .create-schedule-card .create-section-heading { margin-bottom: 16px; }
 @media (max-width: 1050px) { .admin-stat-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } }
 @media (max-width: 560px) { .admin-stat-grid { grid-template-columns: 1fr; } .create-schedule-card { padding: 16px; } }
+
+/* ---- Analytics page: simple horizontal bars, no chart library ---- */
+.analytics-bar-row { margin-bottom: 14px; }
+.analytics-bar-row:last-child { margin-bottom: 0; }
+.analytics-bar-label { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: 5px; color: var(--ink); }
+.analytics-bar-label strong { font-weight: 800; }
+.analytics-bar-track { height: 10px; border-radius: 6px; background: #eee7da; overflow: hidden; }
+.analytics-bar-fill { height: 100%; border-radius: 6px; min-width: 2px; transition: width .3s ease; }
+.analytics-bar-fill.tone-blue { background: #3f6fbf; }
+.analytics-bar-fill.tone-gold { background: #c9962f; }
+.analytics-bar-fill.tone-plum { background: #8a5cd6; }
