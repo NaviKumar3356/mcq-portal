@@ -7,33 +7,32 @@ exports.handler = async (event) => {
   if (!auth) return json(401, { error: 'Your student session has expired or was signed out.' });
 
   try {
-    const { data: myStudent } = await supabase
-      .from('students')
-      .select('class')
-      .eq('id', auth.student_id)
-      .single();
-
-    const { data: allTests, error: e2 } = await supabase
-      .from('tests')
-      .select('id, title, subject, class, duration_minutes, start_at, end_at, status, results_published, total_marks')
-      .eq('class', myStudent.class)
-      .neq('status', 'draft')
-      .order('start_at', { ascending: false });
-    if (e2) throw e2;
-
-    const { data: mySubs } = await supabase
-      .from('submissions')
-      .select('test_id, status, total_marks_awarded')
-      .eq('student_id', auth.student_id);
-
-    const subMap = Object.fromEntries((mySubs || []).map((s) => [s.test_id, s]));
-
-    // Tests this student has been individually granted a re-entry pass for —
-    // shown as "open" on their dashboard even if the overall window closed.
-    const { data: reopens } = await supabase
-      .from('test_reopens')
-      .select('test_id')
-      .eq('student_id', auth.student_id);
+    // The signed student JWT already contains the class. Avoid an extra
+    // students lookup on every dashboard refresh. Run the three independent
+    // reads concurrently to reduce wall-clock latency on the free tier.
+    const [testsResult, subsResult, reopensResult] = await Promise.all([
+      supabase
+        .from('tests')
+        .select('id, title, subject, class, duration_minutes, start_at, end_at, status, results_published, total_marks')
+        .eq('class', auth.class)
+        .neq('status', 'draft')
+        .order('start_at', { ascending: false }),
+      supabase
+        .from('submissions')
+        .select('test_id, status, total_marks_awarded')
+        .eq('student_id', auth.student_id),
+      supabase
+        .from('test_reopens')
+        .select('test_id')
+        .eq('student_id', auth.student_id),
+    ]);
+    if (testsResult.error) throw testsResult.error;
+    if (subsResult.error) throw subsResult.error;
+    if (reopensResult.error) throw reopensResult.error;
+    const allTests = testsResult.data || [];
+    const mySubs = subsResult.data || [];
+    const reopens = reopensResult.data || [];
+    const subMap = Object.fromEntries(mySubs.map((s) => [s.test_id, s]));
     const reopenedSet = new Set((reopens || []).map((r) => r.test_id));
 
     const now = new Date();

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api, uploadAnswerFile, getAuthInfo } from '../lib/api.js';
 import SchoolLogo from '../components/SchoolLogo.jsx';
 import { SCHOOL_NAME } from '../lib/constants.js';
+import PythonRunner from '../components/PythonRunner.jsx';
 
 // How many times a student can switch tabs / lose window focus before the
 // test is auto-submitted and flagged for the teacher. Change this one
@@ -437,17 +438,26 @@ export default function TakeTest() {
                   </div>
                   {['html','python','sql'].includes(q.language || 'html') ? (
                     <>
-                      <textarea
-                        className="code-editor"
-                        spellCheck={false}
-                        value={answers[q.id]?.written_text ?? (q.starter_code || '')}
-                        onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
-                      />
-                      {q.language === 'html' && (
-                        <div className="html-live-preview">
-                          <div className="meta">LIVE HTML PREVIEW</div>
-                          <iframe title={`HTML preview for question ${idx + 1}`} sandbox="allow-scripts" srcDoc={answers[q.id]?.written_text || q.starter_code || ''} />
-                        </div>
+                      {q.language === 'python' ? (
+                        <PythonRunner
+                          code={answers[q.id]?.written_text ?? (q.starter_code || '')}
+                          onChange={(value) => setAnswer(q.id, { written_text: value })}
+                        />
+                      ) : (
+                        <>
+                          <textarea
+                            className="code-editor"
+                            spellCheck={false}
+                            value={answers[q.id]?.written_text ?? (q.starter_code || '')}
+                            onChange={(e) => setAnswer(q.id, { written_text: e.target.value })}
+                          />
+                          {q.language === 'html' && (
+                            <div className="html-live-preview">
+                              <div className="meta">LIVE HTML PREVIEW</div>
+                              <iframe title={`HTML preview for question ${idx + 1}`} sandbox="allow-scripts" srcDoc={answers[q.id]?.written_text || q.starter_code || ''} />
+                            </div>
+                          )}
+                        </>
                       )}
                     </>
                   ) : (

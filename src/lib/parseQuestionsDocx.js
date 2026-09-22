@@ -61,8 +61,18 @@ export function parseQuestionsDocx(rawText) {
   let mainText = text;
   let variantResult = null;
   if (variantIdx >= 0) {
-    mainText = text.slice(0, variantIdx);
-    variantResult = parsePracticalDocx(text.slice(variantIdx));
+    // If the document is a multi-question practical paper with VARIANT
+    // pools, let the practical parser see the QUESTION section headings so
+    // each question gets its own variant pool. For mixed documents, keep
+    // the legacy behavior for text before the first variant.
+    const questionHeadings = [...text.matchAll(/^\s*QUESTION\s+\d+\s*[—–-].*$/gim)];
+    if (questionHeadings.length > 1) {
+      mainText = '';
+      variantResult = parsePracticalDocx(text);
+    } else {
+      mainText = text.slice(0, variantIdx);
+      variantResult = parsePracticalDocx(text.slice(variantIdx));
+    }
   }
 
   const blocks = splitBlocksPreserveFormatting(mainText);

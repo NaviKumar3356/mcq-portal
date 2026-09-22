@@ -1,0 +1,393 @@
+Grade 9 – Python Practical Exam (5 Questions, 8 Variants per Question)
+
+Instructions: Each student is automatically assigned one variant of every question below. With 8 students, Variants 1–8 are distributed once per question according to roll-number order. Write your Python program directly in the code box provided for each question. Maximum Marks: 50.
+
+QUESTION 1 — Data Types
+Language: Python
+
+VARIANT 1
+Problem Statement (10 Marks)
+Write a Python program that stores a student's name, age and height in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (name, age, height)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 2
+Problem Statement (10 Marks)
+Write a Python program that stores a product's name, price and quantity in appropriately typed variables (string, float and integer) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (product name, price, quantity)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 3
+Problem Statement (10 Marks)
+Write a Python program that stores a student's name, roll number and average marks in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (name, roll number, average marks)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 4
+Problem Statement (10 Marks)
+Write a Python program that stores a book's title, number of pages and price in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (title, pages, price)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 5
+Problem Statement (10 Marks)
+Write a Python program that stores a city's name, population and average temperature in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (city name, population, temperature)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 6
+Problem Statement (10 Marks)
+Write a Python program that stores an employee's name, employee ID and salary in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (employee name, employee ID, salary)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 7
+Problem Statement (10 Marks)
+Write a Python program that stores a movie's title, release year and rating in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (movie title, release year, rating)
+
+
+# Print each value along with its type using type()
+
+
+VARIANT 8
+Problem Statement (10 Marks)
+Write a Python program that stores a fruit's name, quantity and price per kg in appropriately typed variables (string, integer and float) and prints each variable along with its data type using the type() function.
+
+Starter Code
+# Declare your variables below (fruit name, quantity, price per kg)
+
+
+# Print each value along with its type using type()
+
+
+QUESTION 2 — For Loop
+Language: Python
+
+VARIANT 1
+Problem Statement (10 Marks)
+Write a Python program using a for loop and the range() function to print the first 10 natural numbers.
+
+Starter Code
+# Use a for loop with range() below
+
+
+VARIANT 2
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print the multiplication table of 7 (7 x 1 up to 7 x 10).
+
+Starter Code
+# Use a for loop below
+
+
+VARIANT 3
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print the square of every number from 1 to 10.
+
+Starter Code
+# Use a for loop below
+
+
+VARIANT 4
+Problem Statement (10 Marks)
+Write a Python program using a for loop to calculate and print the sum of the first 10 natural numbers.
+
+Starter Code
+# Use a for loop below
+total = 0
+
+
+VARIANT 5
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print all even numbers between 1 and 20 (inclusive).
+
+Starter Code
+# Use a for loop below
+
+
+VARIANT 6
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print the numbers from 10 down to 1 in reverse order.
+
+Starter Code
+# Use a for loop with range() below (hint: range can count downward)
+
+
+VARIANT 7
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print the cube of every number from 1 to 5.
+
+Starter Code
+# Use a for loop below
+
+
+VARIANT 8
+Problem Statement (10 Marks)
+Write a Python program using a for loop to print every character of the word "PYTHON" on a separate line.
+
+Starter Code
+word = "PYTHON"
+# Use a for loop below
+
+
+QUESTION 3 — While Loop
+Language: Python
+
+VARIANT 1
+Problem Statement (10 Marks)
+Write a Python program using a while loop to print a countdown from 10 to 1.
+
+Starter Code
+count = 10
+# Use a while loop below
+
+
+VARIANT 2
+Problem Statement (10 Marks)
+Write a Python program using a while loop to calculate and print the sum of the digits of the number 4567.
+
+Starter Code
+number = 4567
+# Use a while loop below
+
+
+VARIANT 3
+Problem Statement (10 Marks)
+Write a Python program using a while loop to calculate and print the factorial of 5.
+
+Starter Code
+n = 5
+factorial = 1
+# Use a while loop below
+
+
+VARIANT 4
+Problem Statement (10 Marks)
+Write a Python program using a while loop to print the first 10 even numbers, starting from 2.
+
+Starter Code
+count = 0
+number = 2
+# Use a while loop below
+
+
+VARIANT 5
+Problem Statement (10 Marks)
+Write a Python program using a while loop to reverse the digits of the number 1234 and print the result.
+
+Starter Code
+number = 1234
+reversed_number = 0
+# Use a while loop below
+
+
+VARIANT 6
+Problem Statement (10 Marks)
+Write a Python program using a while loop to print the numbers from 1 to 10.
+
+Starter Code
+count = 1
+# Use a while loop below
+
+
+VARIANT 7
+Problem Statement (10 Marks)
+Write a Python program using a while loop to calculate and print the sum of the first 10 natural numbers.
+
+Starter Code
+count = 1
+total = 0
+# Use a while loop below
+
+
+VARIANT 8
+Problem Statement (10 Marks)
+Write a Python program using a while loop to count and print the number of digits in the number 98765.
+
+Starter Code
+number = 98765
+count = 0
+# Use a while loop below
+
+
+QUESTION 4 — Conditional Statements
+Language: Python
+
+VARIANT 1
+Problem Statement (10 Marks)
+Write a Python program that checks whether the number 15 is even or odd and prints the result using if-else.
+
+Starter Code
+number = 15
+# Use an if-else statement below
+
+
+VARIANT 2
+Problem Statement (10 Marks)
+Write a Python program that finds and prints the largest of three numbers: 10, 25 and 18, using if-elif-else.
+
+Starter Code
+a, b, c = 10, 25, 18
+# Use if-elif-else below
+
+
+VARIANT 3
+Problem Statement (10 Marks)
+Write a Python program that checks whether the year 2024 is a leap year and prints the result, using if-else. (A year is a leap year if it is divisible by 4, except century years, which must be divisible by 400.)
+
+Starter Code
+year = 2024
+# Use an if-else statement below
+
+
+VARIANT 4
+Problem Statement (10 Marks)
+Write a Python program that checks whether a person aged 16 is eligible to vote (voting age is 18 or above) and prints the result, using if-else.
+
+Starter Code
+age = 16
+# Use an if-else statement below
+
+
+VARIANT 5
+Problem Statement (10 Marks)
+Write a Python program that assigns a grade to a student who scored 78 marks, using if-elif-else. (90 and above: A, 75-89: B, 60-74: C, below 60: D.)
+
+Starter Code
+marks = 78
+# Use if-elif-else below
+
+
+VARIANT 6
+Problem Statement (10 Marks)
+Write a Python program that checks whether the number -7 is positive, negative or zero and prints the result, using if-elif-else.
+
+Starter Code
+number = -7
+# Use if-elif-else below
+
+
+VARIANT 7
+Problem Statement (10 Marks)
+Write a Python program that checks whether a triangle with angles 60, 70 and 50 degrees is valid (the three angles must add up to exactly 180 degrees) and prints the result, using if-else.
+
+Starter Code
+angle1, angle2, angle3 = 60, 70, 50
+# Use an if-else statement below
+
+
+VARIANT 8
+Problem Statement (10 Marks)
+Write a Python program that checks whether the number 45 is divisible by both 3 and 5, and prints the result, using if-else.
+
+Starter Code
+number = 45
+# Use an if-else statement below
+
+
+QUESTION 5 — Lists and the input() Function
+Language: Python
+
+VARIANT 1
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 numbers one by one using the input() function, stores them in a list, and then prints the sum of the list.
+
+Starter Code
+numbers = []
+# Use input() in a loop to collect 5 numbers, then print their sum
+
+
+VARIANT 2
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 numbers one by one using the input() function, stores them in a list, and then prints the maximum number in the list.
+
+Starter Code
+numbers = []
+# Use input() in a loop to collect 5 numbers, then print the maximum
+
+
+VARIANT 3
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 names one by one using the input() function, stores them in a list, and then prints the list.
+
+Starter Code
+names = []
+# Use input() in a loop to collect 5 names, then print the list
+
+
+VARIANT 4
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 numbers one by one using the input() function, stores them in a list, and then prints the average of the list.
+
+Starter Code
+numbers = []
+# Use input() in a loop to collect 5 numbers, then print their average
+
+
+VARIANT 5
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 numbers one by one using the input() function, stores them in a list, and then prints the minimum number in the list.
+
+Starter Code
+numbers = []
+# Use input() in a loop to collect 5 numbers, then print the minimum
+
+
+VARIANT 6
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter the names of 3 subjects one by one using the input() function, stores them in a list, and then prints the list.
+
+Starter Code
+subjects = []
+# Use input() in a loop to collect 3 subject names, then print the list
+
+
+VARIANT 7
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter 5 numbers one by one using the input() function, stores them in a list, and then prints how many of them are even.
+
+Starter Code
+numbers = []
+# Use input() in a loop to collect 5 numbers, then count and print how many are even
+
+
+VARIANT 8
+Problem Statement (10 Marks)
+Write a Python program that asks the user to enter the names of 5 fruits one by one using the input() function, stores them in a list, and then prints the list in reverse order.
+
+Starter Code
+fruits = []
+# Use input() in a loop to collect 5 fruit names, then print the list in reverse order
+

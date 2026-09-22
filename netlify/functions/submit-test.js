@@ -28,6 +28,7 @@ exports.handler = async (event) => {
 
     const { data: test } = await supabase.from('tests').select('id, class, status, start_at, end_at, duration_minutes').eq('id', test_id).maybeSingle();
     if (!test) return json(404, { error: 'Test not found' });
+    if (test.class !== auth.class) return json(403, { error: 'This test is not for your class' });
     if (test.status === 'draft') return json(403, { error: 'This test is not published' });
     const now = new Date();
     if (test.start_at && now < new Date(test.start_at)) return json(403, { error: 'This test has not opened yet' });
@@ -38,9 +39,26 @@ exports.handler = async (event) => {
       .eq('test_id', test_id);
     if (qErr) throw qErr;
     const qMap = Object.fromEntries(questions.map((q) => [q.id, q]));
+    const submittedIds = answers.map((a) => a.question_id);
+    const submittedSet = new Set(submittedIds);
     const invalidQuestionIds = answers.some((a) => !qMap[a.question_id]);
-    const duplicateQuestionIds = new Set(answers.map((a) => a.question_id)).size !== answers.length;
-    if (invalidQuestionIds || duplicateQuestionIds) return json(400, { error: 'The submitted answer set is invalid for this test' });
+    const duplicateQuestionIds = submittedSet.size !== answers.length;
+    const missingQuestionIds = questions.some((q) => !submittedSet.has(q.id));
+    if (invalidQuestionIds || duplicateQuestionIds || missingQuestionIds) {
+      return json(400, { error: 'The submitted answer set is incomplete or invalid for this test' });
+    }
+
+    for (const a of answers) {
+      if (a.mcq_selected != null && (!Number.isInteger(Number(a.mcq_selected)) || Number(a.mcq_selected) < 0)) {
+        return json(400, { error: 'Invalid MCQ answer value' });
+      }
+      if (a.written_text != null && typeof a.written_text !== 'string') {
+        return json(400, { error: 'Invalid written answer value' });
+      }
+      if (a.file_path != null && typeof a.file_path !== 'string') {
+        return json(400, { error: 'Invalid uploaded file reference' });
+      }
+    }
 
     const { data: reopen } = await supabase
       .from('test_reopens')

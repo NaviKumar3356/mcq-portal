@@ -687,3 +687,63 @@ Avoid manually modifying production session records during live examinations unl
 This README describes the cumulative project workflow and the major security, timing and practical-assessment behavior. Before a live examination, verify the deployed Netlify build against the source repository and run a complete test with a non-production student account.
 
 **Never place real student passwords, Supabase service-role keys, private tokens or other production secrets in this README or in the Git repository.**
+
+---
+
+# 32. Security & Performance Hardening (V17)
+
+The current release includes additional server-side validation and free-tier performance optimizations.
+
+### Security fixes included
+
+- Student submissions are now checked against the student's class on the server.
+- A submission must contain the complete question set for the test; missing/duplicate/unknown question IDs are rejected.
+- Uploaded answer references are type-validated.
+- Reattempt uploads no longer silently fall back to 30 minutes when the teacher/admin did not provide a valid duration.
+- Teacher grading verifies that every answer being graded actually belongs to the selected submission.
+- Teacher-entered marks are validated as non-negative and cannot exceed the question's maximum marks.
+- Duplicate answer rows are prevented by a database unique index.
+- Timing-sensitive GET endpoints bypass the frontend in-memory cache so stale deadlines/session state cannot be reused after a reopen or timing change.
+- Student dashboard requests use the class already present in the signed server-verified JWT, avoiding an extra student lookup.
+
+### Performance fixes included
+
+- Student dashboard database reads run concurrently instead of sequentially.
+- Test-detail initial reads are parallelized.
+- Student heartbeat frequency is reduced from every 30 seconds to every 60 seconds while the server-side stale-session window remains short enough to recover abandoned sessions.
+- Existing indexes are supplemented for student login, test start-window lookups and answer integrity.
+
+These changes reduce unnecessary Supabase round trips and database writes without removing the server-side security checks.
+
+### Recommended free-tier protection
+
+Use Netlify's available rate-limiting controls for login and other write-heavy endpoints. This is especially important because student login uses class + roll number + DOB rather than a strong password. Keep the Supabase service-role key server-side only.
+
+For production, consider moving teacher/admin authentication to short-lived, HttpOnly, Secure, SameSite cookies instead of browser-accessible JWTs. The current bearer-token approach is functional, but HttpOnly cookies provide stronger protection against token theft through an XSS bug.
+
+---
+
+# 33. Security Audit
+
+See `SECURITY_AUDIT.md` for the production security review, identified risks, implemented hardening, and recommended free-tier controls.
+
+---
+
+# Python Browser Execution (Current)
+
+Python practical questions now include an in-browser **Run Python** environment powered by Pyodide and executed inside a dedicated Web Worker.
+
+- Students edit Python code directly in the portal.
+- `Run Python` executes the code locally in the browser.
+- Standard `print()` output is displayed in the portal.
+- `input()` is supported through the **Program input** box (one input value per line).
+- An 8-second execution limit stops runaway/infinite-loop programs.
+- Python execution is isolated from the portal DOM and does not require a Netlify function or Supabase request.
+- The submitted answer remains the student's Python source code; execution output is a convenience for the student and is not treated as authoritative grading evidence.
+- The existing Python tab-switch protection remains enabled.
+
+The first Python execution on a device may take longer because the Pyodide runtime must be downloaded and initialized. Subsequent runs benefit from the browser cache.
+
+## Word Paper Import
+
+The Create Test page automatically detects the supported Word practical format. A Grade 9 Python paper structured as **5 questions × 8 variants × 10 marks** is imported as five practical questions with eight variants each and a total of 50 marks. The teacher still reviews the generated draft and clicks **Create Test** so that class, schedule and other examination settings are explicitly confirmed before the test is saved/published.

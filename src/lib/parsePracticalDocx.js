@@ -104,9 +104,6 @@ function parseVariantFormat(text) {
     if (starterIdx >= 0 && !starter_code) {
       warnings.push(`Variant ${variantLabel}: the starter code block looks empty — please check it.`);
     }
-    if (!/_{3,}/.test(starter_code) && starter_code) {
-      warnings.push(`Variant ${variantLabel}: no blanks ("________") detected in the code — double check this is a fill-in-the-blank exercise.`);
-    }
 
     variants.push({ question_text, starter_code });
   }
@@ -225,10 +222,34 @@ function parseNumberedFormat(text) {
   return { questions, warnings };
 }
 
+function parseVariantGroups(text) {
+  const warnings = [];
+  const questions = [];
+  // Support a professional paper layout containing multiple QUESTION
+  // sections, with a pool of VARIANTs under each question.
+  const matches = [...text.matchAll(/^\s*QUESTION\s+(\d+)\s*[—–-].*$/gim)];
+  if (matches.length <= 1) return null;
+
+  for (let i = 0; i < matches.length; i++) {
+    const start = matches[i].index;
+    const end = i + 1 < matches.length ? matches[i + 1].index : text.length;
+    const section = text.slice(start, end);
+    const parsed = parseVariantFormat(section);
+    if (parsed.questions.length) {
+      const q = parsed.questions[0];
+      // Keep the section's question number as metadata for import/debugging.
+      q.question_text = '';
+      questions.push(q);
+    }
+    warnings.push(...parsed.warnings.map((w) => `Question ${i + 1}: ${w}`));
+  }
+  return { questions, warnings };
+}
+
 export function parsePracticalDocx(rawText) {
   const text = String(rawText || '').replace(/\r\n/g, '\n');
   if (/VARIANT\s*\d+/i.test(text)) {
-    return parseVariantFormat(text);
+    return parseVariantGroups(text) || parseVariantFormat(text);
   }
   return parseNumberedFormat(text);
 }
