@@ -21,32 +21,33 @@ function makeWorker() {
       try {
         const pyodide = await getPyodide();
         pyodide.globals.set('__portal_input_text', String(inputText || ''));
-        const result = await pyodide.runPythonAsync(`
-import sys, io, builtins
-__portal_lines = __portal_input_text.splitlines()
-__portal_index = 0
-
-def __portal_input(prompt=''):
-    global __portal_index
-    if prompt:
-        print(prompt, end='')
-    if __portal_index >= len(__portal_lines):
-        raise EOFError('No more input values were provided.')
-    value = __portal_lines[__portal_index]
-    __portal_index += 1
-    return value
-
-builtins.input = __portal_input
-__portal_out = io.StringIO()
-__portal_err = io.StringIO()
-_old_out, _old_err = sys.stdout, sys.stderr
-sys.stdout, sys.stderr = __portal_out, __portal_err
-try:
-    exec(compile(${JSON.stringify(code)}, '<student_code>', 'exec'), {})
-finally:
-    sys.stdout, sys.stderr = _old_out, _old_err
-(__portal_out.getvalue(), __portal_err.getvalue())
-        `);
+        const pythonProgram = [
+          'import sys, io, builtins',
+          '__portal_lines = __portal_input_text.splitlines()',
+          '__portal_index = 0',
+          '',
+          'def __portal_input(prompt=\'\'):',
+          '    global __portal_index',
+          '    if prompt:',
+          '        print(prompt, end=\'\')',
+          '    if __portal_index >= len(__portal_lines):',
+          '        raise EOFError(\'No more input values were provided.\')',
+          '    value = __portal_lines[__portal_index]',
+          '    __portal_index += 1',
+          '    return value',
+          '',
+          'builtins.input = __portal_input',
+          '__portal_out = io.StringIO()',
+          '__portal_err = io.StringIO()',
+          '_old_out, _old_err = sys.stdout, sys.stderr',
+          'sys.stdout, sys.stderr = __portal_out, __portal_err',
+          'try:',
+          "    exec(compile(" + JSON.stringify(code) + ", '<student_code>', 'exec'), {})",
+          'finally:',
+          '    sys.stdout, sys.stderr = _old_out, _old_err',
+          '(__portal_out.getvalue(), __portal_err.getvalue())',
+        ].join('\n');
+        const result = await pyodide.runPythonAsync(pythonProgram);
         const output = result?.toJs ? result.toJs() : result;
         const values = Array.isArray(output) ? output : [String(output || ''), ''];
         self.postMessage({ id, ok: true, stdout: values[0] || '', stderr: values[1] || '' });
