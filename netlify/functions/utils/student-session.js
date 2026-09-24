@@ -1,9 +1,7 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const supabase = require('./db');
 
-// A student account may have only one active browser/device session.
-// The lock expires after inactivity so a forgotten or closed browser cannot lock an
-// account forever. The frontend sends a heartbeat while the student is active.
 const IDLE_MINUTES = 3;
 
 function newSessionId() {
@@ -14,8 +12,6 @@ async function acquireStudentSession(studentId) {
   const cutoff = new Date(Date.now() - IDLE_MINUTES * 60 * 1000).toISOString();
   const sessionId = newSessionId();
 
-  // Prefer the database-side atomic operation. This closes the race window
-  // where two serverless login requests arrive at almost exactly the same time.
   const { data: acquired, error: rpcError } = await supabase.rpc('acquire_student_session', {
     p_student_id: studentId,
     p_session_id: sessionId,
@@ -23,7 +19,6 @@ async function acquireStudentSession(studentId) {
   });
   if (!rpcError) return { ok: acquired === true, sessionId: acquired === true ? sessionId : null, reason: acquired === true ? null : 'active' };
 
-  // Backward-compatible fallback for databases that have V15 but not V16 yet.
   const { data: existing, error: lookupError } = await supabase
     .from('student_active_sessions')
     .select('id, session_id, last_seen_at')
@@ -32,7 +27,6 @@ async function acquireStudentSession(studentId) {
   if (lookupError) throw lookupError;
 
   if (existing && existing.last_seen_at > cutoff) return { ok: false, reason: 'active' };
-
   if (existing) {
     const { error: deleteError } = await supabase.from('student_active_sessions').delete().eq('id', existing.id);
     if (deleteError) throw deleteError;
@@ -73,16 +67,17 @@ async function releaseStudentSession(studentId, sessionId) {
   if (error) throw error;
 }
 
-module.exports = { acquireStudentSession, touchStudentSession, releaseStudentSession, IDLE_MINUTES };
-
 async function requireStudentSession(event) {
   const authHeader = event.headers?.authorization || event.headers?.Authorization;
   if (!authHeader) return null;
   const token = authHeader.replace(/^Bearer\s+/i, '');
-  const jwt = require('jsonwebtoken');
   try {
     const auth = jwt.verify(token, process.env.JWT_SECRET);
     if (auth.role !== 'student' || !auth.student_id || !auth.session_id) return null;
+
+    // E2E tokens are stateless and only valid on non-production deploys.
+    if (auth.e2e === true && process.env.CONTEXT !== 'production') return auth;
+
     const active = await touchStudentSession(auth.student_id, auth.session_id);
     return active ? auth : null;
   } catch {

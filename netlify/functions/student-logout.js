@@ -5,6 +5,11 @@ exports.handler = async (event) => {
   if (event.httpMethod !== 'POST') return json(405, { error: 'Method not allowed' });
   const auth = getAuth(event);
   if (!auth || auth.role !== 'student') return json(200, { ok: true });
+
+  if (auth.e2e === true && process.env.CONTEXT !== 'production') {
+    return json(200, { ok: true, e2e: true });
+  }
+
   try {
     await releaseStudentSession(auth.student_id, auth.session_id);
     return json(200, { ok: true });

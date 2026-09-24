@@ -4,3 +4,9 @@ dist/
 .env.local
 netlify/functions/.env
 .netlify/
+
+# Local E2E credentials/configuration
+tests/test-config.js
+E2E_TEST_SECRET.txt
+
+.env.test

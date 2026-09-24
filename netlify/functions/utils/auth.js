@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-
 const SECRET = process.env.JWT_SECRET;
 
 function sign(payload, expiresIn = '12h') {
@@ -8,14 +7,14 @@ function sign(payload, expiresIn = '12h') {
 
 function verify(token) {
   try {
-    return jwt.verify(token, SECRET);
+    const auth = jwt.verify(token, SECRET);
+    if (auth?.e2e && process.env.CONTEXT === 'production') return null;
+    return auth;
   } catch (e) {
     return null;
   }
 }
 
-// Pulls "Authorization: Bearer <token>" out of a Netlify function event
-// and returns the decoded payload, or null if missing/invalid/expired.
 function getAuth(event) {
   const header = event.headers.authorization || event.headers.Authorization;
   if (!header) return null;
@@ -34,7 +33,6 @@ function json(statusCode, body) {
   };
 }
 
-// Returns the decoded auth if it matches one of the allowed roles, else null.
 function requireRole(event, roles) {
   const auth = getAuth(event);
   if (!auth || !roles.includes(auth.role)) return null;

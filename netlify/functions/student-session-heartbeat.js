@@ -6,6 +6,10 @@ exports.handler = async (event) => {
   const auth = getAuth(event);
   if (!auth || auth.role !== 'student') return json(401, { error: 'Student session required' });
 
+  if (auth.e2e === true && process.env.CONTEXT !== 'production') {
+    return json(200, { ok: true, e2e: true });
+  }
+
   try {
     const ok = await touchStudentSession(auth.student_id, auth.session_id);
     if (!ok) return json(401, { error: 'Your student session has expired or was signed out. Please log in again.' });

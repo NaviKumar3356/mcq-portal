@@ -747,3 +747,31 @@ The first Python execution on a device may take longer because the Pyodide runti
 ## Word Paper Import
 
 The Create Test page automatically detects the supported Word practical format. A Grade 9 Python paper structured as **5 questions × 8 variants × 10 marks** is imported as five practical questions with eight variants each and a total of 50 marks. The teacher still reviews the generated draft and clicks **Create Test** so that class, schedule and other examination settings are explicitly confirmed before the test is saved/published.
+
+
+## Free browser end-to-end testing
+
+A local Playwright suite is included under `tests/` to exercise the portal from real browser interactions.
+
+Install the free/open-source test runner and Chromium:
+
+```bash
+npm install
+npx playwright install chromium
+```
+
+Run all browser tests:
+
+```bash
+npm run test:e2e
+```
+
+Run the complete Grade 9 student flow:
+
+```bash
+npm run test:student
+```
+
+The student suite covers login, dashboard, protected routes, the 5-question/50-mark Python practical, Variant-5 assignment for Roll 5, in-browser Python execution, `input()`, output checking, refresh persistence, session locking, logout, and optional file-practical uploads.
+
+See `tests/README.md` for environment variables and teacher/admin testing.
