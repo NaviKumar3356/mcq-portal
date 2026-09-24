@@ -24,7 +24,7 @@ export async function loginStudent(page, options = {}) {
   // Send the E2E secret only with the login request, not with every API call.
   if (options.e2e !== false && e2eSecret) {
     await page.route('**/api/login-student', async route => {
-      const headers = { ...route.request().headers(), 'x-e2e-test-secret': e2eSecret };
+      const headers = { ...route.request().headers(), 'x-e2e-test-key': e2eSecret };
       await route.continue({ headers });
     });
   }
